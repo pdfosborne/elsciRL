@@ -1,12 +1,12 @@
 from datetime import datetime
 import os
 import urllib.request
-import json
+import json 
+import httpimport
+# Local imports
 from elsciRL.benchmarking_suite.imports import Applications
 from elsciRL.benchmarking_suite.default_agent import DefaultAgentConfig
-from elsciRL import STANDARD_RL
-from elsciRL.experiments.GymExperiment import GymExperiment
-import httpimport
+
 # Imports needed for applications to run
 # import numpy as np
 # import pandas as pd
@@ -15,10 +15,14 @@ import httpimport
 # from torch import Tensor
 # from elsciRL.encoders.poss_state_encoded import StateEncoder
 # from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
-from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
 
-class BenchmarkExperiment:
-    """BenchmarkExperiment class to run a benchmarking suite of experiments.
+# elsciRL Imports
+from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
+from elsciRL import STANDARD_RL
+from elsciRL.experiments.GymExperiment import GymExperiment
+
+class test:
+    """Simply applications class to run a setup tests of experiments.
         - Experiment type: 'standard' or 'gym' experiment depending on agent types selected
         - Problem selection: problems to run in format {''problem1': ['config1', 'config2'], 'problem2': ['config1', 'config2']}
         - Agent config: custom agent configurations
@@ -55,11 +59,12 @@ class BenchmarkExperiment:
         adapters = self.ExperimentConfig['adapter_select']
         for problem in list(self.problem_selection.keys()):
             if problem not in self.imports:
-                raise ValueError(f"Problem {problem} not found in the benchmarking suite.")
+                raise ValueError(f"Problem {problem} not found in the setup tests.")
             else:
                 self.current_test[problem] = {}
+                # TODO: LOCK DOWN TO A SPECIFIC COMMIT FOR SAFTEY ON IMPORTS
                 # current_test = {'problem1': {'engine':engine.py, 'local_configs': {'config1':config.json, 'config2':config.json}, 'adapters': {'adapter1':adapter.py, 'adapter2':adapter.py}}}
-                root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + self.imports[problem]['branch']
+                root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + self.imports[problem]['commit_id']
                 # NOTE - This requires repo to match structure with engine inside environment folder
                 engine_module = httpimport.load(self.imports[problem]['engine_filenames'], root+'/environment') 
                 self.current_test[problem]['engine'] = engine_module.Engine
@@ -84,7 +89,7 @@ class BenchmarkExperiment:
                 self.current_test[problem]['adapters'] = {}
                 for selected_adapter in adapter_list:
                     if adapter not in self.imports[problem]['adapter_filenames']:
-                        raise ValueError(f"Adapter {adapter} not found in the benchmarking suite for problem {problem}.")
+                        raise ValueError(f"Adapter {adapter} not found in the setup tests for problem {problem}.")
                     else:
                         # NOTE - This requires repo to match structure with engine inside adapters folder
                         adapter_module = httpimport.load(self.imports[problem]['adapter_filenames'][selected_adapter], root+'/adapters')   
@@ -96,7 +101,7 @@ class BenchmarkExperiment:
                 # - Subset selection of configs
                 for config in self.problem_selection[problem]:
                     if config not in self.imports[problem]['local_config_filenames']:
-                        raise ValueError(f"Configuration {config} not found in the benchmarking suite for problem {problem}.")
+                        raise ValueError(f"Configuration {config} not found in the setup tests suite for problem {problem}.")
                     else:
                         self.current_test[problem]['local_configs'] = {}
                         # - Replace adapter select with extracted one from agent_config input  

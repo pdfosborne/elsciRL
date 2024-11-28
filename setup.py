@@ -7,7 +7,6 @@ setup(
         'elsciRL', 
         'elsciRL.agents',
         'elsciRL.analysis',
-        'elsciRL.benchmarking_suite',
         'elsciRL.encoders', 
         'elsciRL.environment_setup',
         'elsciRL.evaluation',
@@ -15,6 +14,7 @@ setup(
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
+        'elsciRL.benchmarking_suite',
         ],
     # TODO: Add benchmark to exclusion of wheel
     url='https://github.com/pdfosborne/elsciRL',
@@ -29,8 +29,11 @@ setup(
         'seaborn',
         'scipy>=1.10.1',
         'torch',
-        'sentence-transformers',
         'tqdm',
-        'httpimport'
+        'httpimport',
+        'sentence-transformers',
+        'gymnasium',
+        'stable-baselines3'
+
     ] 
 )
