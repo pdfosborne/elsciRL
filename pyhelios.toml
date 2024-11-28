@@ -1,0 +1,18 @@
+[project]
+name = "elsciRL"
+version = "1.0.0"
+authors = [
+  { name="Philip Osborne", email="pdfosborne@gmail.com" },
+]
+description = "Applying the elsciRL architecture to Reinforcement Learning problems."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Public License v3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pdfosborne/elscirl"
+"Bug Tracker" = "https://github.com/pdfosborne/elscirl/issues"
