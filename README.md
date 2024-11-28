@@ -12,7 +12,7 @@ This is the homepage of applying the elsciRL system to any Reinforcement Learnin
 
 Complete Documentation can be found here: [elsciRL-Wiki](https://github.com/pdfosborne/elsciRL-Wiki).
 
-To get started, see [Getting Started](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/elsciRL%20Core/I%20-%20Introduction/2%20-%20Getting%20Started.md).
+To get started, see [Getting Started](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/elsciRL%20Core/I%20-%20Introduction/1%20-%20Getting%20Started.md).
 
 The elsciRL approach is a generally applicable instruction following method whereby a two-layer hierarchy is formed: 1) a high level instruction plan and 2) the low level environment interaction. Uniquely, this work does not assume that instructions (or sub-goals) need to be supervised. Instead, we assume the environment contains some language such that this can be completed unsupervised. Furthermore, the unsupervised completion of each instruction is presented back to the user and their feedback strengthens the quality of the matching between observed environment positions and expected outcomes.
 
@@ -27,6 +27,4 @@ Second, instead of simplifying importing pre-built agents into a custom system w
 Lastly, analysis formatting and structure is generated such that the individual user only needs to interpret them to adjust parameters accordingly.
 
 Provided a user can setup their problem using the template structure provided they can then leverage the most advanced Reinforcement Learning approaches with a simple parameter input. This also ensures the system is future-proof as new agents or encoders will be added as modules in later updates. 
-
-<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elscirl_overview.png"></a>
 
