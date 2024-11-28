@@ -2,10 +2,12 @@ from distutils.core import setup
 
 setup(
     name='elsciRL',
-    version='1.3.26',
+    version='0.0.3',
     packages=[
         'elsciRL', 
+        'elsciRL.adapters',
         'elsciRL.agents',
+        'elsciRL.agents.stable_baselines',
         'elsciRL.analysis',
         'elsciRL.encoders', 
         'elsciRL.environment_setup',
