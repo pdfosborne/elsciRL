@@ -1,11 +1,14 @@
-# elsciRL (Alpha Development)
+# elsciRL
 
-<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="72" width="72" ></a> 
+<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="100" width="100" ></a> 
 
 <div align="center">
   <h1>Automate Anything, Automate Everything!</h1>
   <br>
+  Current in <i>Alpha Development</i> stage.
+  <br>
   Visit our [website](https://elsci.org) to get started or join our [Discord server](https://discord.gg/A2dRVrhB) to connect with the community.
+  <br>
 </div>
 
 
