@@ -5,9 +5,9 @@
 <div align="center">
   <h1>Automate Anything, Automate Everything!</h1>
   <br>
-  Current in <i>Alpha Development</i> stage.
-  <br>
   Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/A2dRVrhB">Discord server</a> to connect with the community.
+  <br>
+  <i>In early Alpha Development.</i>
 </div>
 
 <div align="center">  
