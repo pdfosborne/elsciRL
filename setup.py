@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='elsciRL',
-    version='0.0.3',
+    version='0.0.6',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -20,7 +20,7 @@ setup(
         ],
     # TODO: Add benchmark to exclusion of wheel
     url='https://github.com/pdfosborne/elsciRL',
-    license='GNU Public License v3',
+    license='Apache-2.0 license',
     author='Philip Osborne',
     author_email='pdfosborne@gmail.com',
     description='Applying the elsciRL architecture to Reinforcement Learning problems.',
