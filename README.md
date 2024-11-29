@@ -3,11 +3,7 @@
 <a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="72" width="72" ></a> 
 
 <div align="center">
-  **Automate Anything, Automate Everything!**
-  <br>
-  **elsciRL (pronounced L-SEE)** is an abbreviation of our mission: *"Everything can be automated using Language and Self-Completing Instructions in Reinforcement Learning"*.
-  <br>
-  To achieve this, elsciRL offers a novel framework and infrastructure for accelerating the development of language based Reinforcement Learning solutions.[website](https://elsci.org).
+  <h1>Automate Anything, Automate Everything!</h1>
   <br>
   Visit our [website](https://elsci.org) to get started or join our [Discord server](https://discord.gg/A2dRVrhB) to connect with the community.
 </div>
