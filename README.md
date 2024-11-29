@@ -1,6 +1,17 @@
-# elsciRL - in Alpha Development Stage
+# elsciRL (Alpha Development)
 
-<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="48" width="48" ></a> [Homepage](https://elsci.org)
+<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="72" width="72" ></a> 
+
+<div align="center">
+  **Automate Anything, Automate Everything!**
+  <br>
+  **elsciRL (pronounced L-SEE)** is an abbreviation of our mission: *"Everything can be automated using Language and Self-Completing Instructions in Reinforcement Learning"*.
+  <br>
+  To achieve this, elsciRL offers a novel framework and infrastructure for accelerating the development of language based Reinforcement Learning solutions.[website](https://elsci.org).
+  <br>
+  Visit our [website](https://elsci.org) to get started or join our [Discord server](https://discord.gg/A2dRVrhB) to connect with the community.
+</div>
+
 
 [![GitHub watchers](https://img.shields.io/github/watchers/pdfosborne/elsciRL?style=for-the-badge&logo=github&label=elsciRL&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL)](https://github.com/pdfosborne/elsciRL) [![GitHub watchers](https://img.shields.io/github/watchers/pdfosborne/elsciRL-Wiki?style=for-the-badge&logo=github&label=elsciRL-Wiki&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL-Wiki)](https://github.com/pdfosborne/elsciRL-Wiki)  [![Discord](https://img.shields.io/discord/1310579689315893248?style=for-the-badge&logo=discord&label=Discord&link=https%3A%2F%2Fdiscord.com%2Fchannels%2F1184202186469683200%2F1184202186998173878)](https://discord.gg/A2dRVrhB)
 
