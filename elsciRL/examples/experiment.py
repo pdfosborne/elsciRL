@@ -23,6 +23,7 @@ from elsciRL.examples.local_configs import gym_frozenlake_config_local as GymFro
 # ------ Visual Analysis -----------------------------------------------
 from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
 
+#TODO: Create output directory for the user
 class DemoExperiment:
     def __init__(self):
         # Lookup tables
