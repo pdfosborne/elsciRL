@@ -1,6 +1,6 @@
 # elsciRL
 
-<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo.png" align="left" height="90" width="90" ></a> 
+<a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsci-whale-logo.png" align="left" height="90" width="90" ></a> 
 
 <div align="center">
   <h1>Automate Anything, Automate Everything!</h1>
