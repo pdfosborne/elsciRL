@@ -3,7 +3,7 @@
 <a href="url"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsci-whale-logo.png" align="left" height="90" width="90" ></a> 
 
 <div align="center">
-  <h1>Automate Anything, Automate Everything!</h1>
+  <b>Automate Anything, Automate Everything!</b>
   <br>
   Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/A2dRVrhB">Discord server</a> to connect with the community.
   <br>
