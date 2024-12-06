@@ -2,7 +2,7 @@ import os
 import json
 import logging
 # Define Agent's parameters for problem
-# Opponent is considered a 'local' specification as benchamarks vary between setting
+# Opponent is considered a 'local' specification as benchmarks vary between setting
 
 class LocalConfig:
     def __init__(self, config_file_path: str):
@@ -34,8 +34,10 @@ class ProblemConfig(LocalConfig):
         # State form
         self.adapter_select = self.data.get("adapter_select", [""])
         # Enabled agent to be trained against multiple opponents in order provided
-        self.training_opponent_agent = self.data.get("training_opponent_agent", "")
-        self.testing_opponent_agent = self.data.get("testing_opponent_agent", "")
+        self.training_opponent_agent = self.data.get(
+            "training_opponent_agent", "")
+        self.testing_opponent_agent = self.data.get(
+            "testing_opponent_agent", "")
         
         self.training_setup = self.data.get("training_setup",'default')
         self.testing_setup = self.data.get("testing_setup",'default')

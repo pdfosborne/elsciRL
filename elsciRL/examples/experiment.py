@@ -3,7 +3,7 @@ import pandas as pd
 import os
 # ====== elsciRL IMPORTS =========================================
 # ------ Train/Test Function Imports ----------------------------
-from elsciRL import STANDARD_RL
+from elsciRL.experiments.standard import Experiment as STANDARD_RL
 # ====== LOCAL IMPORTS ==========================================
 # ------ Local Environment --------------------------------------
 from elsciRL.examples.environments.elsciRL_sailing import Engine as Sailing
@@ -21,7 +21,7 @@ from elsciRL.examples.local_configs import sailing_config_local as SailingLocalC
 from elsciRL.examples.local_configs import gym_frozenlake_config_local as GymFrozenLakeLocalConfig
 # --------------------------------------------------------------------
 # ------ Visual Analysis -----------------------------------------------
-from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
+from elsciRL.analysis.combined_variance_visual import combined_variance_analysis_graph as COMBINED_VARIANCE_ANALYSIS_GRAPH
 
 #TODO: Create output directory for the user
 class DemoExperiment:
@@ -36,48 +36,47 @@ class DemoExperiment:
         # Default settings
         self.ExperimentConfig = ExperimentConfig.ExperimentConfigData
         self.experiment_settings:list=['sailing','frozenlake']
-        self.num_train_epi:int = 0
+        self.num_train_epi:int = 0 # hard over-ride for developers
         self.adapter_overwrite:list = []
         # Create output directory if it doesn't exist
         self.cwd = os.getcwd()+'/elsciRL-EXAMPLE-output'
         if not os.path.exists(self.cwd):
             os.mkdir(self.cwd)
-        
+    
+    def help(self):
+        config = """
+        Configures the experiment settings, edit any of the following inputs:
+            - num_train_episodes: Number of training episodes
+            - num_train_repeats: Number of training repeats
+            - num_test_episodes: Number of test episodes
+            - number_test_repeats: Number of test repeats
+            - Qlearntab_params: Dictionary of Q-learning parameters
+                |--> e.g. {alpha:0.1, gamma:0.95, epsilon:0.2, epsilon_step:0.01}
+            """
+        print(config)
 
-    def user_input(self):
-        possible_problems = self.experiment_settings.copy()
-
+    def input(self):
         # ----- User Input -----
-        problems_list = []
-        while True:
-            problem = input('Enter benchmark to run from '+ str(possible_problems)+ ' (hit enter to continue): ')
-            if problem == '':
-                break
-            elif problem not in possible_problems:
-                print('Invalid benchmark, please try again.')
-            else:
-                problems_list.append(problem)
-        # Update experiment settings
-        self.experiment_settings = problems_list
+        # 1. Number training episodes
         print("Please enter the number of ... (skip to use default) ")
         num_train_epi = input('\t - Training episodes: ')
         if num_train_epi == '':
-            num_train_epi = 0
+            num_train_epi = 1000
         else:
             num_train_epi = int(num_train_epi)
+
+        # Update experiment config
         self.num_train_epi = num_train_epi
         # ----------------------
 
-    def manual_config_overwrite(self, selected_problems:list=['sailing','frozenlake'], 
-                                num_train_episodes:int=0, num_train_repeats:int=5,
-                                test_agent_type:str='all', num_test_episodes:int=0, number_test_repeats:int=5,
-                                agent_select:list=['Qlearntab', 'Qlearntab'],
-                                adapter_select:list=['Default', 'Language'],
-                                Qlearntab_params:dict={'alpha':0.1, 'gamma':0.95, 'epsilon':0.2, 'epsilon_step':0.01}):
-        # Update selected problems
-        if type(selected_problems) == str:
-            selected_problems = [selected_problems]
-        self.experiment_settings = selected_problems
+    def config(self, num_train_episodes:int=100, num_train_repeats:int=5,
+        test_agent_type:str='all', num_test_episodes:int=25, number_test_repeats:int=5,
+        agent_select:list=['Qlearntab'],
+        adapter_select:list=['Default'],
+        Qlearntab_params:dict={
+            'alpha':0.1, 'gamma':0.95, 'epsilon':0.2, 'epsilon_step':0.01}
+                ):
+        
         # Update Experiment Config
         self.num_train_epi = num_train_episodes
         self.ExperimentConfig['number_training_repeats'] = num_train_repeats
@@ -119,10 +118,19 @@ class DemoExperiment:
         # --------------------------------------------------------------------
         return exp
 
-    def run(self):
+    def run(self, problem:str|list=['frozenlake','sailing']):        # Added problem selection and num train episodes to run function
+        # |--> Convert to list if needed
+        if type(problem) == str:
+            experiment_settings = [problem]
+        elif type(problem) == list:
+            experiment_settings = problem
+        else:
+            print("ERROR: Please input a 'problem' as string or [problem1, problem2] as list.")
+        self.experiment_settings = experiment_settings
+        
         self.results_save_dir()
         self.results_dir = []
-        for chosen_problem in self.experiment_settings:
+        for chosen_problem in experiment_settings:
             save_dir = self.save_dir + '/'+chosen_problem
             if not os.path.exists(self.save_dir):
                 os.mkdir(self.save_dir)
@@ -135,30 +143,5 @@ class DemoExperiment:
             exp.test()
 
     def evaluate(self):
-        training_variance_results = {}
-        testing_variance_results = {}
-        agent_types = ['DefaultEng_Qlearntab_Language', 'DefaultEng_Qlearntab_Default']
-        for p,problem in enumerate(self.experiment_settings):
-            for agent_type in agent_types:
-                output_title = problem+'_'+agent_type
-                # Training
-                training_tabular_results = pd.read_csv(self.results_dir[p]+'/Standard_Experiment/training_variance_results_'+agent_type+'.csv')
-                training_variance_results[output_title] = {}
-                training_variance_results[output_title]['results'] = training_tabular_results
-                training_variance_results[output_title]['env_name'] = training_tabular_results['agent'].iloc[0]
-                training_variance_results[output_title]['num_repeats'] = training_tabular_results['num_repeats'].iloc[0]
-                # Testing
-                testing_tabular_results = pd.read_csv(self.results_dir[p]+'/Standard_Experiment/testing_variance_results_'+agent_type+'.csv')
-                testing_variance_results[output_title] = {}
-                testing_variance_results[output_title]['results'] = testing_tabular_results
-                testing_variance_results[output_title]['env_name'] = testing_tabular_results['agent'].iloc[0]
-                testing_variance_results[output_title]['num_repeats'] = testing_tabular_results['num_repeats'].iloc[0]
-
-                
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(training_variance_results, 'TRAINING', self.save_dir, show_figures='Yes')
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(testing_variance_results, 'TESTING', self.save_dir, show_figures='Yes')
-
-    
-    
-
-        
+        COMBINED_VARIANCE_ANALYSIS_GRAPH(self.save_dir, 'TRAINING', show_figures='Yes')
+        COMBINED_VARIANCE_ANALYSIS_GRAPH(self.save_dir, 'TESTING', show_figures='Yes')

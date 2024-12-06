@@ -10,10 +10,11 @@ class SB_A2C(QLearningAgent):
     def __init__(self, policy:str='MlpPolicy', env:gym.Env = None):
         self.epsilon: int = 0 # Not used currently but required for compatibility
         self.device = "auto" if torch.cuda.is_available() else "cpu" # A2C is meant to be run primarily on the CPU, especially when you are not using a CNN.
-        self.a2c = A2C("MlpPolicy", env, verbose=0, device="cpu", learning_rate=0.0007, n_steps=500)
+        self.a2c = A2C("MlpPolicy", env, verbose=0, device="cpu", 
+                       learning_rate=0.0007, n_steps=500)
         if torch.cuda.is_available():
             print("---- A2C is meant to be run primarily on the CPU ----")
-            print("Device:", "CPU")
+            print("Device:", self.a2c.device)
 
     def policy(self, state: any) -> str:
         return self.a2c.predict(state)
@@ -36,14 +37,18 @@ class SB_A2C(QLearningAgent):
         episode_reward = 0
         render_stack = []
         if render:
-            render_stack.append(Image.fromarray(vec_env.render().astype('uint8')))
+            render_stack.append(
+                Image.fromarray(vec_env.render().astype('uint8'))
+                )
         while not done: 
             action, _state = self.a2c.predict(obs, deterministic=True)
             actions.append(int(action))
             obs, r, done, truncated, info = vec_env.step(action)
             episode_reward += r
             if render:
-                render_stack.append(Image.fromarray(vec_env.render().astype('uint8')))
+                render_stack.append(
+                    Image.fromarray(vec_env.render().astype('uint8'))
+                    )
         
             #states.append(info[0]['obs'])
             states.append(info['obs'])

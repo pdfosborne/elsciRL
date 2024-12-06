@@ -12,7 +12,8 @@ class RandomAgent(Agent):
         action = random.choice(legal_actions)
         return action
     
-    def learn(self, state: Tensor, next_state: Tensor, r_p: float, action_code: str) -> float:
+    def learn(self, state: Tensor, next_state: Tensor, r_p: float, 
+              action_code: str) -> float:
         # Do nothing.
         return None
     

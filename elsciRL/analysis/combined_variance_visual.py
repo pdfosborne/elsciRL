@@ -8,9 +8,9 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
     
     if results_dir == '':
         raise ValueError("Save directory not specified.")
-    
+    analysis_type = analysis_type.lower() # lowercase analysis type input
     # Get sub-dir for each problem-experiment type
-    problem_folders = [name for name in os.listdir(results_dir) if os.path.isdir(os.path.join(save_dir, name))]
+    problem_folders = [name for name in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, name))]
     # Find experiment folders
     experiment_folders = {}
     for problem_dir in problem_folders:

@@ -1,3 +1,5 @@
+from .examples.experiment import DemoExperiment
+
 from .experiments.standard import Experiment as STANDARD_RL
 from .instruction_following.supervised_instruction_following import SupervisedExperiment as SUPERVISED_RL_HIERARCHY
 from .instruction_following.unsupervised_instruction_following import UnsupervisedSearch as UNSUPERVISED_RL_HIERARCHY

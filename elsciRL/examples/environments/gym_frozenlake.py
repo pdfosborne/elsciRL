@@ -30,3 +30,12 @@ class Engine:
         """Define legal moves at each position"""
         legal_moves = [0,1,2,3]
         return legal_moves
+
+    def render(self):
+        """Render an image or text of the environment."""
+        self.Environment.render()
+        
+    def close(self):
+        """Close/Exit the environment."""
+        self.Environment.close()
+        print("Environment Closed")

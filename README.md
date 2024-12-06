@@ -33,12 +33,14 @@ pip install elsciRL
 ```
 2. Run the demo experiment in a Python shell
 ```python
-from elsciRL.examples.experiment import DemoExperiment
+from elsciRL import DemoExperiment
 exp = DemoExperiment()
 exp.run()
-exp.analyze()
+exp.evaluate()
 ``` 
 *This will run a Reinforcement Learning experiment on two simple problems (OpenAI Gym's FrozenLake and a Sailing Simulation).*
+
+![demo\_gif](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Documentation/I%20-%20Introduction/attachments/elsciRL_demo_short.gif)
 
 *The analyze function will return a combined chart for the experiments you just ran!*
 

@@ -16,7 +16,8 @@ logger.setLevel(logging.INFO)
 
 
 class TableQLearningAgent(QLearningAgent):
-    def __init__(self, alpha: float, gamma: float, epsilon: float, epsilon_step:float):
+    def __init__(self, alpha: float, gamma: float, epsilon: float, 
+                 epsilon_step:float):
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.epsilon_reset = epsilon

@@ -10,11 +10,12 @@ class SB_PPO(QLearningAgent):
     def __init__(self, policy:str='MlpPolicy', env:gym.Env = None):
         self.epsilon: int = 0 # Not used currently but required for compatibility
         self.device = "auto" if torch.cuda.is_available() else "cpu"
-        self.ppo = PPO("MlpPolicy", env, verbose=0, device=self.device, learning_rate=0.0003, n_steps=2048)
+        self.ppo = PPO("MlpPolicy", env, verbose=0, device=self.device, 
+                       learning_rate=0.0003, n_steps=2048)
         if torch.cuda.is_available():
             print("---- Using GPU ----")
             print("Device:", self.ppo.device)
-
+    
     def policy(self, state: any) -> str:
         return self.ppo.predict(state)
 
@@ -23,7 +24,7 @@ class SB_PPO(QLearningAgent):
     
     def test(self, env, render:bool=False):
         #mean_reward, std_reward = evaluate_policy(self.a2c, env, n_eval_episodes=1)
-        vec_env = self.a2c.get_env()
+        vec_env = self.ppo.get_env()
         obs = vec_env.reset()
         
         actions = []
@@ -32,7 +33,9 @@ class SB_PPO(QLearningAgent):
         done = False
         render_stack = []
         if render:
-            render_stack.append(Image.fromarray(vec_env.render().astype('uint8')))
+            render_stack.append(
+                Image.fromarray(vec_env.render().astype('uint8'))
+                )
         while not done: 
             action, _state = self.ppo.predict(obs, deterministic=True)
             actions.append(action[0])
@@ -40,7 +43,9 @@ class SB_PPO(QLearningAgent):
             obs, r, done, info = vec_env.step(action)
             states.append(info[0]['obs'])
             if render:
-                render_stack.append(Image.fromarray(vec_env.render().astype('uint8')))
+                render_stack.append(
+                    Image.fromarray(vec_env.render().astype('uint8'))
+                    )
             
             #vec_env.render("human")
         episode_reward = info[0]['episode']['r']

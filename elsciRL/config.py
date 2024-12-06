@@ -29,7 +29,10 @@ class ExperimentConfig(Config):
         super(ExperimentConfig, self).__init__(config_path)
         
         # Name setup
-        self.name = self.data.get("name", os.path.split(self.config_file_path)[-1].replace(".json", ""))
+        self.name = self.data.get(
+            "name", 
+            os.path.split(self.config_file_path)[-1].replace(".json", "")
+            )
         # Define Problem Type Choice
         self.problem_type = self.data.get("problem_type", "")
         # Specify local config choices to select agents of interest
@@ -39,11 +42,13 @@ class ExperimentConfig(Config):
         # ---> Ideally input is a dict input: setups = { 'Setup1':{"Adapter":"Engine", "Encoder":"Yes", "Agent":"TabQ"},... }
 
         # Training repeated 
-        self.experience_sample_batch_size = self.data.get("experience_sample_batch_ratio", 0)
+        self.experience_sample_batch_size = self.data.get(
+            "experience_sample_batch_ratio", 0)
 
         # Training repeated 
         self.num_episodes = self.data.get("num_episodes", 1000)
-        self.number_training_repeats = self.data.get("number_training_repeats", 2)
+        self.number_training_repeats = self.data.get(
+            "number_training_repeats", 2)
 
         # Testing repeated
         self.number_test_episodes = self.data.get("number_test_episodes", 100)

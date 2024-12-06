@@ -53,7 +53,7 @@ class StateEncNet(nn.Module):
                 *[nn.Linear(hidden_dim, hidden_dim) for i in range(num_hidden)]
             ).to(self.device)
 
-        self.output: nn.Linear = nn.Linear(hidden_dim, output_size).to(self.device)
+        self.output:nn.Linear=nn.Linear(hidden_dim, output_size).to(self.device)
 
     def forward(self, x):
         x = x.to(self.device)
@@ -76,7 +76,8 @@ class StateEncNet(nn.Module):
 
 
 class Transition:
-    def __init__(self, state: Tensor, action: int, next_state: Tensor, reward: float):
+    def __init__(self, state: Tensor, action: int,
+                 next_state: Tensor, reward: float):
         self.state: Tensor = state
         self.action: int = action
         self.next_state: Tensor = next_state

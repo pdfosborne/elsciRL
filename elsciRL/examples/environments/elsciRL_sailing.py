@@ -5,6 +5,7 @@
 import io
 import numpy as np
 import matplotlib.pyplot as plt
+from elsciRL.examples.environments.sailing_image import SailingImageData
 
 class Engine:
     """Defines the environment function from the generator engine.
@@ -128,8 +129,9 @@ class Engine:
         """Render the environment."""
         # Use preset image for preview of problem
         if len(self.obs_history) == 0:
-            with open('./environment/sailing_image.txt', 'r') as file:
-                raw_image = file.read().split(",")
+            # with open('./environment/sailing_image.txt', 'r') as file:
+            #     raw_image = file.read().split(",")
+            raw_image = SailingImageData['data'].split(",")
 
             width = 240
             height = 300
