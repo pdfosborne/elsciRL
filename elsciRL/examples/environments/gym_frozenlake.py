@@ -9,7 +9,9 @@ class Engine:
     """
     def __init__(self, local_setup_info:dict={}) -> None:
         """Initialize Engine"""
-        self.Environment = gym.make('FrozenLake-v1', desc=None, map_name="4x4", is_slippery=True)
+        self.Environment = gym.make('FrozenLake-v1', desc=None, map_name="4x4", 
+                                    is_slippery=True,
+                                    render_mode='rgb_array')
         
     def reset(self, start_obs:str=None):
         """Fully reset the environment."""
@@ -33,7 +35,7 @@ class Engine:
 
     def render(self):
         """Render an image or text of the environment."""
-        self.Environment.render()
+        return self.Environment.render()
         
     def close(self):
         """Close/Exit the environment."""

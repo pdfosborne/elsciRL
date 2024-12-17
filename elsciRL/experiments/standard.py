@@ -386,7 +386,7 @@ class Experiment:
                         os.mkdir(render_save_dir)
                     render_results = env.episode_loop(render=True, render_save_dir=render_save_dir) 
                     # Produce training report with Analysis.py
-                    Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
+                    #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
             else:  
                 for engine_name, engine in self.engine_list.items():
                     ## Re-init env for testing
@@ -416,4 +416,4 @@ class Experiment:
                         render_results = env.episode_loop(render=True, render_save_dir=render_save_dir) 
                         
                         # Produce training report with Analysis.py
-                        Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
+                        #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)

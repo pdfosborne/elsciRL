@@ -141,6 +141,7 @@ class DemoExperiment:
             exp = self.experiment(chosen_problem, save_dir)
             exp.train()
             exp.test()
+            exp.render_results()
 
     def evaluate(self):
         COMBINED_VARIANCE_ANALYSIS_GRAPH(self.save_dir, 'TRAINING', show_figures='Yes')

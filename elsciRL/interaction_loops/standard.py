@@ -22,13 +22,13 @@ class StandardInteractionLoop:
     """
 
     def __init__(self, Engine, Adapters: dict, local_setup_info: dict):
-        # --- INIT env from engine
-        self.env = Engine(local_setup_info)
-        self.start_obs = self.env.reset()
-        if self.env.render() is not None:
-            self.render = self.env.render()
-        else:
-            self.render = None
+        # --- INIT state space from engine
+        self.engine = Engine(local_setup_info)
+        self.start_obs = self.engine.reset()
+        # if self.engine.render() is not None:
+        #     self.render = self.engine.render()
+        # else:
+        #     self.render = None
         # ---
         # --- PRESET elsciRL INFO
         # Agent
@@ -88,10 +88,10 @@ class StandardInteractionLoop:
             action_history = []
             # ---
             # Start observation is used instead of .reset()  fn so that this can be overridden for repeat analysis from the same start pos
-            obs = self.env.reset(start_obs=self.start_obs)
+            obs = self.engine.reset(start_obs=self.start_obs)
             if render:
-                render_stack.append(Image.fromarray(self.env.render().astype("uint8")))
-            legal_moves = self.env.legal_move_generator(obs)
+                render_stack.append(Image.fromarray(self.engine.render().astype("uint8")))
+            legal_moves = self.engine.legal_move_generator(obs)
             state = self.agent_state_adapter.adapter(
                 state=obs,
                 legal_moves=legal_moves,
@@ -111,23 +111,23 @@ class StandardInteractionLoop:
             for action in range(0, self.training_action_cap):
                 if self.live_env:
                     # Agent takes action
-                    legal_moves = self.env.legal_move_generator(obs)
+                    legal_moves = self.engine.legal_move_generator(obs)
                     agent_action = self.agent.policy(state, legal_moves)
                     action_history.append(agent_action)
 
-                    next_obs, reward, terminated, _ = self.env.step(
+                    next_obs, reward, terminated, _ = self.engine.step(
                         state=obs, action=agent_action
                     )
                     if render:
                         render_stack.append(
-                            Image.fromarray(self.env.render().astype("uint8"))
+                            Image.fromarray(self.engine.render().astype("uint8"))
                         )
 
                     # Can override reward per action with small negative punishment
                     if reward == 0:
                         reward = self.reward_signal[1]
 
-                    legal_moves = self.env.legal_move_generator(next_obs)
+                    legal_moves = self.engine.legal_move_generator(next_obs)
                     next_state = self.agent_state_adapter.adapter(
                         state=next_obs,
                         legal_moves=legal_moves,

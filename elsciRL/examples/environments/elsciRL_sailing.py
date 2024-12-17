@@ -51,6 +51,8 @@ class Engine:
         # Initialize history
         self.action_history = []
         self.obs_history = []
+        
+        
 
     # --------------------------
     # Defined functions used by engine source
@@ -63,7 +65,7 @@ class Engine:
         return Engine.vel(theta, theta_0, theta_dead) * np.cos(theta)
     # --------------------------
 
-    def reset(self, start_obs:str=None):
+    def reset(self, start_obs:str=None, render_dir:str=None):
         """Fully reset the environment."""
         # Allow reset to be at fixed start position or random
         if start_obs:
@@ -74,6 +76,49 @@ class Engine:
             self.angle = 0  # always start with angle 0
         self.y = 0
         obs = "{n:.{d}f}".format(n=self.x, d=self.obs_precision)+'_'+"{:0.1f}".format(self.angle)
+        
+        if render_dir:
+                
+            # SHOW PRETTY IMAGE OF PROBLEM
+            raw_image = SailingImageData['data'].split(",")
+
+            width = 240
+            height = 300
+
+            full_array = []
+            column_counter = 0
+            row = []
+            pixel_counter = 0
+            pixel_list = []
+            for input_item in raw_image:
+                pixel_item = int(input_item.replace(" ",""))
+                if pixel_counter == 3:
+                    # new pixel and reset pixel counter
+                    pixel_counter = 0
+                    pixel_list = []
+                    # Add 3-d pixel to row
+                    if column_counter == width:
+                        # Add row to full array
+                        full_array.append(row)
+                        # new row and reset column counter
+                        column_counter = 0
+                        row = []
+                
+                    row.append(pixel_list)
+                    column_counter+=1
+                
+                pixel_list.append(pixel_item)
+                pixel_counter+=1
+
+            render = np.array(full_array)
+            plt.imshow(render, interpolation='nearest')
+            plt.axis('off')
+            plt.title("Sailing Simulation \n Simple River with Fixed Wind Direction")
+            plt.show()
+            plt.pause(5)
+            plt.savefig(render_dir,bbox_inches='tight')
+            plt.close()
+        
         return obs
 
     
@@ -126,80 +171,47 @@ class Engine:
         return legal_moves
     
     def render(self, state:any=None):
-        """Render the environment."""
-        # Use preset image for preview of problem
-        if len(self.obs_history) == 0:
-            # with open('./environment/sailing_image.txt', 'r') as file:
-            #     raw_image = file.read().split(",")
-            raw_image = SailingImageData['data'].split(",")
-
-            width = 240
-            height = 300
-
-            full_array = []
-            column_counter = 0
-            row = []
-            pixel_counter = 0
-            pixel_list = []
-            for input_item in raw_image:
-                pixel_item = int(input_item.replace(" ",""))
-                if pixel_counter == 3:
-                    # new pixel and reset pixel counter
-                    pixel_counter = 0
-                    pixel_list = []
-                    # Add 3-d pixel to row
-                    if column_counter == width:
-                        # Add row to full array
-                        full_array.append(row)
-                        # new row and reset column counter
-                        column_counter = 0
-                        row = []
-                
-                    row.append(pixel_list)
-                    column_counter+=1
-                
-                pixel_list.append(pixel_item)
-                pixel_counter+=1
-
-            render = np.array(full_array)
+        """Render the environment."""            
+        #render = print("Current State: ", state, " | Action History: ", self.action_history)
+        # state = x_angle
+        x = self.x
+        y = self.y
+        angle = self.angle
+        # Angle is bearing into wind -pi/2 < angle < pi/2
+        if angle < np.pi/2:
+            U = np.sin(angle)
+            V = np.cos(angle)
+        elif angle == np.pi/2:
+            U = 1
+            V = 0
+        elif angle == -np.pi/2:
+            U = -1
+            V = 0
         else:
-            render = print("Current State: ", state, " | Action History: ", self.action_history)
-            # state = x_angle
-            x = self.x
-            y = self.y
-            angle = self.angle
-            # Angle is bearing into wind -pi/2 < angle < pi/2
-            if angle < np.pi/2:
-                U = np.sin(angle)
-                V = np.cos(angle)
-            elif angle == np.pi/2:
-                U = 1
-                V = 0
-            elif angle == -np.pi/2:
-                U = -1
-                V = 0
-            else:
-                U = np.sin(angle)
-                V = -np.cos(angle)
+            U = np.sin(angle)
+            V = -np.cos(angle)
 
-            DPI = 128
-            fig = plt.figure(figsize=(5,5), dpi = DPI)
-            fig.scatter(x,y,'r',alpha=1)
-            fig.quiver(x,y,U,V,angles='uv',scale_units='xy',scale=1)
+        DPI = 128
+        fig, ax = plt.subplots(figsize=(5,5), dpi = DPI)
+        ax.scatter(x,y,c='b',marker='x',alpha=1)
+        ax.quiver(x,y,U,V,angles='uv',scale_units='xy')
 
-            fig.plot([10,10],[0,25],'r')
-            fig.plot([-10,-10],[0,25],'r')
-            fig.title("Sailboat Position with Direction against Wind")
-            fig.xlabel("Horizontal Position (x)")
-            fig.ylabel("Vertical Position (y)")
-            # Save as rgba array 
-            # https://stackoverflow.com/questions/7821518/save-plot-to-numpy-array
-            io_buf = io.BytesIO()
-            fig.savefig(io_buf, format='raw', dpi=DPI)
-            io_buf.seek(0)
-            render = np.reshape(np.frombuffer(io_buf.getvalue(), dtype=np.uint8),
-                                newshape=(int(fig.bbox.bounds[3]), int(fig.bbox.bounds[2]), -1))
-            io_buf.close()
+        ax.plot([10,10],[0,25],'r')
+        ax.plot([-10,-10],[0,25],'r')
+        ax.set_title("Sailboat Position with Direction against Wind")
+        ax.set_xlabel("Horizontal Position (x)")
+        ax.set_ylabel("Vertical Position (y)")
+        # Save as rgba array 
+        # https://stackoverflow.com/questions/7821518/save-plot-to-numpy-array
+        
+
+        fig.canvas.draw()
+        # data = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
+        # render = data.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+
+        buf = fig.canvas.buffer_rgba()
+        data = np.asarray(buf)
+        render = data.reshape(fig.canvas.get_width_height()[::-1] + (4,))
         return render
 
     def close(self):
