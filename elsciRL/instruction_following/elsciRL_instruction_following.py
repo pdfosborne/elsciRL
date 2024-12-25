@@ -55,11 +55,14 @@ class elsciRLOptimize:
     def __init__(self, Config:dict, LocalConfig:dict, 
                  Engine, Adapters:dict,
                  save_dir:str, show_figures:str, window_size:float,
-                 instruction_path: dict, predicted_path: dict=None, instruction_episode_ratio:float=0.1,
+                 instruction_path: dict=None, predicted_path: dict=None, instruction_episode_ratio:float=0.1,
                  instruction_chain:bool=False, instruction_chain_how:str='None'):
         self.ExperimentConfig = Config
         self.LocalConfig = LocalConfig
-        self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data']
+        try:
+            self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data']
+        except:
+            self.setup_info = self.ExperimentConfig | self.LocalConfig
         self.engine = Engine
         self.adapters = Adapters
         self.env = StandardInteractionLoop
@@ -766,7 +769,7 @@ class elsciRLOptimize:
                         os.mkdir(render_save_dir)
                     render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
                     # Produce training report with Analysis.py
-                    Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
+                    #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
                     
             # Re-apply all trained agents with fixed policy
             elif self.test_agent_type.lower()=='all':
@@ -791,6 +794,9 @@ class elsciRLOptimize:
                         env.results.reset() # Reset results table for each agent
                         env.start_obs = start_obs
                         env.agent = agent
+                        # only run once
+                        env.num_train_repeat = 1
+                        env.num_test_repeat = 1
                         env.agent.epsilon = 0 # Remove random actions
                         agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
                         # ---
@@ -800,5 +806,5 @@ class elsciRLOptimize:
                             os.mkdir(render_save_dir)
                         render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
                         # Produce training report with Analysis.py
-                        Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
+                        #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
 

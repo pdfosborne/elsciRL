@@ -51,12 +51,14 @@ class Evaluation:
                 flag = True
 
         sub_folders = [name for name in os.listdir(save_dir) if os.path.isdir(os.path.join(save_dir, name))]
+        sub_folders = [name for name in sub_folders if ('train' in name)]
         sub_folders.sort()
         results = {}
         current_list = []
         prior_agent_type = '_'.join(sub_folders[0].split('_')[:-1])
         for name in sub_folders:
-            agent_type = '_'.join(name.split('_')[:-1])
+            if ('train' in name) | ('test' in name):
+                agent_type = '_'.join(name.split('_')[:-1])
             
             if agent_type not in results:
                 results[agent_type] = {}
@@ -228,6 +230,7 @@ class Evaluation:
                 flag = True
 
         sub_folders = [name for name in os.listdir(save_dir) if os.path.isdir(os.path.join(save_dir, name))]
+        sub_folders = [name for name in sub_folders if ('train' in name)|('test' in name)]
         sub_folders = [name for name in sub_folders if name.split("__")[1].split("_")[0]=='testing']
         print(sub_folders)
         sub_folders.sort()
