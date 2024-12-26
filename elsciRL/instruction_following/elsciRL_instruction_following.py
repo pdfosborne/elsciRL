@@ -198,8 +198,10 @@ class elsciRLOptimize:
         print("Known human instruction inputs. ")
         print(self.known_instructions_dict)
         print(" - ")
+        self.total_num_instructions = 0
         for instr in self.instruction_path:
             print("\n \t - ", instr, " -> ", list(self.instruction_path[instr].keys()))
+            self.total_num_instructions+=1
         
         
                 
@@ -275,6 +277,8 @@ class elsciRLOptimize:
 
                 seed_recall = {}
                 seed_results_connection = {}
+                if self.num_training_seeds <1:
+                    self.num_training_seeds = 1
                 for seed_num in range(0,self.num_training_seeds):
                     if self.num_training_seeds > 1:
                         print("------")
@@ -463,6 +467,8 @@ class elsciRLOptimize:
                             multi_sub_goal = {} # New multi-goal option -> needs to be defined in env
                             while True:
                                 i+=1
+                                if i > self.total_num_instructions:
+                                    break
                                 max_count = 0
                                 # Only allow instruction up until total limit
                                 # - Prevents it being given more episodes than flat

@@ -155,7 +155,7 @@ class Engine:
             reward = -1
             terminated = True
         elif np.abs(self.angle)>self.angle_limit:
-            print("\n \t - Angle limit reached")
+            #print("\n \t - Angle limit reached")
             reward = -1
             terminated = True
         else:
@@ -195,6 +195,13 @@ class Engine:
         fig, ax = plt.subplots(figsize=(5,5), dpi = DPI)
         ax.scatter(x,y,c='b',marker='x',alpha=1)
         ax.quiver(x,y,U,V,angles='uv',scale_units='xy')
+        if y > 1:
+            ax.text(x+0.5,y-1,'Sailboat',color='b')
+
+        # Draw wind direction
+        ax.quiver(0,25,0,-1,angles='uv',scale_units='xy',color='r')
+        ax.text(0,25.25,'Wind',color='r')
+
 
         ax.plot([10,10],[0,25],'r')
         ax.plot([-10,-10],[0,25],'r')
