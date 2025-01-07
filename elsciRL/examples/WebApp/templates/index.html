@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo WebApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .rocket.launch {
+            animation: launchRocket 4s forwards;
+        }
+
+        @keyframes launchRocket {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            100% {
+                transform: translate(700px, -500px) rotate(45deg);
+            }
+        }
+
+        .loading-circle {
+            border: 8px solid var(--border-color);
+            border-top: 8px solid var(--button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+
+        .loading-circle-left {
+            margin-right: 10px;
+            margin-left: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- <header class="header">
+        <h1>Reinforcement Learning Demo</h1>
+    </header> -->
+    
+    <div class="container">
+        <div class="box shadow-effect">
+            <div class="tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Input & Console</button>
+                    <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
+                </div>
+                <div class="tab-text">See elsci.org for more information</div>
+            </div>
+
+            <div id="inputTab" class="tab-content" style="display:block;">
+                <div class="input-console-container">
+                    <!-- Static Image -->
+                    <div class="image-section shadow-effect">
+                        <!-- <p>Current State</p> -->
+                        <img id="currentStateImage" src="/static/sailing_setup.png" alt="Current state image">
+                    </div>
+
+                    <!-- User Input -->
+                    <div class="input-section shadow-effect">
+                        <p>User Input</p>
+                        <textarea id="userInput" placeholder="Enter your commands here... e.g. 'Go to the beach side'"></textarea>
+                        <div class="button-group">
+                            <div style="display: flex; align-items: center;">
+                                <button id="submitBtn" class="submit-btn" onclick="processInput()">Submit</button>
+                                <div id="loadingCircleSubmit" class="loading-circle"></div>
+                            </div>
+                            <button id="retryBtn" onclick="retryDemo()">Retry Demo</button>
+                        </div>
+                        <!-- Rocket Animation -->
+                        <div id="rocket" class="rocket" style="display:none;">
+                            🚀
+                        </div>
+                        <!-- Merged Console Output Log -->
+                        <p>Best matched state to input instructions</p>
+                        <div id="consoleOutput"></div>
+                        <div id="confirmationBlock">
+                            <p>Was the result correct?</p>
+                            <div style="display: flex; align-items: center;">
+                                <button id="correctBtn" onclick="confirmResult(true)">Correct</button>
+                                <button id="incorrectBtn" onclick="confirmResult(false)">Incorrect</button>
+                                <div id="loadingCircleConfirm" class="loading-circle loading-circle-left"></div>
+                            </div>
+                        </div>
+                        <div id="confirmationResult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsTab" class="tab-content" style="display:none;">
+                <div class="results-container">
+                    <div class="result-box shadow-effect">
+                        <!-- <p>Sailing Paths WITH Your Instruction</p> -->
+                        <img id="resultsImage" src="/static/placeholder.png" alt="Results will appear here">
+                    </div>
+                    <div class="result-box shadow-effect">
+                        <!-- <p>Sailing Paths Wihtout any Instrctions</p> -->
+                        <img id="graphImage" src="/static/placeholder.png" alt="Graph will appear here">
+                    </div>
+                    <div class="result-box shadow-effect">
+                        <!-- <p>Training Reward Analysis</p> -->
+                        <img id="additionalImage" src="/static/placeholder.png" alt="Additional results will appear here">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add global variable to track training state
+        let isTraining = false;
+        let cancelTraining = false;
+
+        async function processInput() {
+            const input = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const consoleOutput = document.getElementById('consoleOutput');
+            const currentStateImage = document.getElementById('currentStateImage');
+            const loadingCircleSubmit = document.getElementById('loadingCircleSubmit');
+            const rocket = document.getElementById('rocket');
+            
+            // Lock the input
+            input.disabled = true;
+            submitBtn.disabled = true;
+
+            // Show loading circle
+            loadingCircleSubmit.style.display = 'block';
+
+            // Show rocket animation
+            rocket.style.display = 'block';
+            rocket.classList.add('launch');
+
+            try {
+                const response = await fetch('/process_input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `command=${encodeURIComponent(input.value)}`
+                });
+
+                const data = await response.json();
+
+                consoleOutput.innerHTML += `<div>${data.console_output}</div>`;
+                currentStateImage.src = `./${data.current_state_image}`;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+                // Reset confirmation result
+                document.getElementById('confirmationResult').innerHTML = '';
+
+            } catch (error) {
+                console.error('Error:', error);
+                consoleOutput.innerHTML += `<div style="color: red;">Error: ${error}</div>`;
+            } finally {
+                // Hide loading circle
+                loadingCircleSubmit.style.display = 'none';
+                // Hide rocket animation
+                rocket.style.display = 'none';
+                rocket.classList.remove('launch');
+            }
+        }
+
+        function confirmResult(isCorrect) {
+            const user_input = document.getElementById('userInput').value;
+            const confirmationResult = document.getElementById('confirmationResult');
+            const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const retryBtn = document.getElementById('retryBtn');
+
+            // Disable buttons
+            correctBtn.disabled = true;
+            incorrectBtn.disabled = true;
+
+            if (isCorrect) {
+                isTraining = true;
+                cancelTraining = false;
+                loadingCircleConfirm.style.display = 'block';
+                retryBtn.disabled = true; // Disable retry button during training
+            }
+
+            fetch('/confirm_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    isCorrect: isCorrect, 
+                    userInput: user_input
+                })    
+            })
+            .then(response => response.json())
+            .then(data => {
+                confirmationResult.innerHTML = data.message;
+                confirmationResult.style.color = isCorrect ? 'green' : 'red';
+                
+                if (isCorrect && !cancelTraining) {
+                    fetch('/train_model', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userInput: user_input
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(trainData => {
+                        if (!cancelTraining) {
+                            document.getElementById('resultsImage').src = `./${trainData.result_image}`;
+                            document.getElementById('graphImage').src = `./${trainData.graph_image}`;
+                            document.getElementById('additionalImage').src = `./${trainData.additional_image}`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error training model:', error);
+                    })
+                    .finally(() => {
+                        isTraining = false;
+                        loadingCircleConfirm.style.display = 'none';
+                        retryBtn.disabled = false; // Re-enable retry button after training
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error sending confirmation:', error);
+                confirmationResult.innerHTML = 'Error sending confirmation';
+                confirmationResult.style.color = 'red';
+                retryBtn.disabled = false; // Re-enable retry button on error
+            });
+        }
+
+        function retryDemo() {
+            if (isTraining) {
+                cancelTraining = true;
+                const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
+                loadingCircleConfirm.style.display = 'none';
+            }
+            document.getElementById('userInput').value = '';
+            location.reload();
+        }
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                document.querySelector(`[onclick="openTab(event, '${tabName}')"]`).className += " active";
+            }
+        }
+    </script>
+</body>
+</html>
+

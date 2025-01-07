@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='elsciRL',
-    version='0.0.9',
+    version='0.1.0',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -16,6 +16,7 @@ setup(
         'elsciRL.examples.adapters',
         'elsciRL.examples.environments',
         'elsciRL.examples.local_configs',
+        'elsciRL.examples.WebApp',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',

@@ -1,4 +1,5 @@
 from .examples.experiment import DemoExperiment
+from .examples.WebApp.app import app as Demo
 
 from .experiments.standard import Experiment as STANDARD_RL
 from .instruction_following.supervised_instruction_following import SupervisedExperiment as SUPERVISED_RL_HIERARCHY
