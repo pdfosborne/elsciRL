@@ -39,6 +39,25 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .training-params {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .training-params input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .training-params label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +86,11 @@
                     <!-- User Input -->
                     <div class="input-section shadow-effect">
                         <p>User Input</p>
+                        <!-- Add training episodes input -->
+                        <div class="training-params">
+                            <label for="trainingEpisodes">Training Episodes:</label>
+                            <input type="number" id="trainingEpisodes" min="100" max="10000" value="1000" step="500">
+                        </div>
                         <textarea id="userInput" placeholder="Enter your commands here... e.g. 'Go to the beach side'"></textarea>
                         <div class="button-group">
                             <div style="display: flex; align-items: center;">
@@ -175,6 +199,7 @@
 
         function confirmResult(isCorrect) {
             const user_input = document.getElementById('userInput').value;
+            const training_episodes = document.getElementById('trainingEpisodes').value;
             const confirmationResult = document.getElementById('confirmationResult');
             const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
             const correctBtn = document.getElementById('correctBtn');
@@ -214,7 +239,8 @@
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            userInput: user_input
+                            userInput: user_input,
+                            trainingEpisodes: parseInt(training_episodes)
                         })
                     })
                     .then(response => response.json())
@@ -256,6 +282,7 @@
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
+        
             for (i = 0; i < tabcontent.length; i++) {
                 tabcontent[i].style.display = "none";
             }

@@ -106,7 +106,11 @@ class WebApp:
 
     def train_model(self):
         user_input = request.json.get('userInput')
-
+        training_episodes = request.json.get('trainingEpisodes', 1000)  # Default to 1000 if not provided
+        
+        # Update config with new episode count
+        ExperimentConfig.ExperimentConfigData['number_training_episodes'] = training_episodes
+        
         instruction_descriptions = user_input.split('\n')
         instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
 
