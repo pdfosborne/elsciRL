@@ -1,5 +1,5 @@
 import sys
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import matplotlib
 matplotlib.use('Agg')
 import json
@@ -80,9 +80,10 @@ class WebApp:
             if not os.path.exists(save_dir):                
                 os.mkdir(save_dir)
             self.global_save_dir = save_dir
-        # Directory for static files incuding ouptut images
-        if not os.path.exists(self.global_save_dir+'/static'):                
-            os.mkdir(self.global_save_dir+'/static')
+
+        # Directory for uploaded files and generated plots
+        if not os.path.exists(self.global_save_dir+'/uploads'):                
+            os.mkdir(self.global_save_dir+'/uploads')
         
         # --------------------
         # Save observed states to file
@@ -97,6 +98,11 @@ class WebApp:
                                      match_sim_threshold=0.9,
                                      observed_states=self.observed_states)
         print("GLOBAL SAVE DIR: ", self.global_save_dir)
+        # Make sure uploads directory exists and is accessible
+        self.uploads_dir = os.path.abspath(os.path.join(self.global_save_dir, 'uploads'))
+        if not os.path.exists(self.uploads_dir):
+            os.makedirs(self.uploads_dir, exist_ok=True)
+        print(f"Uploads directory (absolute path): {self.uploads_dir}")
 
     def train_model(self):
         user_input = request.json.get('userInput')
@@ -126,43 +132,49 @@ class WebApp:
         # --------------------------------------------------------------------
         # Flat Baselines
         # |--> Preloaded data to save time
-        if not os.path.exists(self.global_save_dir+'/Standard_Experiment'): 
-            os.mkdir(self.global_save_dir+'/Standard_Experiment')
+        if not os.path.exists(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment'): 
+            os.mkdir(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment')
         # Training data
         headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
                    "cum_R_mean","cum_R_se","time_mean"]
-        with open(self.global_save_dir+'/Standard_Experiment/training_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
+        with open(self.global_save_dir+'/input_'+str(self.global_input_count)
+                  +'/Standard_Experiment/training_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
             writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
             for key, value in training_data.data.items():
                 writer.writerow(value)
         # Testing data
-        with open(self.global_save_dir+'/Standard_Experiment/testing_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
+        with open(self.global_save_dir+'/input_'+str(self.global_input_count)
+                  +'/Standard_Experiment/testing_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
             writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
             for key, value in testing_data.data.items():
                 writer.writerow(value)                
         # --------------------------------------------------------------------
-        analysis = SailingAnalysis(save_dir=save_dir+'/input_'+str(global_input_count))
+        analysis = SailingAnalysis(save_dir=self.global_save_dir+'/input_'+str(self.global_input_count))
         analysis.trace_plot(experiments_names=['Experiment WITHOUT Instructions',
                                             'Experiment WITH Instructions'])
-        no_instr_trace_plot = save_dir+'/input_'+str(global_input_count)+"/Standard_Experiment/trace_plot.png"
-        instr_trace_plot = save_dir+'/input_'+str(global_input_count)+"/Supervised_Instr_Experiment/trace_plot.png"
         
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=save_dir+'/input_'+str(global_input_count), analysis_type='training', 
+        # |--> CHANGED TO PRERENDER IMAGE 
+        #no_instr_trace_plot = self.global_save_dir+'/input_'+str(self.global_input_count)+"/Standard_Experiment/trace_plot.png"
+        #no_instr_trace_plot = 'numeric_trace_plot.png'
+        
+        instr_trace_plot = self.global_save_dir+'/input_'+str(self.global_input_count)+"/Supervised_Instr_Experiment/trace_plot.png"
+        
+        COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=self.global_save_dir+'/input_'+str(self.global_input_count), analysis_type='training', 
             results_to_show='simple', 
             experiment_names=['WITHOUT','WITH INSTRUCTION'])
-        graph_image = save_dir+'/input_'+str(global_input_count)+"/variance_comparison_training.png"
+        graph_image = self.global_save_dir+'/input_'+str(self.global_input_count)+"/variance_comparison_training.png"
         
-        shutil.copy(instr_trace_plot, './static/results_1.png')
-        shutil.copy(no_instr_trace_plot, './static/results_2.png')
-        shutil.copy(graph_image, './static/results_3.png')
+        shutil.copy(instr_trace_plot, os.path.join(self.global_save_dir, 'uploads', 'results_1.png'))
+        #shutil.copy(no_instr_trace_plot, os.path.join(self.global_save_dir, 'uploads', 'results_2.png'))
+        shutil.copy(graph_image, os.path.join(self.global_save_dir, 'uploads', 'results_3.png'))
 
         return jsonify({
-            'current_state_image': 'sailing_setup.png',
-            'result_image': 'results_1.png',
-            'graph_image': 'results_2.png',
-            'additional_image': 'results_3.png'
+            #'current_state_image': 'uploads/sailing_setup.png',
+            'result_image': 'uploads/results_1.png',
+            #'graph_image': 'uploads/numeric_trace_plot.png',
+            'additional_image': 'uploads/results_3.png'
         })
 
     def home(self):
@@ -179,26 +191,50 @@ class WebApp:
                                         instructions=instructions,
                                         instr_descriptions=instruction_descriptions)
 
-        console_output = ''
-        current_state_image = './static/sailing_setup.png'  # default image
-        
         analysis = SailingAnalysis(save_dir=self.global_save_dir+'/input_'+str(self.global_input_count))
-        for n,instr in enumerate(list(best_match_dict.keys())):
-            if best_match_dict[instr] is None:
-                console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>No match found</i><br>'
-            else:
-                print(instruction_descriptions[n])
-                print(best_match_dict[instr])
-                best_match = best_match_dict[instr]['best_match']
-                print("TOP MATCH:", best_match)
-                console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>'+best_match_dict[instr]['sub_goal']+'</i><br>'
-                # Generate and save the match plot
-                instr_match_plot = analysis.render(best_match)
-                plot_filename = f'match_plot_{n}.png'
-                instr_match_plot.savefig(self.global_save_dir+'/static/'+plot_filename)
-                current_state_image = self.global_save_dir+'/static/'+plot_filename
+
+        console_output = ''
+        current_state_image = None
+        
+        try:
+            for n,instr in enumerate(list(best_match_dict.keys())):
+                if best_match_dict[instr] is None:
+                    console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>No match found</i><br>'
+                else:
+                    best_match = best_match_dict[instr]['best_match']
+                    console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>'+best_match_dict[instr]['sub_goal']+'</i><br>'
+                    
+                    # Generate and save the match plot
+                    plot_filename = f'match_plot_{n}.png'
+                    plot_path = os.path.abspath(os.path.join(self.uploads_dir, plot_filename))
+                    print(f"Saving plot to (absolute path): {plot_path}")
+                    
+                    instr_match_plot = analysis.render(best_match)
+                    instr_match_plot.savefig(plot_path)
+                    
+                    if os.path.exists(plot_path):
+                        print(f"Plot file created successfully at {plot_path}")
+                        print(f"File size: {os.path.getsize(plot_path)} bytes")
+                        current_state_image = f'uploads/{plot_filename}'
+                    else:
+                        print(f"Error: Plot file not created at {plot_path}")
+        except Exception as e:
+            print(f"Error in process_input: {str(e)}")
+            raise
 
         return console_output, current_state_image
+    
+    def upload_file(self):
+        if 'file' not in request.files:
+            return 'No file part'
+        file = request.files['file']
+        if file.filename == '':
+            return 'No selected file'
+        if file:
+            filename = file.filename
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return 'File uploaded successfully'
+
 
 # --- TERMINAL INPUTS ---
 # Accept inputs in terminal
@@ -226,8 +262,7 @@ else:
 
 WebApp = WebApp(save_dir=input_save_dir,
                 num_explor_epi=input_explor_epi)
-
-
+app.config['UPLOAD_FOLDER'] = WebApp.uploads_dir  # Update upload folder to use uploads directory
 # ----------------------------------------------------------------------
 
 @app.route('/')
@@ -236,12 +271,26 @@ def home_route():
 
 @app.route('/process_input', methods=['POST'])
 def process_input_route():
-    app.static_folder=WebApp.global_save_dir+'/static'
     console_output, current_state_image = WebApp.process_input()
     return jsonify({
         'console_output': console_output,
         'current_state_image': current_state_image
     }) 
+
+@app.route('/confirm_result', methods=['POST'])
+def confirm_result():
+    data = request.json
+    is_correct = data.get('isCorrect')
+    
+    if is_correct:
+        message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+    else:
+        message = "<br>Thanks for the feedback. The model will use this to improve."
+    
+    return jsonify({
+        'status': 'received',
+        'message': message
+    })
 
 @app.route('/train_model', methods=['POST'])
 def train_model_route():
@@ -252,7 +301,39 @@ def search_route():
     save_dir = request.json.get('save_dir', '')
     return jsonify({'save_dir': save_dir})
 
+@app.route('/upload', methods=['POST'])
+def upload_file_route():
+    return WebApp.upload_file()
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    try:
+        upload_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
+        file_path = os.path.join(upload_folder, filename)
+        if not os.path.exists(file_path):
+            print(f"File not found: {file_path}")
+            return f"File not found: {filename}", 404
+            
+        print(f"Serving file from: {file_path}")
+        directory = os.path.dirname(file_path)
+        filename = os.path.basename(file_path)
+        return send_from_directory(directory, filename, as_attachment=False)
+    except Exception as e:
+        print(f"Error serving file {filename}: {str(e)}")
+        return f"Error: {str(e)}", 404
+
+# Add route for static files
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    try:
+        return send_from_directory('static', filename)
+    except Exception as e:
+        print(f"Error serving static file {filename}: {str(e)}")
+        return f"Error: {str(e)}", 404
+
 if __name__ == '__main__':
-    # Setup Static Folder locally
+    # Ensure uploads folder exists
+    if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
+        os.makedirs(os.path.join(WebApp.global_save_dir, 'uploads'))
     app.run(debug=True)
-    
+

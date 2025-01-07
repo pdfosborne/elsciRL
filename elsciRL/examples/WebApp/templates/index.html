@@ -61,7 +61,7 @@
                     <!-- Static Image -->
                     <div class="image-section shadow-effect">
                         <!-- <p>Current State</p> -->
-                        <img id="currentStateImage" src="/static/sailing_setup.png" alt="Current state image">
+                        <img id="currentStateImage" src="https://raw.githubusercontent.com/pdfosborne/elsciRL/refs/heads/main/elsciRL/examples/WebApp/static/sailing_setup.png" alt="Current state image">
                     </div>
 
                     <!-- User Input -->
@@ -99,15 +99,15 @@
                 <div class="results-container">
                     <div class="result-box shadow-effect">
                         <!-- <p>Sailing Paths WITH Your Instruction</p> -->
-                        <img id="resultsImage" src="/static/placeholder.png" alt="Results will appear here">
+                        <img id="resultsImage" src="https://raw.githubusercontent.com/pdfosborne/elsciRL/refs/heads/main/elsciRL/examples/WebApp/static/placeholder.png" alt="Results will appear here">
                     </div>
                     <div class="result-box shadow-effect">
                         <!-- <p>Sailing Paths Wihtout any Instrctions</p> -->
-                        <img id="graphImage" src="/static/placeholder.png" alt="Graph will appear here">
+                        <img id="graphImage" src="https://raw.githubusercontent.com/pdfosborne/elsciRL/refs/heads/main/elsciRL/examples/WebApp/prerender/Standard_Experiment/trace_plot.png" alt="Graph will appear here">
                     </div>
                     <div class="result-box shadow-effect">
                         <!-- <p>Training Reward Analysis</p> -->
-                        <img id="additionalImage" src="/static/placeholder.png" alt="Additional results will appear here">
+                        <img id="additionalImage" src="https://raw.githubusercontent.com/pdfosborne/elsciRL/refs/heads/main/elsciRL/examples/WebApp/static/placeholder.png" alt="Additional results will appear here">
                     </div>
                 </div>
             </div>
@@ -150,7 +150,12 @@
                 const data = await response.json();
 
                 consoleOutput.innerHTML += `<div>${data.console_output}</div>`;
-                currentStateImage.src = `./${data.current_state_image}`;
+                if (data.current_state_image) {
+                    currentStateImage.src = `/${data.current_state_image}`; // Add timestamp to prevent caching
+                    currentStateImage.onerror = function() {
+                        console.error('Error loading image:', this.src);
+                    };
+                }
                 consoleOutput.scrollTop = consoleOutput.scrollHeight;
 
                 // Reset confirmation result
@@ -215,9 +220,9 @@
                     .then(response => response.json())
                     .then(trainData => {
                         if (!cancelTraining) {
-                            document.getElementById('resultsImage').src = `./${trainData.result_image}`;
-                            document.getElementById('graphImage').src = `./${trainData.graph_image}`;
-                            document.getElementById('additionalImage').src = `./${trainData.additional_image}`;
+                            document.getElementById('resultsImage').src = `/${trainData.result_image}`;  // Updated path
+                            // document.getElementById('graphImage').src = `/${trainData.graph_image}`;     // Updated path
+                            document.getElementById('additionalImage').src = `/${trainData.additional_image}`;  // Updated path
                         }
                     })
                     .catch(error => {
