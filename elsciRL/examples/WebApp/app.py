@@ -4,11 +4,13 @@ import matplotlib
 matplotlib.use('Agg')
 import json
 import shutil
-
-app = Flask(__name__)
+# Init Flask app and set local directory
+import os
+dir_path = os.path.dirname(os.path.realpath(__file__))
+app = Flask(__name__, static_folder=os.path.join(dir_path, 'static'), 
+            template_folder=os.path.join(dir_path, 'templates'))
 # ---
 from datetime import datetime
-import os
 # ====== elsciRL IMPORTS =========================================
 # ------ Train/Test Function Imports ----------------------------
 from elsciRL.examples.WebApp.elsciRL_demo_search import elsciRLSearch as elsci_search
@@ -62,6 +64,7 @@ class WebApp:
         self.global_save_dir = save_dir
         self.num_explor_epi = num_explor_epi
         
+    def load_data(self):
         if self.num_explor_epi == 1000:
             # Load pre-rendered search data
             self.observed_states = observed_state_data.observed_data
@@ -182,6 +185,8 @@ class WebApp:
         })
 
     def home(self):
+        template_path = os.path.join(app.template_folder, 'index.html')
+        print(f"Trying to get HTML file from: {template_path}")
         return render_template('index.html')
 
     def process_input(self):
@@ -266,11 +271,13 @@ else:
 
 WebApp = WebApp(save_dir=input_save_dir,
                 num_explor_epi=input_explor_epi)
-app.config['UPLOAD_FOLDER'] = WebApp.uploads_dir  # Update upload folder to use uploads directory
+
 # ----------------------------------------------------------------------
 
 @app.route('/')
 def home_route():
+    WebApp.load_data()
+    app.config['UPLOAD_FOLDER'] = WebApp.uploads_dir  # Update upload folder to use uploads directory
     return WebApp.home()
 
 @app.route('/process_input', methods=['POST'])
