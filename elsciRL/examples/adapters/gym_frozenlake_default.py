@@ -9,7 +9,8 @@ class DefaultAdapter:
     _cached_state_idx: Dict[str, int] = dict()
 
     def __init__(self, setup_info:dict={}):
-        # TODO: Update this based on the current problem, each requires preset knowledge of all possible states/actions/objects
+        # NOTE: Update this based on the current problem, each requires preset
+        # knowledge of all possible states/actions/objects
         # - Possible Atates
         # - Possible Actions
         # - Prior Actions

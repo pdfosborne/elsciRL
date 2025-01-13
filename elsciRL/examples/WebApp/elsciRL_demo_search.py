@@ -65,8 +65,7 @@ class elsciRLSearch:
         # Unsupervised search parameters
         self.enc = LanguageEncoder()
         self.sim_threshold: float = match_sim_threshold
-        # TODO: CURRENT BREAKS IF INSTRUCTION MORE THAN 1 SENTENCE
-        self.cos = torch.nn.CosineSimilarity(dim=0) # TODO: HAD TO CHANGE DIM TO 1 TO PRODUCE SCALAR  
+        self.cos = torch.nn.CosineSimilarity(dim=0)  
         
 
     def search(self, action_cap:int=100):

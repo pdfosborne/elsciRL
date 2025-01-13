@@ -25,8 +25,7 @@ class StateEncoder(Encoder):
     def cache_retrieve(offset: int, index: int):
         return StateEncoder.tensor_cache[offset + index]
     
-    # TODO: Phil: What is 'indexed' here?
-    # TODO: index_objects are the complete list of adapter specific elements used to define the encoder's index
+    # index_objects are the complete list of adapter specific elements used to define the encoder's index
     def encode(self, index_objects:list=None, state:list = None, legal_actions:list = None, prior_action:str = None,
                 opponent_action:str = None, indexed: bool = False) -> Tensor:
         pass

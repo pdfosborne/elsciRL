@@ -12,8 +12,7 @@ from elsciRL.encoders.encoder_abstract import StateEncoder
 from sentence_transformers import SentenceTransformer
 
 class LanguageEncoder(StateEncoder):
-    """TODO: Specify required package to download for this encoder.
-    Not included in main package requirements as it is a large download."""
+    """Required Language Model included in requisite packages."""
     _cached_enc: Dict[str, Tensor] = dict()
     _cached_freq: Counter = Counter()
 

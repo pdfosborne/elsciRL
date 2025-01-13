@@ -258,7 +258,7 @@ class Experiment:
                 self.training_setups['Training_Setup_'+str(engine_name) + '_' + str(agent_type)+'_'+str(adapter)] = train_setup_info
         if (number_training_repeats>1)|(self.num_training_seeds):
             self.analysis.training_variance_report(self.save_dir, self.show_figures)
-        #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
+
         return self.training_setups
 
     # TESTING PLAY

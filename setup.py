@@ -29,7 +29,6 @@ setup(
         'elsciRL.examples.WebApp.static': ['styles.css']
         },
     include_package_data=True,
-    # TODO: Add benchmark to exclusion of wheel
     url='https://github.com/pdfosborne/elsciRL',
     license='Apache-2.0 license',
     author='Philip Osborne',

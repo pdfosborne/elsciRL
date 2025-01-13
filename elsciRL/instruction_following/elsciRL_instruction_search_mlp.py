@@ -108,8 +108,7 @@ class elsciRLSearch:
         self.enc = LanguageEncoder()
         self.number_exploration_episodes: int = number_exploration_episodes
         self.sim_threshold: float = sim_threshold
-        # TODO: CURRENT BREAKS IF INSTRUCTION MORE THAN 1 SENTENCE
-        self.cos = torch.nn.CosineSimilarity(dim=0) # TODO: HAD TO CHANGE DIM TO 1 TO PRODUCE SCALAR  
+        self.cos = torch.nn.CosineSimilarity(dim=0) 
         # elsciRL inits
         self.num_plans = num_plans
         #self.feedback_layer_form: tensor = torch.zeros(self.enc.encode(['']).size()) # Init base sizing of tensor produced by language encoder 
