@@ -9,10 +9,18 @@ class Applications:
         self.data ={
             "Sailing":{
                 "github_user": "pdfosborne",
-                "repository": "elsciRL-Sailing",
-                "commit_id": "e384424",
+                "repository": "elsciRL-App-Sailing",
+                "commit_id": "229fb2f",
                 "engine_filenames": "engine",
                 "local_config_filenames": {"easy":"easy_river.json", "medium":"medium_river.json"},
+                "adapter_filenames": {"default":"default","language":"language"}
+                },
+            "Classroom":{
+                "github_user": "pdfosborne",
+                "repository": "elsciRL-App-Classroom",
+                "commit_id": "d84dc14",
+                "engine_filenames": "engine",
+                "local_config_filenames": {"easy":"config_local.json"},
                 "adapter_filenames": {"default":"default","language":"language"}
                 }
         }
