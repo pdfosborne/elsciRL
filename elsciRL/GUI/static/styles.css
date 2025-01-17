@@ -1,0 +1,279 @@
+:root {
+  --primary-color: #007aff; /* macOS Blue */
+  --secondary-color: #5ac8fa; /* Light Blue */
+  --background-color: #f0f0f5; /* Light Gray */
+  --text-color: #000; /* Black */
+  --border-color: #d1d1d1; /* Light Border */
+  --button-color: #007aff; /* macOS Blue */
+  --button-hover-color: #005bb5; /* Darker Blue */
+  --input-background-color: #ffffff; /* White */
+  --input-text-color: #000; /* Black */
+  --console-background-color: #f7f7f7; /* Light Gray */
+  --console-text-color: #000; /* Black */
+  --glow-color: rgba(0, 122, 255, 0.5); /* Glow effect color */
+  --shadow-color: rgba(0, 0, 0, 0.2); /* Shadow effect color */
+}
+
+/* General Styles */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 5px;
+}
+
+.header {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  padding: 20px;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.box {
+  background-color: var(--input-background-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px var(--shadow-color);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+#userInput {
+  width: 95%;
+  height: 100px;
+  background-color: var(--input-background-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+#consoleOutput {
+  background-color: var(--console-background-color);
+  color: var(--console-text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 10px;
+  height: 100px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  background-color: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-bar-fill {
+  height: 20px;
+  background-color: var(--button-color);
+  width: 0;
+  transition: width 0.3s;
+}
+
+/* Button */
+button {
+  background-color: var(--button-color);
+  color: var(--input-background-color);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+button:hover {
+  background-color: var(--button-hover-color);
+  transform: scale(1.05);
+}
+
+button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+#retryBtn, #submitBtn, #confirmationBlock button {
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+#retryBtn:hover, #submitBtn:hover, #confirmationBlock button:hover {
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+#confirmationBlock {
+  margin-top: 20px;
+  text-align: center;
+}
+
+#confirmationBlock button {
+  margin: 0 10px;
+}
+
+/* Rocket Animation */
+.rocket {
+  position: absolute;
+  left: 60%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  animation: launch 2s ease-in-out forwards;
+}
+
+@keyframes launch {
+  0% {
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    bottom: 100%;
+    left: 100%;
+    transform: translateX(-50%) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  background-color: transparent;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  color: var(--text-color);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tab-btn:hover {
+  background-color: var(--input-background-color);
+  color: var(--secondary-color);
+}
+
+.tab-btn.active {
+  border-bottom: 2px solid var(--button-color);
+  font-weight: bold;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Static Text in Tab Bar */
+.tab-text {
+  align-self: center;
+  font-size: 16px;
+  color: var(--text-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: auto;
+}
+
+/* Input and Console Sections */
+.input-console-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.input-section, .console-section, .image-section {
+  flex: 1 1 45%;
+  background-color: var(--input-background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* Input Field */
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--input-background-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.image-section {
+  grid-column: span 2;
+  text-align: center;
+}
+
+.results-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.result-box {
+  background-color: var(--input-background-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-color);
+  padding: 15px;
+}
+
+.result-box img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .input-console-container {
+      flex-direction: column;
+  }
+
+  .input-section, .console-section, .image-section {
+      flex: 1 1 100%;
+  }
+}
+

@@ -210,13 +210,14 @@ class SupervisedExperiment:
                     temp_agent_store[setup_num] = {'Return':Return,'agent':agent}
 
                 # Only save the best agent from repeated training
-                best_return = temp_agent_store[1]['Return']
-                best_agent = temp_agent_store[1]['agent']
-                for repeat in range(2,training_repeat):
-                    if temp_agent_store[repeat]['Return']>best_return:
+                best_return = float('-inf')
+                best_agent = None
+                for repeat in range(1, training_repeat + 1):
+                    if temp_agent_store[repeat]['Return'] > best_return:
                         best_return = temp_agent_store[repeat]['Return']
                         best_agent = temp_agent_store[repeat]['agent']
-        
+                        print(best_return)
+
                 if instruction not in self.instruction_agents:
                     self.instruction_agents[instruction] = {}
                 self.instruction_agents[instruction][agent_type] = best_agent#.save()          

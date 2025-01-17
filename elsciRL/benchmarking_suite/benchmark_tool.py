@@ -21,43 +21,31 @@ from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
 from elsciRL import STANDARD_RL
 from elsciRL.experiments.GymExperiment import GymExperiment
 
-class test:
-    """Simply applications class to run a setup tests of experiments.
-        - Experiment type: 'standard' or 'gym' experiment depending on agent types selected
-        - Problem selection: problems to run in format {''problem1': ['config1', 'config2'], 'problem2': ['config1', 'config2']}
-        - Agent config: custom agent configurations
+class PullApplications:
+    """Simple applications class to run a setup tests of experiments.
+        - Problem selection: problems to run in format ['problem1', 'problem2',...]
 
     Applications:
-        - Sailing: {'easy', 'medium'}
+        - Sailing: {'easy'},
+        - Classroom: {'classroom_A'}
     """
-    def __init__(self, experiment_type:str='standard', 
-                 problem_selection:dict={}, agent_config:dict={}, 
-                 save_results:bool=True, save_dir:str=None) -> None:
-        self.experiment_type = experiment_type
+    # TODO: Make it so it pulls all possible configs and adapters from the repo
+    def __init__(self) -> None:
         imports = Applications()
         self.imports = imports.data
-        self.problem_selection = problem_selection
-        if agent_config == {}:
-            agent_config = DefaultAgentConfig()
-            self.ExperimentConfig = agent_config.data  
-        else:
-            self.ExperimentConfig = agent_config
         
-        # Save results to a directory
-        if save_results:
-            cwd = os.getcwd()
-            if save_dir is None:
-                time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-                if not os.path.exists(cwd+'/elsciRL-BENCHMARK-output'):
-                    os.mkdir(cwd+'/elsciRL-BENCHMARK-output')
-                self.save_dir = cwd+'/elsciRL-BENCHMARK-output/'+str('test')+'_'+time 
-            else:
-                self.save_dir = save_dir
-        # ---
+        
+    def pull(self, problem_selection:list=[]):
+        # Pull all problems if none are selected
+        if len(problem_selection)>0:
+            self.problem_selection = problem_selection
+        else:
+            self.problem_selection = list(self.imports.keys())
         # Extract data from imports
         self.current_test = {}
-        adapters = self.ExperimentConfig['adapter_select']
-        for problem in list(self.problem_selection.keys()):
+        #adapters = self.ExperimentConfig['adapter_select']
+        for problem in list(self.problem_selection):
+            engine = self.imports[problem]['engine_filename']
             if problem not in self.imports:
                 raise ValueError(f"Problem {problem} not found in the setup tests.")
             else:
@@ -65,69 +53,119 @@ class test:
                 # current_test = {'problem1': {'engine':engine.py, 'local_configs': {'config1':config.json, 'config2':config.json}, 'adapters': {'adapter1':adapter.py, 'adapter2':adapter.py}}}
                 root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + self.imports[problem]['commit_id']
                 # NOTE - This requires repo to match structure with engine inside environment folder
-                engine_module = httpimport.load(self.imports[problem]['engine_filenames'], root+'/environment') 
+                engine_module = httpimport.load(engine, root+'/'+self.imports[problem]['engine_folder']) 
+                # TODO: Pull class name directly from engine file to be called
                 self.current_test[problem]['engine'] = engine_module.Engine
-                # - Subset selection of adapters
-                if problem not in adapters:
-                    raise ValueError(f"Problem {problem} not found in the adapter selection.")
-                else:    
-                    problem_adapter = adapters[problem]
-                    # - Get all adapters from agent config input
-                    # -- Adapter_list is unique to decide the imports
-                    # -- Adapter_select is the list to match agent input used to run the benchmark
-                    adapter_list = []
-                    adapter_select = []
-                    for agent_compatible in problem_adapter:
-                        for adapter in problem_adapter[agent_compatible]:
-                            if problem_adapter[agent_compatible][adapter] == True:
-                                if adapter not in adapter_list:
-                                    adapter_list.append(adapter)
-                                if agent_compatible in self.ExperimentConfig['agent_select']:
-                                    adapter_select.append(adapter)
+            # ------------------------------------------------
+            # - Pull Adapters, Configs and Analysis
+            self.current_test[problem]['adapters'] = {}
+            for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
+                adapter_module = httpimport.load(adapter, root+'/'+self.imports[problem]['local_adapter_folder'])   
+                # TODO: Pull class name directly from adapter file to be called
+                try:
+                    self.current_test[problem]['adapters'][adapter_name] = adapter_module.DefaultAdapter
+                except:
+                    self.current_test[problem]['adapters'][adapter_name] = adapter_module.LanguageAdapter
+            # ---
+            self.current_test[problem]['local_configs'] = {}
+            for config_name,config in self.imports[problem]['local_config_filenames'].items():
+                local_config = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['local_config_folder']+'/'+config).read())
+                self.current_test[problem]['local_configs'][config_name] = local_config
+            # ---
+            self.current_test[problem]['local_analysis'] = {}
+            for analysis_name,analysis in self.imports[problem]['local_analysis_filenames'].items():
+                try:
+                    local_analysis = httpimport.load(analysis, root+'/'+self.imports[problem]['local_analysis_folder'])  
+                    # TODO: Pull class name directly from analysis file to be called 
+                    self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
+                except:
+                    print("No analysis file found.")
+                    self.current_test[problem]['local_analysis'][analysis_name] = {}
+            
+            # ------------------------------------------------
+            # Pull prerender data
+            print("-----------------------------------------------")
+            print(problem)
+            self.current_test[problem]['prerender_data'] = {}
+            if self.imports[problem]['prerender_data_folder'] != '':
+                try:
+                    for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
+                        if prerender.endswith(('.txt', '.json', '.xml')):
+                            data = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
+                            self.current_test[problem]['prerender_data'][prerender_name] = data
+                    print("Pulling prerender data...")
+                except:
+                    print(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
+                    print("No prerender data found.")
+                    self.current_test[problem]['prerender_data'] = {}
+            else:
+                print("No prerender data found.")
+                self.current_test[problem]['prerender_data'] = {}
 
-                self.current_test[problem]['adapters'] = {}
-                for selected_adapter in adapter_list:
-                    if adapter not in self.imports[problem]['adapter_filenames']:
-                        raise ValueError(f"Adapter {adapter} not found in the setup tests for problem {problem}.")
-                    else:
-                        # NOTE - This requires repo to match structure with engine inside adapters folder
-                        adapter_module = httpimport.load(self.imports[problem]['adapter_filenames'][selected_adapter], root+'/adapters')   
-                        try:
-                            self.current_test[problem]['adapters'][selected_adapter] = adapter_module.DefaultAdapter
-                        except:
-                            self.current_test[problem]['adapters'][selected_adapter] = adapter_module.LanguageAdapter
+            # Pull prerender images
+            self.current_test[problem]['prerender_images'] = {}
+            if self.imports[problem]['prerender_data_folder'] != '':
+                try:
+                    for image_name, image in self.imports[problem]['prerender_image_filenames'].items():
+                        if image.endswith(('.png', '.jpg', '.svg', '.gif')):
+                            image_url = root + '/' + self.imports[problem]['prerender_data_folder'] + '/' + image
+                            image_data = urllib.request.urlopen(image_url).read()
+                            self.current_test[problem]['prerender_images'][image_name] = image_data
+                    print("Pulling prerender images...")
+                except:
+                    print("No prerender images found.")
+                    self.current_test[problem]['prerender_images'] = {}
+            else:
+                print("No prerender images found.")
+                self.current_test[problem]['prerender_images'] = {}
+            # -----------------------------------------------
 
-                # - Subset selection of configs
-                for config in self.problem_selection[problem]:
-                    if config not in self.imports[problem]['local_config_filenames']:
-                        raise ValueError(f"Configuration {config} not found in the setup tests suite for problem {problem}.")
-                    else:
-                        self.current_test[problem]['local_configs'] = {}
-                        # - Replace adapter select with extracted one from agent_config input  
-                        local_config = json.loads(urllib.request.urlopen(root+'/benchmark/'+self.imports[problem]['local_config_filenames'][config]).read())
-                        local_config['adapter_select'] = adapter_select
-                        self.current_test[problem]['local_configs'][config] = local_config
-                                        
-    
-    def run(self):
+        return self.current_test
+
+    def setup(self, agent_config:dict={}) -> None:
+        # TODO: Update this to be changeable by user input
+        if agent_config == {}:
+            agent_config = DefaultAgentConfig()
+            self.ExperimentConfig = agent_config.data  
+        else:
+            self.ExperimentConfig = agent_config 
+
+        print("Updated Agent Config: \n", self.ExperimentConfig)
+        return self.ExperimentConfig
+            
+        
+    def run(self, experiment_type:str='standard', save_dir:str='') -> None:
+        
+        # Save results to a directory
+        cwd = os.getcwd()
+        if save_dir =='':
+            time = datetime.now().strftime("%d-%m-%Y_%H-%M")
+            if not os.path.exists(cwd+'/elsciRL-BENCHMARK-output'):
+                os.mkdir(cwd+'/elsciRL-BENCHMARK-output')
+            self.save_dir = cwd+'/elsciRL-BENCHMARK-output/'+str('test')+'_'+time 
+            if not os.path.exists(self.save_dir):
+                os.mkdir(self.save_dir)
+        else:
+            self.save_dir = save_dir
 
         for problem in list(self.current_test.keys()):
             engine = self.current_test[problem]['engine']
             adapters = self.current_test[problem]['adapters']
-            print(self.current_test[problem])
             for local_config in list(self.current_test[problem]['local_configs'].keys()):
+                problem_save_dir = self.save_dir+'/'+problem
+                if not os.path.exists(problem_save_dir):
+                    os.mkdir(problem_save_dir)
                 ProblemConfig = self.current_test[problem]['local_configs'][local_config]
-
-                if self.experiment_type.lower() == 'standard':
+                if experiment_type.lower() == 'standard':
                     exp = STANDARD_RL(Config=self.ExperimentConfig, ProblemConfig=ProblemConfig, 
                                 Engine=engine, Adapters=adapters,
-                                save_dir=self.save_dir, show_figures = 'No', window_size=0.1)
-                elif self.experiment_type.lower() == 'gym':
+                                save_dir=problem_save_dir, show_figures = 'No', window_size=0.1)
+                elif experiment_type.lower() == 'gym':
                     exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig = ProblemConfig,
                        Engine=engine, Adapters=adapters,
-                       save_dir=self.save_dir, show_figures = 'Yes', window_size=0.1)
+                       save_dir=problem_save_dir, show_figures = 'Yes', window_size=0.1)
                 else:
-                    raise ValueError(f"Experiment type {self.experiment_type} not found.")
+                    raise ValueError(f"Experiment type {experiment_type} not found.")
                 
                 # Run train/test operations
                 exp.train()  

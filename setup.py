@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='elsciRL',
-    version='0.1.7',
+    version='0.2.0',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -19,6 +19,7 @@ setup(
         'elsciRL.examples.WebApp',
         'elsciRL.examples.WebApp.prerender',
         'elsciRL.examples.WebApp.prerender.Standard_Experiment',
+        'elsciRL.GUI',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
@@ -26,7 +27,9 @@ setup(
         ],
     package_data={
         'elsciRL.examples.WebApp.templates': ['index.html'],
-        'elsciRL.examples.WebApp.static': ['styles.css']
+        'elsciRL.examples.WebApp.static': ['styles.css'],
+        'elsciRL.GUI.templates': ['index.html'],
+        'elsciRL.GUI.static': ['styles.css'],
         },
     include_package_data=True,
     url='https://github.com/pdfosborne/elsciRL',
@@ -45,7 +48,8 @@ setup(
         'httpimport',
         'sentence-transformers',
         'gymnasium',
-        'stable-baselines3'
+        'stable-baselines3',
+        'flask'
 
     ] 
 )

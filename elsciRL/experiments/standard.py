@@ -67,16 +67,16 @@ class Experiment:
         # Agent setup
         self.AGENT_TYPES = {
             "Qlearntab": TableQLearningAgent,
-            "Neural_Q": NeuralQLearningAgent,
-            "Neural_Q_2": NeuralQLearningAgent,
-            "Neural_Q_language": NeuralQLearningAgent
+            "DQN": NeuralQLearningAgent,
+            "DQN_2": NeuralQLearningAgent,
+            "DQN_language": NeuralQLearningAgent
         }
         
         self.PLAYER_PARAMS = {
             "Qlearntab": ["alpha", "gamma", "epsilon"],
-            "Neural_Q": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-            "Neural_Q_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-            "Neural_Q_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"]
+            "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+            "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+            "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"]
         }
 
     def add_agent(self, agent_name:str, agent):

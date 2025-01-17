@@ -22,9 +22,9 @@ from elsciRL.agents.stable_baselines.A2C import SB_A2C
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
-    "Neural_Q": NeuralQLearningAgent,
-    "Neural_Q_2": NeuralQLearningAgent,
-    "Neural_Q_language": NeuralQLearningAgent,
+    "DQN": NeuralQLearningAgent,
+    "DQN_2": NeuralQLearningAgent,
+    "DQN_language": NeuralQLearningAgent,
     "Random": random,
     "SB3_DQN": SB_DQN,
     "SB3_PPO": SB_PPO,
@@ -33,9 +33,9 @@ AGENT_TYPES = {
 
 PLAYER_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
-    "Neural_Q": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+    "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+    "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+    "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "Random": [],
     "SB3_DQN": ["policy"],
     "SB3_PPO": ["policy"],
@@ -621,12 +621,15 @@ class elsciRLOptimize:
 
                         if self.test_agent_type.lower() == 'best':
                             # Only save the best agent from repeated training
+                            print("---------")
+                            print("Selecting best agent from training repeats.")
                             best_return = temp_agent_store[instr][start_repeat_num]['Return']
                             best_agent = temp_agent_store[instr][start_repeat_num]['agent']
                             for repeat in range(start_repeat_num+1,end_repeat_num+1):
                                 if temp_agent_store[instr][repeat]['Return']>best_return:
                                     best_return = temp_agent_store[instr][repeat]['Return']
                                     best_agent = temp_agent_store[instr][repeat]['agent']
+                                    print(best_return)
                     
                             if instr not in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
                                 self.trained_agents[str(agent_type) + '_' + str(adapter)][instr] = {}

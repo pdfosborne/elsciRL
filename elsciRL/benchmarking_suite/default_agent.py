@@ -10,12 +10,12 @@ class DefaultAgentConfig:
             "number_training_repeats": 5,
             "number_training_seeds": 1,
 
-            "test_agent_type":"all",
+            "test_agent_type":"best",
             "number_test_episodes": 200,
             "number_test_repeats": 10,
 
             "agent_select": ["Qlearntab"],
-            "adapter_select": ["Default"],
+            "adapter_select": ["default"],
             "agent_parameters":{
                 "Qlearntab":{
                     "alpha": 0.1,

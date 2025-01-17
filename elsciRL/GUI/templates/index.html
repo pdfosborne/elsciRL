@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo WebApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .rocket.launch {
+            animation: launchRocket 4s forwards;
+        }
+
+        @keyframes launchRocket {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            100% {
+                transform: translate(700px, -500px) rotate(45deg);
+            }
+        }
+
+        .loading-circle {
+            border: 8px solid var(--border-color);
+            border-top: 8px solid var(--button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+
+        .loading-circle-left {
+            margin-right: 10px;
+            margin-left: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .training-params {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .training-params input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .training-params label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .form-select {
+            width: 200px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .applications-checklist {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .application-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .application-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .application-item label {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .config-section {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .config-group {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .config-group h3 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .select-container {
+            margin-bottom: 15px;
+        }
+
+        .select-container label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .select-container input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay .loading-circle {
+            display: block;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-circle"></div>
+    </div>
+    <div class="container">
+        <div class="box shadow-effect">
+            <div class="tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
+                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Input & Console</button>
+                    <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
+                </div>
+                <div class="tab-text">See <a href="https://elsci.org">elsci.org</a> for more information</div>
+            </div>
+            <div id="configTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Applications</h3>
+                            <div class="select-container">
+                                <label for="applicationSelect">Select Application:</label>
+                                <select id="applicationSelect" class="form-select" required>
+                                    <!-- Remove the initial option here -->
+                                </select>
+                            </div>
+                            <div id="configSelections" style="display: none;">
+                                <div class="training-params">
+                                    <label for="localConfigSelect">Local Config:</label>
+                                    <select id="localConfigSelect" class="form-select">
+                                        <option value="" disabled selected>Choose config...</option>
+                                    </select>
+                                </div>
+                                <div class="training-params">
+                                    <label for="observedStateSelect">Observed State Input:</label>
+                                    <select id="observedStateSelect" class="form-select">
+                                        <!-- Options will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="training-params">
+                                    <label for="plotSelect">Select Analysis File:</label>
+                                    <select id="plotSelect" class="form-select">
+                                        <option value="" disabled selected>Choose plot...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Agent Type</h3>
+                            <div class="applications-checklist">
+                                <div class="application-item">
+                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab" checked>
+                                    <label for="agent-Qlearntab">Q-Learning</label>
+                                </div>
+                                <div class="application-item">
+                                    <input type="checkbox" id="agent-DQN" name="agentType" value="DQN">
+                                    <label for="agent-DQN">Deep Q-Network</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Training Configuration</h3>
+                            <div class="training-params">
+                                <label for="trainingEpisodes">Training Episodes:</label>
+                                <input type="number" id="trainingEpisodes" min="100" max="10000" value="1000" step="500">
+                            </div>
+                            <div class="training-params">
+                                <label for="trainingRepeats">Training Repeats (fixed starting position):</label>
+                                <input type="number" id="trainingRepeats" min="1" max="100" value="5">
+                            </div>
+                            <div class="training-params">
+                                <label for="trainingSeeds">Training Seeds (random starting position):</label>
+                                <input type="number" id="trainingSeeds" min="1" max="100" value="1">
+                            </div>
+                        </div>
+
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Testing Configuration</h3>
+                            <div class="training-params">
+                                <label for="testEpisodes">Test Episodes:</label>
+                                <input type="number" id="testEpisodes" min="1" max="1000" value="200">
+                            </div>
+                            <div class="training-params">
+                                <label for="testRepeats">Test Repeats:</label>
+                                <input type="number" id="testRepeats" min="1" max="100" value="10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="qlearn-params" class="config-group" style="flex: 1;">
+                        <h3>Q-Learning Parameters</h3>
+                        <div class="training-params">
+                            <label for="alpha">Learning Rate (Alpha):</label>
+                            <input type="number" id="alpha" min="0" max="1" value="0.1" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="gamma">Discount Factor (Gamma):</label>
+                            <input type="number" id="gamma" min="0" max="1" value="0.95" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="epsilon">Exploration Rate (Epsilon):</label>
+                            <input type="number" id="epsilon" min="0" max="1" value="0.2" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="epsilonStep">Epsilon Step:</label>
+                            <input type="number" id="epsilonStep" min="0" max="1" value="0.01" step="0.001">
+                        </div>
+                    </div>
+
+                    <div id="dqn-params" class="config-group" style="flex: 1; display: none;">
+                        <h3>DQN Parameters</h3>
+                        <div class="training-params">
+                            <label for="input_size">Input Size:</label>
+                            <input type="number" id="input_size" min="1" value="384">
+                        </div>
+                        <div class="training-params">
+                            <label for="sent_hidden_dim">Sentence Hidden Dimension:</label>
+                            <input type="number" id="sent_hidden_dim" min="1" value="10">
+                        </div>
+                        <div class="training-params">
+                            <label for="hidden_dim">Hidden Dimension:</label>
+                            <input type="number" id="hidden_dim" min="1" value="128">
+                        </div>
+                        <div class="training-params">
+                            <label for="num_hidden">Number of Hidden Layers:</label>
+                            <input type="number" id="num_hidden" min="1" value="2">
+                        </div>
+                        <div class="training-params">
+                            <label for="sequence_size">Sequence Size:</label>
+                            <input type="number" id="sequence_size" min="1" value="20">
+                        </div>
+                        <div class="training-params">
+                            <label for="memory_size">Memory Size:</label>
+                            <input type="number" id="memory_size" min="1" value="2000">
+                        </div>
+                        <div class="training-params">
+                            <label for="target_replace_iter">Target Replace Iterations:</label>
+                            <input type="number" id="target_replace_iter" min="1" value="100">
+                        </div>
+                        <div class="training-params">
+                            <label for="learning_rate">Learning Rate:</label>
+                            <input type="number" id="learning_rate" min="0" max="1" value="0.001" step="0.001">
+                        </div>
+                        <div class="training-params">
+                            <label for="batch_size">Batch Size:</label>
+                            <input type="number" id="batch_size" min="1" value="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inputTab" class="tab-content" style="display:block;">
+                <div class="input-console-container" style="display: flex; gap: 20px;">
+                    <div class="input-section shadow-effect" style="flex: 1;">
+                        <p>User Input</p>
+                        <textarea id="userInput" placeholder="Enter your commands here... e.g. 'Go to the beach side'"></textarea>
+                        <div class="button-group">
+                            <div style="display: flex; align-items: center;">
+                                <button id="submitBtn" class="submit-btn" onclick="processInput()">Submit</button>
+                                <div id="loadingCircleSubmit" class="loading-circle"></div>
+                            </div>
+                            <button id="newInstructionBtn" onclick="newInstruction()">New Instruction</button>
+                        </div>
+                        <div id="rocket" class="rocket" style="display:none;">
+                            🚀
+                        </div>
+                    </div>
+                    <div class="console-section shadow-effect" style="flex: 1;">
+                        <p>What the agent see to match with your input instructions</p>
+                        <div id="consoleOutput"></div>
+                        <div id="confirmationBlock">
+                            <p>Was the result correct?</p>
+                            <div style="display: flex; align-items: center;">
+                                <button id="correctBtn" onclick="confirmResult(true)">Correct</button>
+                                <button id="incorrectBtn" onclick="confirmResult(false)">Incorrect</button>
+                                <div id="loadingCircleConfirm" class="loading-circle loading-circle-left"></div>
+                            </div>
+                        </div>
+                        <div id="confirmationResult"></div>
+                    </div>
+                </div>
+                <div class="image-container" style="display: flex; gap: 20px;">
+                    <div id="prerenderImageContainer" class="image-section shadow-effect">
+                        <div class="select-container">
+                            <label for="prerenderImageSelect">Select Preview Image:</label>
+                            <select id="prerenderImageSelect" class="form-select">
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <img id="prerenderImage" class="shadow-effect" style="display: none;">
+                    </div>
+                    <div id="instructionMatchPlots" class="image-section shadow-effect"></div>
+                </div>
+            </div>
+
+            <div id="resultsTab" class="tab-content" style="display:none;">
+                <div class="results-container" id="resultsContainer">
+                    <!-- Results will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isTraining = false;
+        let cancelTraining = false;
+        let allConfigs = {};
+        let allObservedStates = {};
+        let allPlotOptions = {};
+        let allPrerenderImages = {};
+
+        fetch('/get_applications')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('applicationSelect');
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.text = 'Choose application...';
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                select.appendChild(defaultOption);
+                data.applications.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app;
+                    option.textContent = app;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error loading applications:', error));
+
+        fetch('/get_all_options')
+            .then(response => response.json())
+            .then(data => {
+                allConfigs = data.localConfigs;
+                allObservedStates = data.observedStates;
+                allPlotOptions = data.plotOptions;
+            })
+            .catch(error => console.error('Error loading options:', error));
+
+        document.getElementById('applicationSelect').addEventListener('change', function() {
+            const selectedApp = this.value;
+            const configSelections = document.getElementById('configSelections');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            if (selectedApp) {
+                loadingOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    const configSelect = document.getElementById('localConfigSelect');
+                    configSelect.innerHTML = '';
+                    const defaultConfigOption = document.createElement('option');
+                    defaultConfigOption.value = '';
+                    defaultConfigOption.text = 'Choose config...';
+                    defaultConfigOption.disabled = true;
+                    defaultConfigOption.selected = true;
+                    configSelect.appendChild(defaultConfigOption);
+                    if (allConfigs[selectedApp]) {
+                        allConfigs[selectedApp].forEach(config => {
+                            const option = document.createElement('option');
+                            option.value = config;
+                            option.text = config;
+                            configSelect.appendChild(option);
+                        });
+                    }
+
+                    const observedStateSelect = document.getElementById('observedStateSelect');
+                    observedStateSelect.innerHTML = '';
+                    const defaultObservedStateOption = document.createElement('option');
+                    defaultObservedStateOption.value = '';
+                    defaultObservedStateOption.text = 'Select observed states data';
+                    defaultObservedStateOption.disabled = true;
+                    defaultObservedStateOption.selected = true;
+                    observedStateSelect.appendChild(defaultObservedStateOption);
+                    if (allObservedStates[selectedApp]) {
+                        allObservedStates[selectedApp].forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state;
+                            option.text = state;
+                            observedStateSelect.appendChild(option);
+                        });
+                    }
+
+                    const plotSelect = document.getElementById('plotSelect');
+                    plotSelect.innerHTML = '';
+                    const defaultPlotOption = document.createElement('option');
+                    defaultPlotOption.value = '';
+                    defaultPlotOption.text = 'Choose plot...';
+                    defaultPlotOption.disabled = true;
+                    defaultPlotOption.selected = true;
+                    plotSelect.appendChild(defaultPlotOption);
+                    if (allPlotOptions[selectedApp]) {
+                        allPlotOptions[selectedApp].forEach(plot => {
+                            const option = document.createElement('option');
+                            option.value = plot;
+                            option.text = plot;
+                            plotSelect.appendChild(option);
+                        });
+                    }
+
+                    configSelections.style.display = 'block';
+                    loadingOverlay.style.display = 'none';
+                }, 2000); // 2-second delay
+
+                // Fetch and display prerender images
+                fetch('/get_prerender_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ application: selectedApp })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const prerenderImageSelect = document.getElementById('prerenderImageSelect');
+                    const prerenderImage = document.getElementById('prerenderImage');
+                    prerenderImageSelect.innerHTML = '';
+                    prerenderImage.style.display = 'none';
+                    if (data.imagePaths) {
+                        data.imagePaths.forEach(imagePath => {
+                            const option = document.createElement('option');
+                            option.value = imagePath;
+                            option.text = imagePath.split('/').pop();
+                            prerenderImageSelect.appendChild(option);
+
+                            // Display the first image by default
+                            if (prerenderImageSelect.options.length === 1) {
+                                prerenderImage.src = `/${imagePath}`;
+                                prerenderImage.style.display = 'block';
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading prerender images:', error));
+            } else {
+                configSelections.style.display = 'none';
+            }
+        });
+
+        document.getElementById('prerenderImageSelect').addEventListener('change', function() {
+            const selectedImage = this.value;
+            const prerenderImage = document.getElementById('prerenderImage');
+            if (selectedImage) {
+                prerenderImage.src = `/${selectedImage}`;
+                prerenderImage.style.display = 'block';
+            } else {
+                prerenderImage.style.display = 'none';
+            }
+        });
+
+        async function processInput() {
+            const input = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const consoleOutput = document.getElementById('consoleOutput');
+            const loadingCircleSubmit = document.getElementById('loadingCircleSubmit');
+            const rocket = document.getElementById('rocket');
+            const instructionMatchPlots = document.getElementById('instructionMatchPlots');
+
+            const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
+                .map(cb => cb.value);            
+
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const observedState = document.getElementById('observedStateSelect').value;
+            const selectedPlot = document.getElementById('plotSelect').value;
+
+            if (!selectedApp) {
+                alert('Please select an application');
+                return;
+            }
+
+            input.disabled = true;
+            submitBtn.disabled = true;
+            loadingCircleSubmit.style.display = 'block';
+            rocket.style.display = 'block';
+            rocket.classList.add('launch');
+
+            try {
+                const response = await fetch('/process_input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userInput: input.value,
+                        selectedApps: [selectedApp],
+                        selectedAgents: selectedAgents,
+                        observedStateInput: observedState,
+                        localConfigInput: localConfig,
+                        selectedPlot: selectedPlot,
+                        trainingEpisodes: document.getElementById('trainingEpisodes').value
+                    })
+                });
+
+                const data = await response.json();
+                loadingCircleSubmit.style.display = 'none';
+                input.disabled = false;
+                submitBtn.disabled = false;
+                consoleOutput.innerHTML = data.console_output;
+                rocket.style.display = 'none';
+                rocket.classList.remove('launch');
+                instructionMatchPlots.innerHTML = '';
+                if (data.matchPlots && data.matchPlots.length > 0) {
+                    data.matchPlots.forEach(plot => {
+                        const img = document.createElement('img');
+                        img.src = `/${plot}?t=${new Date().getTime()}`;
+                        img.alt = 'Instruction match plot';
+                        img.className = 'shadow-effect';
+                        instructionMatchPlots.appendChild(img);
+                    });
+                }
+            } catch (error) {
+                console.error('Error processing input:', error);
+                loadingCircleSubmit.style.display = 'none';
+                input.disabled = false;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function confirmResult(isCorrect) {
+            const confirmationResult = document.getElementById('confirmationResult');
+            const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
+            const retryBtn = document.getElementById('retryBtn');
+            const user_input = document.getElementById('userInput').value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const selectedPlot = document.getElementById('plotSelect').value;
+
+            confirmationResult.innerHTML = '';
+            loadingCircleConfirm.style.display = 'block';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            console.log(`Sending confirmation: isCorrect=${isCorrect}, userInput=${user_input}`);
+
+            fetch('/confirm_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    isCorrect: isCorrect, 
+                    userInput: user_input
+                })    
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Error response from server:', response);
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server response:', data);
+                confirmationResult.innerHTML = data.message;
+                confirmationResult.style.color = isCorrect ? 'green' : 'red';
+                loadingCircleConfirm.style.display = 'none';
+
+                if (isCorrect && !cancelTraining) {
+                    const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
+                        .map(cb => cb.value);
+                    
+                    let params = {
+                        userInput: user_input,
+                        trainingEpisodes: parseInt(document.getElementById('trainingEpisodes').value),
+                        trainingRepeats: parseInt(document.getElementById('trainingRepeats').value),
+                        trainingSeeds: parseInt(document.getElementById('trainingSeeds').value),
+                        selectedAgents: selectedAgents,
+                        selectedApps: [selectedApp],
+                        localConfigInput: localConfig,
+                        selectedPlot: selectedPlot,
+
+
+                    };
+
+                    if (selectedAgents.includes('DQN')) {
+                        params.dqnParams = {
+                            input_size: parseInt(document.getElementById('input_size').value),
+                            sent_hidden_dim: parseInt(document.getElementById('sent_hidden_dim').value),
+                            hidden_dim: parseInt(document.getElementById('hidden_dim').value),
+                            num_hidden: parseInt(document.getElementById('num_hidden').value),
+                            sequence_size: parseInt(document.getElementById('sequence_size').value),
+                            memory_size: parseInt(document.getElementById('memory_size').value),
+                            target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
+                            learning_rate: parseFloat(document.getElementById('learning_rate').value),
+                            batch_size: parseInt(document.getElementById('batch_size').value)
+                        };
+                    }
+
+                    fetch('/train_model', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(params)
+                    })
+                    .then(response => response.json())
+                    .then(trainData => {
+                        if (!cancelTraining) {
+                            const resultsContainer = document.getElementById('resultsContainer');
+                            resultsContainer.innerHTML = ''; // Clear existing results
+                            
+                            if (trainData.figures && trainData.figures.length > 0) {
+                                trainData.figures.forEach(figPath => {
+                                    const img = document.createElement('img');
+                                    img.src = `/${figPath}?t=${new Date().getTime()}`;
+                                    img.alt = 'Analysis result';
+                                    img.className = 'shadow-effect';
+                                    resultsContainer.appendChild(img);
+                                });
+                            }
+                        }
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error training model:', error);
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    })
+                    .finally(() => {
+                        isTraining = false;
+                        loadingCircleConfirm.style.display = 'none';
+                        retryBtn.disabled = false; // Re-enable retry button after training
+                    });
+                } else {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error sending confirmation:', error);
+                confirmationResult.innerHTML = 'Error sending confirmation';
+                confirmationResult.style.color = 'red';
+                loadingCircleConfirm.style.display = 'none';
+                retryBtn.disabled = false; // Re-enable retry button on error
+                document.getElementById('loadingOverlay').style.display = 'none';
+            });
+        }
+
+        function newInstruction() {
+            document.getElementById('userInput').value = '';
+            document.getElementById('consoleOutput').innerHTML = '';
+            document.getElementById('instructionMatchPlots').innerHTML = '';
+            document.getElementById('confirmationResult').innerHTML = '';
+            fetch('/new_instruction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ instruction: document.getElementById('userInput').value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('New instruction processed:', data);
+                // Clear the match plots
+                document.getElementById('instructionMatchPlots').innerHTML = '';
+            })
+            .catch(error => console.error('Error processing new instruction:', error));
+        }
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            
+            tabcontent = document.getElementsByClassName("tab-content");
+        
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                document.querySelector(`[onclick="openTab(event, '${tabName}')"]`).className += " active";
+            }
+        }
+
+        window.onload = function() {
+            openTab(null, 'configTab');
+        };
+
+        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const qlearnParams = document.getElementById('qlearn-params');
+                const dqnParams = document.getElementById('dqn-params');
+                
+                if (this.value === 'Qlearntab') {
+                    qlearnParams.style.display = this.checked ? 'block' : 'none';
+                } else if (this.value === 'DQN') {
+                    dqnParams.style.display = this.checked ? 'block' : 'none';
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
