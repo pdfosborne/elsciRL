@@ -139,7 +139,7 @@ class WebApp:
         # - only ran first time otherwise copied from prior input
         if self.global_input_count == 0:
             standard_experiment = STANDARD_RL(
-                    Config=self.ExperimentConfig, 
+                    Config=config, 
                     ProblemConfig=local_config, 
                     Engine=engine, Adapters=adapters,
                     save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
