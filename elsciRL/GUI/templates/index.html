@@ -499,8 +499,11 @@
                         }
                     })
                     .then(() => {
-                        document.getElementById('inputTab').innerHTML = '';
-                        document.getElementById('resultsTab').innerHTML = '';
+                        // document.getElementById('inputTab').innerHTML = '';
+                        // document.getElementById('resultsTab').innerHTML = '';
+                        document.getElementById('instructionMatchPlots').innerHTML = '';
+                        document.getElementById('consoleOutput').innerHTML = '';
+                        document.getElementById('resultsContainer').innerHTML = '';
                     })
                     .catch(error => console.error('Error refreshing tabs:', error));
                 })
