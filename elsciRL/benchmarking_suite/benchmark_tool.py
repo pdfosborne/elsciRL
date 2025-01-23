@@ -7,20 +7,6 @@ import httpimport
 from elsciRL.benchmarking_suite.imports import Applications
 from elsciRL.benchmarking_suite.default_agent import DefaultAgentConfig
 
-# Imports needed for applications to run
-# import numpy as np
-# import pandas as pd
-# from typing import Dict, List
-# import torch
-# from torch import Tensor
-# from elsciRL.encoders.poss_state_encoded import StateEncoder
-# from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
-
-# elsciRL Imports
-from elsciRL import COMBINED_VARIANCE_ANALYSIS_GRAPH
-from elsciRL import STANDARD_RL
-from elsciRL.experiments.GymExperiment import GymExperiment
-
 class PullApplications:
     """Simple applications class to run a setup tests of experiments.
         - Problem selection: problems to run in format ['problem1', 'problem2',...]
@@ -133,46 +119,3 @@ class PullApplications:
         print("Updated Agent Config: \n", self.ExperimentConfig)
         return self.ExperimentConfig
             
-        
-    def run(self, experiment_type:str='standard', save_dir:str='') -> None:
-        
-        # Save results to a directory
-        cwd = os.getcwd()
-        if save_dir =='':
-            time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            if not os.path.exists(cwd+'/elsciRL-BENCHMARK-output'):
-                os.mkdir(cwd+'/elsciRL-BENCHMARK-output')
-            self.save_dir = cwd+'/elsciRL-BENCHMARK-output/'+str('test')+'_'+time 
-            if not os.path.exists(self.save_dir):
-                os.mkdir(self.save_dir)
-        else:
-            self.save_dir = save_dir
-
-        for problem in list(self.current_test.keys()):
-            engine = self.current_test[problem]['engine']
-            adapters = self.current_test[problem]['adapters']
-            for local_config in list(self.current_test[problem]['local_configs'].keys()):
-                problem_save_dir = self.save_dir+'/'+problem
-                if not os.path.exists(problem_save_dir):
-                    os.mkdir(problem_save_dir)
-                ProblemConfig = self.current_test[problem]['local_configs'][local_config]
-                if experiment_type.lower() == 'standard':
-                    exp = STANDARD_RL(Config=self.ExperimentConfig, ProblemConfig=ProblemConfig, 
-                                Engine=engine, Adapters=adapters,
-                                save_dir=problem_save_dir, show_figures = 'No', window_size=0.1)
-                elif experiment_type.lower() == 'gym':
-                    exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig = ProblemConfig,
-                       Engine=engine, Adapters=adapters,
-                       save_dir=problem_save_dir, show_figures = 'Yes', window_size=0.1)
-                else:
-                    raise ValueError(f"Experiment type {experiment_type} not found.")
-                
-                # Run train/test operations
-                exp.train()  
-                exp.test()
-
-
-    def analyze(self):
-        # Combines training and testing results into a single graph
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=self.save_dir, analysis_type='training')
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=self.save_dir, analysis_type='testing')

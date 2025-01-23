@@ -1,8 +1,9 @@
-from distutils.core import setup
+# from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='elsciRL',
-    version='0.2.0',
+    version='0.2.52',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -19,7 +20,11 @@ setup(
         'elsciRL.examples.WebApp',
         'elsciRL.examples.WebApp.prerender',
         'elsciRL.examples.WebApp.prerender.Standard_Experiment',
+        'elsciRL.examples.WebApp.static',
+        'elsciRL.examples.WebApp.templates',
         'elsciRL.GUI',
+        'elsciRL.GUI.static',
+        'elsciRL.GUI.templates',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
@@ -30,7 +35,7 @@ setup(
         'elsciRL.examples.WebApp.static': ['styles.css'],
         'elsciRL.GUI.templates': ['index.html'],
         'elsciRL.GUI.static': ['styles.css'],
-        },
+    },
     include_package_data=True,
     url='https://github.com/pdfosborne/elsciRL',
     license='Apache-2.0 license',
@@ -50,6 +55,5 @@ setup(
         'gymnasium',
         'stable-baselines3',
         'flask'
-
     ] 
 )

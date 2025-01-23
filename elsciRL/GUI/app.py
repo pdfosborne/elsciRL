@@ -32,15 +32,17 @@ class WebApp:
         self.global_input_count = 0
         self.global_save_dir = save_dir
         self.num_explor_epi = num_explor_epi
-        self.available_applications = possible_applications
+        self.possible_applications = possible_applications
         self.instruction_results = {}
+
+        
+    def load_data(self):
 
         # Currently pulls all the available applications
         # - TODO: Make it so it pulls all the file names but not the data
         #    ---> Then once problem is selected it then pulls data
-        self.pull_app_data = pull_data.pull(problem_selection=possible_applications)
+        self.pull_app_data = pull_data.pull(problem_selection=self.possible_applications)
 
-    def load_data(self):
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
         if 'search' not in self.global_save_dir:
@@ -106,8 +108,10 @@ class WebApp:
             if not os.path.exists(current_input_dir):
                 os.makedirs(current_input_dir)
             for filename in os.listdir(previous_input_dir):
-                shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
-
+                try:
+                    shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
+                except:
+                    shutil.copy(os.path.join(previous_input_dir, filename).replace("\\","/"), os.path.join(current_input_dir, filename).replace("\\","/"))
         # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
         #            "cum_R_mean","cum_R_se","time_mean"]
         
@@ -149,7 +153,10 @@ class WebApp:
         )
         variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_training.png"
         variance_filename = f'{application}_variance_analysis.png'
-        shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
+        try:
+            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
+        except:
+            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename).replace("\\","/"))
         figures_to_display.append(f'uploads/{variance_filename}')
 
         return jsonify({
@@ -322,7 +329,7 @@ class WebApp:
 
     def get_applications(self):
         return jsonify({
-            'applications': self.available_applications
+            'applications': self.possible_applications
         })
     
     def get_observed_states(self, selected_application):
@@ -358,7 +365,7 @@ class WebApp:
         all_observed_states = {}
         all_plot_options = {}
 
-        for app in self.available_applications:
+        for app in self.possible_applications:
             all_observed_states[app] = self.get_observed_states([app])
             all_local_configs[app] = self.get_local_configs(app)
             all_plot_options[app] = self.get_plot_options(app)
