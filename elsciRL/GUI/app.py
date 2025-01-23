@@ -108,10 +108,17 @@ class WebApp:
             if not os.path.exists(current_input_dir):
                 os.makedirs(current_input_dir)
             for filename in os.listdir(previous_input_dir):
-                try:
-                    shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
-                except:
-                    shutil.copy(os.path.join(previous_input_dir, filename).replace("\\","/"), os.path.join(current_input_dir, filename).replace("\\","/"))
+                if os.path.isdir(os.path.join(previous_input_dir, filename)):
+                    src_file = os.path.join(previous_input_dir, filename, 'results.csv')
+                    dst_file = os.path.join(current_input_dir, filename, 'results.csv')
+                    if not os.path.exists(os.path.join(current_input_dir, filename)):
+                        os.makedirs(os.path.join(current_input_dir, filename))
+                else:
+                    src_file = os.path.join(previous_input_dir, filename)
+                    dst_file = os.path.join(current_input_dir, filename)
+
+                shutil.copy(dst_file, src_file)
+
         # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
         #            "cum_R_mean","cum_R_se","time_mean"]
         
