@@ -28,10 +28,10 @@ possible_applications = list(imports.keys())
 pull_data = PullApplications()
 
 class WebApp:
-    def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
+    def __init__(self):
         self.global_input_count = 0
-        self.global_save_dir = save_dir
-        self.num_explor_epi = num_explor_epi
+        self.global_save_dir = ''
+        self.num_explor_epi = 1000
         self.possible_applications = possible_applications
         self.instruction_results = {}
 
@@ -151,38 +151,20 @@ class WebApp:
             current_input_dir = self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count)+'/Standard_Experiment'
             if not os.path.exists(current_input_dir):
                 os.makedirs(current_input_dir)
+            # Only copy training and testing results 
+            # so it is not duplicated in variance plot
             for filename in os.listdir(previous_input_dir):
                 if os.path.isdir(os.path.join(previous_input_dir, filename)):
                     src_file = os.path.join(previous_input_dir, filename, 'results.csv')
                     dst_file = os.path.join(current_input_dir, filename, 'results.csv')
                     if not os.path.exists(os.path.join(current_input_dir, filename)):
                         os.makedirs(os.path.join(current_input_dir, filename))
-                else:
-                    src_file = os.path.join(previous_input_dir, filename)
-                    dst_file = os.path.join(current_input_dir, filename)
-
-                shutil.copy(src_file.replace("\\","/"), dst_file.replace("\\","/"))
-
-        
-
-        # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
-        #            "cum_R_mean","cum_R_se","time_mean"]
-        
-        # if not os.path.exists(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment'): 
-        #     os.mkdir(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment')
-
-        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
-        #           +'/Standard_Experiment/training_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
-        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
-        #     writer.writeheader()
-        #     for key, value in training_data.data.items():
-        #         writer.writerow(value)
-        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
-        #           +'/Standard_Experiment/testing_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
-        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
-        #     writer.writeheader()
-        #     for key, value in testing_data.data.items():
-        #         writer.writerow(value)             
+                
+                    shutil.copy(src_file.replace("\\","/"), dst_file.replace("\\","/"))
+                #else:
+                    # src_file = os.path.join(previous_input_dir, filename)
+                    # dst_file = os.path.join(current_input_dir, filename)
+                  
         figures_to_display = []
         if selected_plot != '':
             analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
@@ -283,7 +265,7 @@ class WebApp:
                                         match_sim_threshold=0.9,
                                         observed_states=observed_states)
         else:
-            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+            self.elsci_run = elsci_search(Config=config,
                                         LocalConfig=local_config,
                                         Engine=engine, Adapters=adapters,
                                         save_dir=self.global_save_dir,
@@ -420,30 +402,8 @@ class WebApp:
         print("Global input count reset to 0")
         return jsonify({'status': 'success'})
 
-if len(sys.argv)>1:
-    if 'search' in sys.argv[1]:
-        if 'output' in sys.argv[1]:
-            print('Using pre-rendered data from '+sys.argv[1])
-            input_save_dir= sys.argv[1]
-        else:
-            print('Using pre-rendered data from ./output/'+sys.argv[1])
-            input_save_dir= './output/'+sys.argv[1]
-        if len(sys.argv)>2:
-            input_explor_epi = int(sys.argv[2])
-        else:
-            input_explor_epi = 1000
-    else:
-        input_save_dir=''
-        if len(sys.argv)==2:
-            input_explor_epi = int(sys.argv[1])
-        else:
-            input_explor_epi = 1000
-else:
-    input_save_dir = './output'
-    input_explor_epi = 1000
 
-WebApp = WebApp(save_dir=input_save_dir,
-                num_explor_epi=input_explor_epi)
+WebApp = WebApp()
 
 @app.route('/')
 def home_route():

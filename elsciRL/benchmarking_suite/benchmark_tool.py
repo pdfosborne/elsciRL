@@ -105,17 +105,16 @@ class PullApplications:
                 print("No prerender images found.")
                 self.current_test[problem]['prerender_images'] = {}
             # -----------------------------------------------
+        print("-----------------------------------------------")
 
         return self.current_test
 
     def setup(self, agent_config:dict={}) -> None:
-        # TODO: Update this to be changeable by user input
         if agent_config == {}:
             agent_config = DefaultAgentConfig()
             self.ExperimentConfig = agent_config.data  
         else:
             self.ExperimentConfig = agent_config 
 
-        print("Updated Agent Config: \n", self.ExperimentConfig)
         return self.ExperimentConfig
             
