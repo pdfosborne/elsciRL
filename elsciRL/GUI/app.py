@@ -117,7 +117,7 @@ class WebApp:
                     src_file = os.path.join(previous_input_dir, filename)
                     dst_file = os.path.join(current_input_dir, filename)
 
-                shutil.copy(dst_file.replace("\\","/"), src_file.replace("\\","/"))
+                shutil.copy(src_file.replace("\\","/"), dst_file.replace("\\","/"))
 
         # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
         #            "cum_R_mean","cum_R_se","time_mean"]
