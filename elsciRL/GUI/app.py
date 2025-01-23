@@ -547,6 +547,10 @@ def new_instruction_route():
 def reset_input_count_route():
     return WebApp.reset_input_count()
 
+@app.route('/refresh_tabs', methods=['POST'])
+def refresh_tabs_route():
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
         os.makedirs(os.path.join(WebApp.global_save_dir, 'uploads'))
