@@ -75,12 +75,56 @@ class WebApp:
         adapters = self.pull_app_data[application]['adapters']
         instruction_results = self.instruction_results[application]
         
+        # UPDATE EXPERIMENT CONFIG
+        selected_agents = data.get('selectedAgents', ['Qlearntab'])
+        training_episodes = data.get('trainingEpisodes', 1000)
+        config = pull_data.setup()
+        config.update({
+            'problem_type': data.get('problemType', 'Default'),
+            'number_training_episodes': int(training_episodes),
+            'number_training_repeats': int(data.get('trainingRepeats', 5)),
+            'number_training_seeds': int(data.get('trainingSeeds', 1)),
+            'number_test_episodes': int(data.get('testEpisodes', 200)),
+            'number_test_repeats': int(data.get('testRepeats', 10)),
+            'agent_select': selected_agents,
+            'agent_parameters': {}
+        })
+
+        # Always include Qlearntab for search agent
+        config['agent_parameters']['Qlearntab'] = {
+            'alpha': float(data.get('alpha', 0.1)),
+            'gamma': float(data.get('gamma', 0.95)),
+            'epsilon': float(data.get('epsilon', 0.2)),
+            'epsilon_step': float(data.get('epsilonStep', 0.01))
+        }
+
+        if 'DQN' in selected_agents:
+            dqn_params = data.get('dqnParams', {})
+            config['agent_parameters']['DQN'] = {
+                'input_type': 'lm',
+                'input_size': int(dqn_params.get('input_size', 384)),
+                'sent_hidden_dim': int(dqn_params.get('sent_hidden_dim', 10)),
+                'hidden_dim': int(dqn_params.get('hidden_dim', 128)),
+                'num_hidden': int(dqn_params.get('num_hidden', 2)),
+                'sequence_size': int(dqn_params.get('sequence_size', 20)),
+                'memory_size': int(dqn_params.get('memory_size', 2000)),
+                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100)),
+                'learning_rate': float(dqn_params.get('learning_rate', 0.001)),
+                'batch_size': int(dqn_params.get('batch_size', 1))
+            }
+     
+        for n, agent in enumerate(selected_agents):
+            adapter_select = self.pull_app_data[application]['adapters']
+            adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
+        config['adapter_select'] = adapter_list
+        # ---
+        print("\n Config used for agents:", self.ExperimentConfig)
 
         if not os.path.exists(self.global_save_dir+'/'+application):
             os.mkdir(self.global_save_dir+'/'+application)        
 
         reinforced_experiment = elsciRLOptimize(
-                        Config=self.ExperimentConfig, 
+                        Config=config, 
                         LocalConfig=local_config, 
                         Engine=engine, Adapters=adapters,
                         save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
@@ -199,16 +243,14 @@ class WebApp:
         console_output = ''
         match_plots = []
 
-        selected_agents = data.get('selectedAgents', ['Qlearntab'])
-        training_episodes = data.get('trainingEpisodes', 1000)
+        # UPDATE EXPERIMENT CONFIG FOR SEARCH
+        # - only use q learn tab agent
+        selected_agents =  ['Qlearntab']
+        training_episodes = self.num_explor_epi
         config = pull_data.setup()
         config.update({
             'problem_type': data.get('problemType', 'Default'),
             'number_training_episodes': int(training_episodes),
-            'number_training_repeats': int(data.get('trainingRepeats', 5)),
-            'number_training_seeds': int(data.get('trainingSeeds', 1)),
-            'number_test_episodes': int(data.get('testEpisodes', 200)),
-            'number_test_repeats': int(data.get('testRepeats', 10)),
             'agent_select': selected_agents,
             'agent_parameters': {}
         })
@@ -220,28 +262,12 @@ class WebApp:
             'epsilon': float(data.get('epsilon', 0.2)),
             'epsilon_step': float(data.get('epsilonStep', 0.01))
         }
-
-        if 'DQN' in selected_agents:
-            dqn_params = data.get('dqnParams', {})
-            config['agent_parameters']['DQN'] = {
-                'input_type': 'lm',
-                'input_size': int(dqn_params.get('input_size', 384)),
-                'sent_hidden_dim': int(dqn_params.get('sent_hidden_dim', 10)),
-                'hidden_dim': int(dqn_params.get('hidden_dim', 128)),
-                'num_hidden': int(dqn_params.get('num_hidden', 2)),
-                'sequence_size': int(dqn_params.get('sequence_size', 20)),
-                'memory_size': int(dqn_params.get('memory_size', 2000)),
-                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100)),
-                'learning_rate': float(dqn_params.get('learning_rate', 0.001)),
-                'batch_size': int(dqn_params.get('batch_size', 1))
-            }
      
         for n, agent in enumerate(selected_agents):
             adapter_select = self.pull_app_data[application]['adapters']
             adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
         config['adapter_select'] = adapter_list
-        
-        self.ExperimentConfig = config
+        # ---
 
         
         engine = self.pull_app_data[application]['engine']
@@ -249,7 +275,7 @@ class WebApp:
         adapters = self.pull_app_data[application]['adapters']
         if len(self.pull_app_data[application]['prerender_data'].keys())>0:
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
-            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+            self.elsci_run = elsci_search(Config=config,
                                         LocalConfig=local_config,
                                         Engine=engine, Adapters=adapters,
                                         save_dir=self.global_save_dir,

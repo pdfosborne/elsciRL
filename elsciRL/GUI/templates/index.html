@@ -318,7 +318,7 @@
                         </div>
                     </div>
                     <div class="console-section shadow-effect" style="flex: 1;">
-                        <p>What the agent see to match with your input instructions</p>
+                        <p>What the agent sees to match with your input instructions</p>
                         <div id="consoleOutput"></div>
                         <div id="confirmationBlock">
                             <p>Was the result correct?</p>
@@ -399,51 +399,42 @@
                 setTimeout(() => {
                     const configSelect = document.getElementById('localConfigSelect');
                     configSelect.innerHTML = '';
-                    const defaultConfigOption = document.createElement('option');
-                    defaultConfigOption.value = '';
-                    defaultConfigOption.text = 'Choose config...';
-                    defaultConfigOption.disabled = true;
-                    defaultConfigOption.selected = true;
-                    configSelect.appendChild(defaultConfigOption);
                     if (allConfigs[selectedApp]) {
-                        allConfigs[selectedApp].forEach(config => {
+                        allConfigs[selectedApp].forEach((config, index) => {
                             const option = document.createElement('option');
                             option.value = config;
                             option.text = config;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             configSelect.appendChild(option);
                         });
                     }
 
                     const observedStateSelect = document.getElementById('observedStateSelect');
                     observedStateSelect.innerHTML = '';
-                    const defaultObservedStateOption = document.createElement('option');
-                    defaultObservedStateOption.value = '';
-                    defaultObservedStateOption.text = 'Select observed states data';
-                    defaultObservedStateOption.disabled = true;
-                    defaultObservedStateOption.selected = true;
-                    observedStateSelect.appendChild(defaultObservedStateOption);
                     if (allObservedStates[selectedApp]) {
-                        allObservedStates[selectedApp].forEach(state => {
+                        allObservedStates[selectedApp].forEach((state, index) => {
                             const option = document.createElement('option');
                             option.value = state;
                             option.text = state;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             observedStateSelect.appendChild(option);
                         });
                     }
 
                     const plotSelect = document.getElementById('plotSelect');
                     plotSelect.innerHTML = '';
-                    const defaultPlotOption = document.createElement('option');
-                    defaultPlotOption.value = '';
-                    defaultPlotOption.text = 'Choose plot...';
-                    defaultPlotOption.disabled = true;
-                    defaultPlotOption.selected = true;
-                    plotSelect.appendChild(defaultPlotOption);
                     if (allPlotOptions[selectedApp]) {
-                        allPlotOptions[selectedApp].forEach(plot => {
+                        allPlotOptions[selectedApp].forEach((plot, index) => {
                             const option = document.createElement('option');
                             option.value = plot;
                             option.text = plot;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             plotSelect.appendChild(option);
                         });
                     }
@@ -467,17 +458,16 @@
                     prerenderImageSelect.innerHTML = '';
                     prerenderImage.style.display = 'none';
                     if (data.imagePaths) {
-                        data.imagePaths.forEach(imagePath => {
+                        data.imagePaths.forEach((imagePath, index) => {
                             const option = document.createElement('option');
                             option.value = imagePath;
                             option.text = imagePath.split('/').pop();
-                            prerenderImageSelect.appendChild(option);
-
-                            // Display the first image by default
-                            if (prerenderImageSelect.options.length === 1) {
+                            if (index === 0) {
+                                option.selected = true;
                                 prerenderImage.src = `/${imagePath}`;
                                 prerenderImage.style.display = 'block';
                             }
+                            prerenderImageSelect.appendChild(option);
                         });
                     }
                 })
@@ -499,9 +489,8 @@
                         }
                     })
                     .then(() => {
-                        // document.getElementById('inputTab').innerHTML = '';
-                        // document.getElementById('resultsTab').innerHTML = '';
                         document.getElementById('instructionMatchPlots').innerHTML = '';
+                        document.getElementById('userInput').value = '';
                         document.getElementById('consoleOutput').innerHTML = '';
                         document.getElementById('resultsContainer').innerHTML = '';
                     })
