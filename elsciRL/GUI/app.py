@@ -118,7 +118,7 @@ class WebApp:
             adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
         config['adapter_select'] = adapter_list
         # ---
-        print("\n Config used for agents:", self.ExperimentConfig)
+        print("\n Config used for agents:", config)
 
         if not os.path.exists(self.global_save_dir+'/'+application):
             os.mkdir(self.global_save_dir+'/'+application)        
