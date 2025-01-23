@@ -482,6 +482,18 @@
                     }
                 })
                 .catch(error => console.error('Error loading prerender images:', error));
+
+                // Reset global input count and refresh the page
+                fetch('/reset_input_count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(() => {
+                    location.reload();
+                })
+                .catch(error => console.error('Error resetting input count:', error));
             } else {
                 configSelections.style.display = 'none';
             }

@@ -119,6 +119,8 @@ class WebApp:
 
                 shutil.copy(src_file.replace("\\","/"), dst_file.replace("\\","/"))
 
+        
+
         # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
         #            "cum_R_mean","cum_R_se","time_mean"]
         
@@ -387,6 +389,11 @@ class WebApp:
         self.global_input_count += 1
         return jsonify({'status': 'success'})
 
+    def reset_input_count(self):
+        self.global_input_count = 0
+        print("Global input count reset to 0")
+        return jsonify({'status': 'success'})
+
 if len(sys.argv)>1:
     if 'search' in sys.argv[1]:
         if 'output' in sys.argv[1]:
@@ -535,6 +542,10 @@ def get_prerender_image_route():
 def new_instruction_route():
     response = WebApp.new_instruction()
     return response
+
+@app.route('/reset_input_count', methods=['POST'])
+def reset_input_count_route():
+    return WebApp.reset_input_count()
 
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
