@@ -61,14 +61,15 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
                 else:
                     raise ValueError("Analysis type must be either 'training' or 'testing'.")
 
-                if experiment_name not in variance_results.keys():
-                    variance_results[experiment_name] = {}
-
                 for file in file_names:
-                    results = pd.read_csv(results_dir+'/'+problem_dir+'/'+experiment_dir+'/'+file)
-                    variance_results[experiment_name]['results'] = results
-                    variance_results[experiment_name]['agent'] = results['agent'].iloc[0]
-                    variance_results[experiment_name]['num_repeats'] = results['num_repeats'].iloc[0]
+                        if file.endswith('.csv'):
+                            # Check added here so it only works if a csv file is found
+                            if experiment_name not in variance_results.keys():
+                                variance_results[experiment_name] = {}
+                            results = pd.read_csv(results_dir+'/'+problem_dir+'/'+experiment_dir+'/'+file)
+                            variance_results[experiment_name]['results'] = results
+                            variance_results[experiment_name]['agent'] = results['agent'].iloc[0]
+                            variance_results[experiment_name]['num_repeats'] = results['num_repeats'].iloc[0]
     
     cycol = 'brgcmyk'
     line_styles = ['solid','dotted','dashed','dashdot', 'solid','dotted','dashed','dashdot']
