@@ -12,7 +12,7 @@ class Applications:
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
-                "commit_id": "aa759db",
+                "commit_id": "23067e7",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "local_config_folder": "configs",
