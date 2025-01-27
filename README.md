@@ -3,7 +3,7 @@
 <a href="https://elsci.org"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsci-whale-logo.png" align="left" height="160" width="160" ></a> 
 
 <div align="center">
-  <b>Automate Anything, Automate Everything!</b>
+  <b>Language AI + Reinforcement Learning</b>
   <br>
   Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/GgaqcrYCxt">Discord server</a> to connect with the community.
   <br>
