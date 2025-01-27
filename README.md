@@ -25,13 +25,13 @@
 
 To achieve this, **elsciRL** offers a novel framework and infrastructure for accelerating the development of language based Reinforcement Learning solutions.
 
-## Quick-start
+## Install Guide
 
 1. Install the Python library
 ```
 pip install elsciRL
 ```
-2. Run the demo experiment in a Python shell
+2. Run the demo experiment in a Python shell or as a script
 ```python
 from elsciRL import DemoExperiment
 exp = DemoExperiment()
