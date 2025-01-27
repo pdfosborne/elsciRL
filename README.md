@@ -46,6 +46,24 @@ exp.evaluate()
 
 ![variance\_comparison\_TRAINING](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Documentation/I%20-%20Introduction/attachments/variance_comparison_TRAINING.png)
 
+## App Interface Setup
+
+[**DEMO VIDEO**](https://www.youtube.com/embed/JbPtl7Sk49Y)
+
+Simply run the following code in a Python script.
+
+```python
+from elsciRL import App
+App.run()
+```
+
+This will give you a localhost link to open in a browser. 
+
+The App will looks similar to the [public demo](https://osbornep.pythonanywhere.com/) except now the algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
+
+By default the instruction agent will be run for 1,000 episodes to save time but you can increase or decrease this if you wish to change the training time.
+
+Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
 
 ---
 
