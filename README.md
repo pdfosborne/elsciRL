@@ -31,7 +31,7 @@ To achieve this, **elsciRL** offers a novel framework and infrastructure for acc
 ```
 pip install elsciRL
 ```
-2. Run the demo experiment in a Python shell or as a script
+2. Test the install has worked by running the demo experiment in a Python shell or as a script
 ```python
 from elsciRL import DemoExperiment
 exp = DemoExperiment()
@@ -47,5 +47,20 @@ exp.evaluate()
 ![variance\_comparison\_TRAINING](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Documentation/I%20-%20Introduction/attachments/variance_comparison_TRAINING.png)
 
 
+---
 
+# Cite
+
+Please use the following to cite this work
+
+```bibtex
+  title        = {Improving Real-World Reinforcement Learning by Self Completing Human Instructions on Rule Defined Language},  
+  author       = {Philip Osborne},  
+  year         = 2024,  
+  month        = {August},  
+  address      = {Manchester, UK},  
+  note         = {Available at \url{https://research.manchester.ac.uk/en/studentTheses/improving-real-world-reinforcement-learning-by-self-completing-hu}},  
+  school       = {Department of Computer Science},  
+  type         = {PhD thesis}
+```
 
