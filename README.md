@@ -1,7 +1,7 @@
 # elsciRL
 ## Language AI + Reinforcement Learning
 
-<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_stag.jpg" align="left" height="250" width="250" ></a> 
+<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_stag_transparent.png" align="left" height="250" width="250" ></a> 
 
 <div align="center">
   <b>Automate Anything, Automate Everything!</b>
