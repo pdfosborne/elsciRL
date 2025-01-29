@@ -27,11 +27,29 @@ To achieve this, **elsciRL** offers a novel framework and infrastructure for acc
 
 ## Install Guide
 
-Install the Python library from the PyPi packagel library
+### Quick Install
+Install the Python library from the PyPi package library:
 ```
 pip install elsciRL
 ```
 
+### Using a Python environment
+It is suggested to setup a new Python environment. This can be completed easily with [Anaconda](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#) with a recent or newest Python version. 
+
+If you dont have Anaconda already, we suggest installing Miniconda.
+
+Create a new Python environment.
+```
+conda create -n elsciRL_env python=3.11
+```
+*You can change the name from elsciRL_env to anything you'd like and update the Python version if needed.*
+
+Once installed, activate the newly created environment
+```
+conda activate elsciRL_env
+```
+
+### Manual Install
 Alternatively, you can clone this repository directly and install it manually.
 ```
 git clone https://github.com/pdfosborne/elsciRL.git
@@ -39,6 +57,7 @@ cd elsciRL
 pip install .
 ```
 
+### Developer Install
 If you wish wish to edit the software you can do this my installing it as an editable package.
 ```
 git clone https://github.com/pdfosborne/elsciRL.git
@@ -46,9 +65,11 @@ cd elsciRL
 pip install -e .
 ```
 
+
+
 ## Run the App Interface
 
-Simply run the following code in a Python script.
+To run the App, run the following code in a Python script.
 
 ```python
 from elsciRL import App
@@ -67,7 +88,6 @@ The App will looks similar to the [public demo](https://osbornep.pythonanywhere.
 By default the instruction agent will be run for 1,000 episodes to save time but you can increase or decrease this if you wish to change the training time.
 
 Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
-
 
 
 ---
