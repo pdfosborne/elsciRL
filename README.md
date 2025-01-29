@@ -54,16 +54,13 @@ Simply run the following code in a Python script.
 from elsciRL import App
 App.run()
 ```
+
+This will give you a localhost link to open the App in a browser. 
+
+
 *Click the image to watch the demo video*
 [![YouTube](http://i.ytimg.com/vi/JbPtl7Sk49Y/hqdefault.jpg)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 
-
-<!-- ![WebApp_example_image_1](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/WebApp-example-1.png) -->
-
-<!-- <iframe width="560" height="315" src="https://www.youtube.com/embed/JbPtl7Sk49Y?si=vAEplNNdmXcEDAx-&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe> -->
-
-
-This will give you a localhost link to open in a browser. 
 
 The App will looks similar to the [public demo](https://osbornep.pythonanywhere.com/) except now the algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
 
