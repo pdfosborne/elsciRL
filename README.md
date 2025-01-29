@@ -27,28 +27,26 @@ To achieve this, **elsciRL** offers a novel framework and infrastructure for acc
 
 ## Install Guide
 
-1. Install the Python library
+Install the Python library from the PyPi packagel library
 ```
 pip install elsciRL
 ```
-2. Test the install has worked by running the demo experiment in a Python shell or as a script
-```python
-from elsciRL import DemoExperiment
-exp = DemoExperiment()
-exp.run()
-exp.evaluate()
-``` 
-*This will run a Reinforcement Learning experiment on two simple problems (OpenAI Gym's FrozenLake and a Sailing Simulation).*
 
-![demo\_gif](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Documentation/I%20-%20Introduction/attachments/elsciRL_demo_short.gif)
+Alternatively, you can clone this repository directly and install it manually.
+```
+git clone https://github.com/pdfosborne/elsciRL.git
+cd elsciRL
+pip install .
+```
 
-*The analyze function will return a combined chart for the experiments you just ran!*
+If you wish wish to edit the software you can do this my installing it as an editable package.
+```
+git clone https://github.com/pdfosborne/elsciRL.git
+cd elsciRL
+pip install -e .
+```
 
-![variance\_comparison\_TRAINING](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Documentation/I%20-%20Introduction/attachments/variance_comparison_TRAINING.png)
-
-## App Interface Setup
-
-[**DEMO VIDEO**](https://www.youtube.com/embed/JbPtl7Sk49Y)
+## Run the App Interface
 
 Simply run the following code in a Python script.
 
@@ -57,6 +55,11 @@ from elsciRL import App
 App.run()
 ```
 
+<!-- ![WebApp_example_image_1](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/WebApp-example-1.png) -->
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/JbPtl7Sk49Y?si=vAEplNNdmXcEDAx-&amp;controls=0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
 This will give you a localhost link to open in a browser. 
 
 The App will looks similar to the [public demo](https://osbornep.pythonanywhere.com/) except now the algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
@@ -64,6 +67,8 @@ The App will looks similar to the [public demo](https://osbornep.pythonanywhere.
 By default the instruction agent will be run for 1,000 episodes to save time but you can increase or decrease this if you wish to change the training time.
 
 Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
+
+
 
 ---
 
