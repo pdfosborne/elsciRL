@@ -70,7 +70,6 @@ pip install -e .
 ```
 
 
-
 ## Run the App Interface
 
 To run the App, run the following code in a Python script.
@@ -84,6 +83,7 @@ This will give you a localhost link to open the App in a browser.
 
 
 *Click the image to watch the demo video*
+
 [![YouTube](http://i.ytimg.com/vi/JbPtl7Sk49Y/hqdefault.jpg)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 
 
