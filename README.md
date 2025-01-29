@@ -54,9 +54,9 @@ Simply run the following code in a Python script.
 from elsciRL import App
 App.run()
 ```
-
-[![YouTube](http://i.ytimg.com/vi/JbPtl7Sk49Y/hqdefault.jpg)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 *Click the image to watch the demo video*
+[![YouTube](http://i.ytimg.com/vi/JbPtl7Sk49Y/hqdefault.jpg)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
+
 
 <!-- ![WebApp_example_image_1](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/WebApp-example-1.png) -->
 
