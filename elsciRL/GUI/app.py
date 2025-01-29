@@ -28,21 +28,19 @@ possible_applications = list(imports.keys())
 pull_data = PullApplications()
 
 class WebApp:
-    def __init__(self):
+    def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
         self.global_input_count = 0
-        self.global_save_dir = ''
-        self.num_explor_epi = 1000
-        self.possible_applications = possible_applications
+        self.global_save_dir = save_dir
+        self.num_explor_epi = num_explor_epi
+        self.available_applications = possible_applications
         self.instruction_results = {}
-
-        
-    def load_data(self):
 
         # Currently pulls all the available applications
         # - TODO: Make it so it pulls all the file names but not the data
         #    ---> Then once problem is selected it then pulls data
-        self.pull_app_data = pull_data.pull(problem_selection=self.possible_applications)
+        self.pull_app_data = pull_data.pull(problem_selection=possible_applications)
 
+    def load_data(self):
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
         if 'search' not in self.global_save_dir:
@@ -75,7 +73,116 @@ class WebApp:
         adapters = self.pull_app_data[application]['adapters']
         instruction_results = self.instruction_results[application]
         
-        # UPDATE EXPERIMENT CONFIG
+
+        if not os.path.exists(self.global_save_dir+'/'+application):
+            os.mkdir(self.global_save_dir+'/'+application)        
+
+        reinforced_experiment = elsciRLOptimize(
+                        Config=self.ExperimentConfig, 
+                        LocalConfig=local_config, 
+                        Engine=engine, Adapters=adapters,
+                        save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
+                        show_figures = 'No', window_size=0.1,
+                        instruction_path=instruction_results, predicted_path=None, 
+                        instruction_episode_ratio=0.1,
+                        instruction_chain=True, instruction_chain_how='exact' )
+        reinforced_experiment.train()
+        reinforced_experiment.test()
+
+        # Baseline flat experiment
+        # - only ran first time otherwise copied from prior input
+        if self.global_input_count == 0:
+            standard_experiment = STANDARD_RL(
+                    Config=self.ExperimentConfig, 
+                    ProblemConfig=local_config, 
+                    Engine=engine, Adapters=adapters,
+                    save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
+                    show_figures = 'No', window_size=0.1)
+            standard_experiment.train()
+            standard_experiment.test()
+        else:
+            previous_input_dir = self.global_save_dir+'/'+application + '/input_0/Standard_Experiment'
+            current_input_dir = self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count)+'/Standard_Experiment'
+            if not os.path.exists(current_input_dir):
+                os.makedirs(current_input_dir)
+            for filename in os.listdir(previous_input_dir):
+                shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
+
+        # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
+        #            "cum_R_mean","cum_R_se","time_mean"]
+        
+        # if not os.path.exists(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment'): 
+        #     os.mkdir(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment')
+
+        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
+        #           +'/Standard_Experiment/training_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
+        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
+        #     writer.writeheader()
+        #     for key, value in training_data.data.items():
+        #         writer.writerow(value)
+        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
+        #           +'/Standard_Experiment/testing_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
+        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
+        #     writer.writeheader()
+        #     for key, value in testing_data.data.items():
+        #         writer.writerow(value)             
+        figures_to_display = []
+        if selected_plot != '':
+            analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
+            analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/input_'+str(self.global_input_count))
+            analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
+
+            for i, func_name in enumerate(analysis_functions):
+                func = getattr(analysis_instance, func_name)
+                fig_dict = func()
+                for figure_names,figure in fig_dict.items():
+                    if figure:
+                        fig_filename = f'{application}_{func_name}_{self.global_input_count}_{figure_names}.png'
+                        fig_path = os.path.join(self.uploads_dir, fig_filename)
+                        figure.savefig(fig_path)
+                        figures_to_display.append(f'uploads/{fig_filename}')
+        
+        COMBINED_VARIANCE_ANALYSIS_GRAPH(
+            results_dir=self.global_save_dir+'/'+application, 
+            analysis_type='training', 
+            results_to_show='simple'
+        )
+        variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_training.png"
+        variance_filename = f'{application}_variance_analysis.png'
+        shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
+        figures_to_display.append(f'uploads/{variance_filename}')
+
+        return jsonify({
+            'figures': figures_to_display
+        })
+
+    def home(self):
+        template_path = os.path.join(app.template_folder, 'index.html')
+        print(f"Trying to get HTML file from: {template_path}")
+        return render_template('index.html')
+
+    def process_input(self):
+        data = request.get_json()
+        if data is None:
+            return jsonify({'error': 'No data provided'}), 400
+
+
+        user_input = data.get('userInput', '')
+        application = data.get('selectedApps', [])[0]
+        config_input = data.get('localConfigInput', '')
+        observed_states_filename = data.get('observedStateInput', '')
+        
+
+        if not application:
+            return jsonify({'error': 'No application selected'}), 400
+
+        instruction_descriptions = user_input.split('\n')
+        instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+
+        results = {}
+        console_output = ''
+        match_plots = []
+
         selected_agents = data.get('selectedAgents', ['Qlearntab'])
         training_episodes = data.get('trainingEpisodes', 1000)
         config = pull_data.setup()
@@ -117,139 +224,8 @@ class WebApp:
             adapter_select = self.pull_app_data[application]['adapters']
             adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
         config['adapter_select'] = adapter_list
-        # ---
-        print("\n Config used for agents:", config)
-
-        if not os.path.exists(self.global_save_dir+'/'+application):
-            os.mkdir(self.global_save_dir+'/'+application)        
-
-        reinforced_experiment = elsciRLOptimize(
-                        Config=config, 
-                        LocalConfig=local_config, 
-                        Engine=engine, Adapters=adapters,
-                        save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
-                        show_figures = 'No', window_size=0.1,
-                        instruction_path=instruction_results, predicted_path=None, 
-                        instruction_episode_ratio=0.1,
-                        instruction_chain=True, instruction_chain_how='exact' )
-        reinforced_experiment.train()
-        reinforced_experiment.test()
-
-        # Baseline flat experiment
-        # - only ran first time otherwise copied from prior input
-        if self.global_input_count == 0:
-            standard_experiment = STANDARD_RL(
-                    Config=config, 
-                    ProblemConfig=local_config, 
-                    Engine=engine, Adapters=adapters,
-                    save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
-                    show_figures = 'No', window_size=0.1)
-            standard_experiment.train()
-            standard_experiment.test()
-        else:
-            previous_input_dir = self.global_save_dir+'/'+application + '/input_0/Standard_Experiment'
-            current_input_dir = self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count)+'/Standard_Experiment'
-            if not os.path.exists(current_input_dir):
-                os.makedirs(current_input_dir)
-            # Only copy training and testing results 
-            # so it is not duplicated in variance plot
-            for filename in os.listdir(previous_input_dir):
-                if os.path.isdir(os.path.join(previous_input_dir, filename)):
-                    src_file = os.path.join(previous_input_dir, filename, 'results.csv')
-                    dst_file = os.path.join(current_input_dir, filename, 'results.csv')
-                    if not os.path.exists(os.path.join(current_input_dir, filename)):
-                        os.makedirs(os.path.join(current_input_dir, filename))
-                
-                    shutil.copy(src_file.replace("\\","/"), dst_file.replace("\\","/"))
-                #else:
-                    # src_file = os.path.join(previous_input_dir, filename)
-                    # dst_file = os.path.join(current_input_dir, filename)
-                  
-        figures_to_display = []
-        if selected_plot != '':
-            analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
-            analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/input_'+str(self.global_input_count))
-            analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
-
-            for i, func_name in enumerate(analysis_functions):
-                func = getattr(analysis_instance, func_name)
-                fig_dict = func()
-                for figure_names,figure in fig_dict.items():
-                    if figure:
-                        fig_filename = f'{application}_{func_name}_{self.global_input_count}_{figure_names}.png'
-                        fig_path = os.path.join(self.uploads_dir, fig_filename)
-                        figure.savefig(fig_path)
-                        figures_to_display.append(f'uploads/{fig_filename}')
         
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(
-            results_dir=self.global_save_dir+'/'+application, 
-            analysis_type='training', 
-            results_to_show='simple'
-        )
-        variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_training.png"
-        variance_filename = f'{application}_variance_analysis.png'
-        try:
-            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
-        except:
-            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename).replace("\\","/"))
-        figures_to_display.append(f'uploads/{variance_filename}')
-
-        return jsonify({
-            'figures': figures_to_display
-        })
-
-    def home(self):
-        template_path = os.path.join(app.template_folder, 'index.html')
-        print(f"Trying to get HTML file from: {template_path}")
-        return render_template('index.html')
-
-    def process_input(self):
-        data = request.get_json()
-        if data is None:
-            return jsonify({'error': 'No data provided'}), 400
-
-
-        user_input = data.get('userInput', '')
-        application = data.get('selectedApps', [])[0]
-        config_input = data.get('localConfigInput', '')
-        observed_states_filename = data.get('observedStateInput', '')
-        
-
-        if not application:
-            return jsonify({'error': 'No application selected'}), 400
-
-        instruction_descriptions = user_input.split('\n')
-        instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
-
-        results = {}
-        console_output = ''
-        match_plots = []
-
-        # UPDATE EXPERIMENT CONFIG FOR SEARCH
-        # - only use q learn tab agent
-        selected_agents =  ['Qlearntab']
-        training_episodes = self.num_explor_epi
-        config = pull_data.setup()
-        config.update({
-            'problem_type': data.get('problemType', 'Default'),
-            'number_training_episodes': int(training_episodes),
-            'agent_select': selected_agents,
-            'agent_parameters': {}
-        })
-
-        # Always include Qlearntab for search agent
-        config['agent_parameters']['Qlearntab'] = {
-            'alpha': float(data.get('alpha', 0.1)),
-            'gamma': float(data.get('gamma', 0.95)),
-            'epsilon': float(data.get('epsilon', 0.2)),
-            'epsilon_step': float(data.get('epsilonStep', 0.01))
-        }
-     
-        for n, agent in enumerate(selected_agents):
-            adapter_select = self.pull_app_data[application]['adapters']
-            adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
-        config['adapter_select'] = adapter_list
-        # ---
+        self.ExperimentConfig = config
 
         
         engine = self.pull_app_data[application]['engine']
@@ -257,7 +233,7 @@ class WebApp:
         adapters = self.pull_app_data[application]['adapters']
         if len(self.pull_app_data[application]['prerender_data'].keys())>0:
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
-            self.elsci_run = elsci_search(Config=config,
+            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
                                         LocalConfig=local_config,
                                         Engine=engine, Adapters=adapters,
                                         save_dir=self.global_save_dir,
@@ -265,7 +241,7 @@ class WebApp:
                                         match_sim_threshold=0.9,
                                         observed_states=observed_states)
         else:
-            self.elsci_run = elsci_search(Config=config,
+            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
                                         LocalConfig=local_config,
                                         Engine=engine, Adapters=adapters,
                                         save_dir=self.global_save_dir,
@@ -346,7 +322,7 @@ class WebApp:
 
     def get_applications(self):
         return jsonify({
-            'applications': self.possible_applications
+            'applications': self.available_applications
         })
     
     def get_observed_states(self, selected_application):
@@ -382,7 +358,7 @@ class WebApp:
         all_observed_states = {}
         all_plot_options = {}
 
-        for app in self.possible_applications:
+        for app in self.available_applications:
             all_observed_states[app] = self.get_observed_states([app])
             all_local_configs[app] = self.get_local_configs(app)
             all_plot_options[app] = self.get_plot_options(app)
@@ -397,13 +373,30 @@ class WebApp:
         self.global_input_count += 1
         return jsonify({'status': 'success'})
 
-    def reset_input_count(self):
-        self.global_input_count = 0
-        print("Global input count reset to 0")
-        return jsonify({'status': 'success'})
+if len(sys.argv)>1:
+    if 'search' in sys.argv[1]:
+        if 'output' in sys.argv[1]:
+            print('Using pre-rendered data from '+sys.argv[1])
+            input_save_dir= sys.argv[1]
+        else:
+            print('Using pre-rendered data from ./output/'+sys.argv[1])
+            input_save_dir= './output/'+sys.argv[1]
+        if len(sys.argv)>2:
+            input_explor_epi = int(sys.argv[2])
+        else:
+            input_explor_epi = 1000
+    else:
+        input_save_dir=''
+        if len(sys.argv)==2:
+            input_explor_epi = int(sys.argv[1])
+        else:
+            input_explor_epi = 1000
+else:
+    input_save_dir = './output'
+    input_explor_epi = 1000
 
-
-WebApp = WebApp()
+WebApp = WebApp(save_dir=input_save_dir,
+                num_explor_epi=input_explor_epi)
 
 @app.route('/')
 def home_route():
@@ -528,14 +521,6 @@ def get_prerender_image_route():
 def new_instruction_route():
     response = WebApp.new_instruction()
     return response
-
-@app.route('/reset_input_count', methods=['POST'])
-def reset_input_count_route():
-    return WebApp.reset_input_count()
-
-@app.route('/refresh_tabs', methods=['POST'])
-def refresh_tabs_route():
-    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):

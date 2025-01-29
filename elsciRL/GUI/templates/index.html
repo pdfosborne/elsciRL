@@ -318,7 +318,7 @@
                         </div>
                     </div>
                     <div class="console-section shadow-effect" style="flex: 1;">
-                        <p>What the agent sees to match with your input instructions</p>
+                        <p>What the agent see to match with your input instructions</p>
                         <div id="consoleOutput"></div>
                         <div id="confirmationBlock">
                             <p>Was the result correct?</p>
@@ -399,42 +399,51 @@
                 setTimeout(() => {
                     const configSelect = document.getElementById('localConfigSelect');
                     configSelect.innerHTML = '';
+                    const defaultConfigOption = document.createElement('option');
+                    defaultConfigOption.value = '';
+                    defaultConfigOption.text = 'Choose config...';
+                    defaultConfigOption.disabled = true;
+                    defaultConfigOption.selected = true;
+                    configSelect.appendChild(defaultConfigOption);
                     if (allConfigs[selectedApp]) {
-                        allConfigs[selectedApp].forEach((config, index) => {
+                        allConfigs[selectedApp].forEach(config => {
                             const option = document.createElement('option');
                             option.value = config;
                             option.text = config;
-                            if (index === 0) {
-                                option.selected = true;
-                            }
                             configSelect.appendChild(option);
                         });
                     }
 
                     const observedStateSelect = document.getElementById('observedStateSelect');
                     observedStateSelect.innerHTML = '';
+                    const defaultObservedStateOption = document.createElement('option');
+                    defaultObservedStateOption.value = '';
+                    defaultObservedStateOption.text = 'Select observed states data';
+                    defaultObservedStateOption.disabled = true;
+                    defaultObservedStateOption.selected = true;
+                    observedStateSelect.appendChild(defaultObservedStateOption);
                     if (allObservedStates[selectedApp]) {
-                        allObservedStates[selectedApp].forEach((state, index) => {
+                        allObservedStates[selectedApp].forEach(state => {
                             const option = document.createElement('option');
                             option.value = state;
                             option.text = state;
-                            if (index === 0) {
-                                option.selected = true;
-                            }
                             observedStateSelect.appendChild(option);
                         });
                     }
 
                     const plotSelect = document.getElementById('plotSelect');
                     plotSelect.innerHTML = '';
+                    const defaultPlotOption = document.createElement('option');
+                    defaultPlotOption.value = '';
+                    defaultPlotOption.text = 'Choose plot...';
+                    defaultPlotOption.disabled = true;
+                    defaultPlotOption.selected = true;
+                    plotSelect.appendChild(defaultPlotOption);
                     if (allPlotOptions[selectedApp]) {
-                        allPlotOptions[selectedApp].forEach((plot, index) => {
+                        allPlotOptions[selectedApp].forEach(plot => {
                             const option = document.createElement('option');
                             option.value = plot;
                             option.text = plot;
-                            if (index === 0) {
-                                option.selected = true;
-                            }
                             plotSelect.appendChild(option);
                         });
                     }
@@ -458,45 +467,21 @@
                     prerenderImageSelect.innerHTML = '';
                     prerenderImage.style.display = 'none';
                     if (data.imagePaths) {
-                        data.imagePaths.forEach((imagePath, index) => {
+                        data.imagePaths.forEach(imagePath => {
                             const option = document.createElement('option');
                             option.value = imagePath;
                             option.text = imagePath.split('/').pop();
-                            if (index === 0) {
-                                option.selected = true;
+                            prerenderImageSelect.appendChild(option);
+
+                            // Display the first image by default
+                            if (prerenderImageSelect.options.length === 1) {
                                 prerenderImage.src = `/${imagePath}`;
                                 prerenderImage.style.display = 'block';
                             }
-                            prerenderImageSelect.appendChild(option);
                         });
                     }
                 })
                 .catch(error => console.error('Error loading prerender images:', error));
-
-                // Reset global input count
-                fetch('/reset_input_count', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(() => {
-                    // Refresh only the input and results tabs
-                    fetch('/refresh_tabs', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(() => {
-                        document.getElementById('instructionMatchPlots').innerHTML = '';
-                        document.getElementById('userInput').value = '';
-                        document.getElementById('consoleOutput').innerHTML = '';
-                        document.getElementById('resultsContainer').innerHTML = '';
-                    })
-                    .catch(error => console.error('Error refreshing tabs:', error));
-                })
-                .catch(error => console.error('Error resetting input count:', error));
             } else {
                 configSelections.style.display = 'none';
             }
