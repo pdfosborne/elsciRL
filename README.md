@@ -8,7 +8,6 @@
   Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/GgaqcrYCxt">Discord server</a> to connect with the community.
   <br>
   <i>In pre-alpha development.</i>
-  <p>  </p>
 </div>
 
 <div align="left">  
