@@ -19,12 +19,13 @@
   <a href="https://github.com/pdfosborne/elsciRL-Wiki">![Wiki GitHub](https://img.shields.io/github/stars/pdfosborne/elsciRL-Wiki?style=for-the-badge&logo=github&label=elsciRL-Wiki&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL-Wiki)</a>
   <a href="https://discord.gg/GgaqcrYCxt">![Discord](https://img.shields.io/discord/1310579689315893248?style=for-the-badge&logo=discord&label=Discord&link=https%3A%2F%2Fdiscord.com%2Fchannels%2F1184202186469683200%2F1184202186998173878)</a> 
   <br>
-
+  <br>
+  <br>
+  <br>
 </div>
-<div align="center">
+<div align="left">
 
    <a href="https://github.com/pdfosborne/elsciRL">![elsciRL GitHub](https://img.shields.io/github/sponsors/pdfosborne?style=for-the-badge&logo=githubsponsors&logoColor=%23EA4AAA&labelColor=%23FFFFFF&color=%23EA4AAA)</a>  
-   <br>
 </div>
 
 **Quicklinks:**  [FAQs](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/FAQs.md) | [Getting Started](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Documentation/I%20-%20Introduction/1%20-%20Getting%20Started.md) | [Contributing Guide](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Become%20a%20Contributor.md) | [App Interface Guide](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/App%20Interface%20Guide.md)
