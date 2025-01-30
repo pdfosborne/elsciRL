@@ -5,9 +5,9 @@
 
 <div align="center">
   <br>
-  <b>Open source Python software and Wiki for Academia and Commercial Applications</b>
+  <b>Open-source Python Software for Academic and Industry Applications</b>
 
-  Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">Wiki</a> to learn more or join our <a href="https://discord.gg/GgaqcrYCxt">Discord server</a> to connect with the community.
+  Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/GgaqcrYCxt">Discord server</a> to connect with the community.
   <br>
   <i>In pre-alpha development.</i>
   <p> </p>
@@ -19,7 +19,7 @@
   <a href="https://github.com/pdfosborne/elsciRL-Wiki">![Wiki GitHub](https://img.shields.io/github/stars/pdfosborne/elsciRL-Wiki?style=for-the-badge&logo=github&label=elsciRL-Wiki&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL-Wiki)</a>
   <a href="https://discord.gg/GgaqcrYCxt">![Discord](https://img.shields.io/discord/1310579689315893248?style=for-the-badge&logo=discord&label=Discord&link=https%3A%2F%2Fdiscord.com%2Fchannels%2F1184202186469683200%2F1184202186998173878)</a> 
   
-  <b>Quicklinks:</b> [FAQs](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/FAQs.md) | [Getting Started](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Documentation/I%20-%20Introduction/1%20-%20Getting%20Started.md) | [Contributing Guide](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Become%20a%20Contributor.md) | [App Interface Guide](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/App%20Interface%20Guide.md)
+  <b>Quicklinks:</b> [Homepage](https://elsci.org) | [FAQs](https://elsci.org/FAQs) | [New Developers](https://elsci.org/New+Developers) | [Contributing Guide](https://elsci.org/Become+a+Contributor) | [App Interface Guide](https://elsci.org/App+Interface+Guide)
   <br>
 </div>
 <div align="left">
@@ -36,30 +36,19 @@ To achieve this, **elsciRL** offers a novel framework and infrastructure for acc
 ## Install Guide
 
 ### Quick Install
-Install the Python library from the PyPi package library:
-```
+
+It is suggested to use a [Python environment](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#). 
+
+Then, install the Python library from the PyPi package library:
+
+```bash
 pip install elsciRL
-```
-
-### Using a Python environment
-It is suggested to setup a new Python environment. This can be completed easily with [Anaconda](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#) with a recent or newest Python version. 
-
-If you dont have Anaconda already, we suggest installing Miniconda.
-
-Create a new Python environment.
-```
-conda create -n elsciRL_env python=3.11
-```
-*You can change the name from elsciRL_env to anything you'd like and update the Python version if needed.*
-
-Once installed, activate the newly created environment
-```
-conda activate elsciRL_env
 ```
 
 ### Manual Install
 Alternatively, you can clone this repository directly and install it manually.
-```
+
+```bash
 git clone https://github.com/pdfosborne/elsciRL.git
 cd elsciRL
 pip install .
@@ -67,12 +56,12 @@ pip install .
 
 ### Developer Install
 If you wish wish to edit the software you can do this my installing it as an editable package.
-```
+
+```bash
 git clone https://github.com/pdfosborne/elsciRL.git
 cd elsciRL
 pip install -e .
 ```
-
 
 ## Run the App Interface
 
@@ -96,7 +85,6 @@ The App will looks similar to the [public demo](https://osbornep.pythonanywhere.
 By default the instruction agent will be run for 1,000 episodes to save time but you can increase or decrease this if you wish to change the training time.
 
 Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
-
 
 ---
 
