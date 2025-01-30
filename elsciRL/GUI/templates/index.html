@@ -147,6 +147,14 @@
             display: flex;
             gap: 20px;
         }
+
+        .instructions-summary-box {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -157,13 +165,18 @@
         <div class="box shadow-effect">
             <div class="tabs">
                 <div class="tab-buttons">
+                    <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
-                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Input & Console</button>
+                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Language Input</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
-                <div class="tab-text">See <a href="https://elsci.org">elsci.org</a> for more information</div>
+                <div class="tab-text">
+                    See <a href="https://elsci.org">elsci.org</a> for more information 
+                    <a href="https://elsci.org"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo_stag_transparent_cropped_fix.png?raw=true" alt="elsciRL-Logo" style="width:24px;height:24px;"></a>  
+                </div>
+                
             </div>
-            <div id="configTab" class="tab-content" style="display:none;">
+            <div id="setupTab" class="tab-content" style="display:none;">
                 <div class="config-section" style="width: 95%;">
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
@@ -195,6 +208,21 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="prerenderImageContainer" class="image-section shadow-effect" style="flex: 1;">
+                            <div class="select-container">
+                                <label for="prerenderImageSelect">Select Preview Image:</label>
+                                <select id="prerenderImageSelect" class="form-select">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+                            <img id="prerenderImage" class="shadow-effect" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="configTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
                             <h3>Agent Type</h3>
                             <div class="applications-checklist">
@@ -302,6 +330,11 @@
             </div>
 
             <div id="inputTab" class="tab-content" style="display:block;">
+                <div align="center">   
+                    <button id="runExperimentBtn" onclick="runExperiment()">Run Experiment</button>
+                    <p><b>Provide language instructions to help the agent</b></p>
+                </div>
+
                 <div class="input-console-container" style="display: flex; gap: 20px;">
                     <div class="input-section shadow-effect" style="flex: 1;">
                         <p>User Input</p>
@@ -332,22 +365,35 @@
                     </div>
                 </div>
                 <div class="image-container" style="display: flex; gap: 20px;">
-                    <div id="prerenderImageContainer" class="image-section shadow-effect">
+                    <div id="additionalPrerenderImageContainer" class="image-section shadow-effect">
                         <div class="select-container">
-                            <label for="prerenderImageSelect">Select Preview Image:</label>
-                            <select id="prerenderImageSelect" class="form-select">
+                            <label for="additionalPrerenderImageSelect">Select Preview Image:</label>
+                            <select id="additionalPrerenderImageSelect" class="form-select">
                                 <!-- Options will be populated dynamically -->
                             </select>
                         </div>
-                        <img id="prerenderImage" class="shadow-effect" style="display: none;">
+                        <img id="additionalPrerenderImage" class="shadow-effect" style="display: none;">
                     </div>
                     <div id="instructionMatchPlots" class="image-section shadow-effect"></div>
                 </div>
             </div>
 
             <div id="resultsTab" class="tab-content" style="display:none;">
+                <div><h2>Instructions</h2></div>
+                <div class="instructions-summary-box">
+                    <div class="instructions-summary" id="instructionsSummary">
+                        <!-- Instructions summary will be populated dynamically -->
+                    </div>
+                </div>
+                <div><hr><p> </p></div>
+                <div><h2>Problems Specific Results</h2></div>
                 <div class="results-container" id="resultsContainer">
                     <!-- Results will be populated dynamically -->
+                </div>
+                <div><hr><p> </p></div>
+                <div><h2>Full Variance Analysis</h2></div>
+                <div class="variance-analysis-container" id="varianceAnalysisContainer">
+                    <!-- Variance analysis chart will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -403,13 +449,15 @@
                     defaultConfigOption.value = '';
                     defaultConfigOption.text = 'Choose config...';
                     defaultConfigOption.disabled = true;
-                    defaultConfigOption.selected = true;
                     configSelect.appendChild(defaultConfigOption);
                     if (allConfigs[selectedApp]) {
-                        allConfigs[selectedApp].forEach(config => {
+                        allConfigs[selectedApp].forEach((config, index) => {
                             const option = document.createElement('option');
                             option.value = config;
                             option.text = config;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             configSelect.appendChild(option);
                         });
                     }
@@ -420,13 +468,15 @@
                     defaultObservedStateOption.value = '';
                     defaultObservedStateOption.text = 'Select observed states data';
                     defaultObservedStateOption.disabled = true;
-                    defaultObservedStateOption.selected = true;
                     observedStateSelect.appendChild(defaultObservedStateOption);
                     if (allObservedStates[selectedApp]) {
-                        allObservedStates[selectedApp].forEach(state => {
+                        allObservedStates[selectedApp].forEach((state, index) => {
                             const option = document.createElement('option');
                             option.value = state;
                             option.text = state;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             observedStateSelect.appendChild(option);
                         });
                     }
@@ -437,13 +487,15 @@
                     defaultPlotOption.value = '';
                     defaultPlotOption.text = 'Choose plot...';
                     defaultPlotOption.disabled = true;
-                    defaultPlotOption.selected = true;
                     plotSelect.appendChild(defaultPlotOption);
                     if (allPlotOptions[selectedApp]) {
-                        allPlotOptions[selectedApp].forEach(plot => {
+                        allPlotOptions[selectedApp].forEach((plot, index) => {
                             const option = document.createElement('option');
                             option.value = plot;
                             option.text = plot;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
                             plotSelect.appendChild(option);
                         });
                     }
@@ -464,20 +516,26 @@
                 .then(data => {
                     const prerenderImageSelect = document.getElementById('prerenderImageSelect');
                     const prerenderImage = document.getElementById('prerenderImage');
+                    const additionalPrerenderImageSelect = document.getElementById('additionalPrerenderImageSelect');
+                    const additionalPrerenderImage = document.getElementById('additionalPrerenderImage');
                     prerenderImageSelect.innerHTML = '';
                     prerenderImage.style.display = 'none';
+                    additionalPrerenderImageSelect.innerHTML = '';
+                    additionalPrerenderImage.style.display = 'none';
                     if (data.imagePaths) {
-                        data.imagePaths.forEach(imagePath => {
+                        data.imagePaths.forEach((imagePath, index) => {
                             const option = document.createElement('option');
                             option.value = imagePath;
                             option.text = imagePath.split('/').pop();
-                            prerenderImageSelect.appendChild(option);
-
-                            // Display the first image by default
-                            if (prerenderImageSelect.options.length === 1) {
+                            if (index === 0) {
+                                option.selected = true;
                                 prerenderImage.src = `/${imagePath}`;
                                 prerenderImage.style.display = 'block';
+                                additionalPrerenderImage.src = `/${imagePath}`;
+                                additionalPrerenderImage.style.display = 'block';
                             }
+                            prerenderImageSelect.appendChild(option);
+                            additionalPrerenderImageSelect.appendChild(option.cloneNode(true));
                         });
                     }
                 })
@@ -495,6 +553,17 @@
                 prerenderImage.style.display = 'block';
             } else {
                 prerenderImage.style.display = 'none';
+            }
+        });
+
+        document.getElementById('additionalPrerenderImageSelect').addEventListener('change', function() {
+            const selectedImage = this.value;
+            const additionalPrerenderImage = document.getElementById('additionalPrerenderImage');
+            if (selectedImage) {
+                additionalPrerenderImage.src = `/${selectedImage}`;
+                additionalPrerenderImage.style.display = 'block';
+            } else {
+                additionalPrerenderImage.style.display = 'none';
             }
         });
 
@@ -570,11 +639,8 @@
         function confirmResult(isCorrect) {
             const confirmationResult = document.getElementById('confirmationResult');
             const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
-            const retryBtn = document.getElementById('retryBtn');
             const user_input = document.getElementById('userInput').value;
             const selectedApp = document.getElementById('applicationSelect').value;
-            const localConfig = document.getElementById('localConfigSelect').value;
-            const selectedPlot = document.getElementById('plotSelect').value;
 
             confirmationResult.innerHTML = '';
             loadingCircleConfirm.style.display = 'block';
@@ -589,7 +655,8 @@
                 },
                 body: JSON.stringify({
                     isCorrect: isCorrect, 
-                    userInput: user_input
+                    userInput: user_input,
+                    selectedApps: [selectedApp],
                 })    
             })
             .then(response => {
@@ -604,82 +671,13 @@
                 confirmationResult.innerHTML = data.message;
                 confirmationResult.style.color = isCorrect ? 'green' : 'red';
                 loadingCircleConfirm.style.display = 'none';
-
-                if (isCorrect && !cancelTraining) {
-                    const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
-                        .map(cb => cb.value);
-                    
-                    let params = {
-                        userInput: user_input,
-                        trainingEpisodes: parseInt(document.getElementById('trainingEpisodes').value),
-                        trainingRepeats: parseInt(document.getElementById('trainingRepeats').value),
-                        trainingSeeds: parseInt(document.getElementById('trainingSeeds').value),
-                        selectedAgents: selectedAgents,
-                        selectedApps: [selectedApp],
-                        localConfigInput: localConfig,
-                        selectedPlot: selectedPlot,
-
-
-                    };
-
-                    if (selectedAgents.includes('DQN')) {
-                        params.dqnParams = {
-                            input_size: parseInt(document.getElementById('input_size').value),
-                            sent_hidden_dim: parseInt(document.getElementById('sent_hidden_dim').value),
-                            hidden_dim: parseInt(document.getElementById('hidden_dim').value),
-                            num_hidden: parseInt(document.getElementById('num_hidden').value),
-                            sequence_size: parseInt(document.getElementById('sequence_size').value),
-                            memory_size: parseInt(document.getElementById('memory_size').value),
-                            target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
-                            learning_rate: parseFloat(document.getElementById('learning_rate').value),
-                            batch_size: parseInt(document.getElementById('batch_size').value)
-                        };
-                    }
-
-                    fetch('/train_model', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(params)
-                    })
-                    .then(response => response.json())
-                    .then(trainData => {
-                        if (!cancelTraining) {
-                            const resultsContainer = document.getElementById('resultsContainer');
-                            resultsContainer.innerHTML = ''; // Clear existing results
-                            
-                            if (trainData.figures && trainData.figures.length > 0) {
-                                trainData.figures.forEach(figPath => {
-                                    const img = document.createElement('img');
-                                    img.src = `/${figPath}?t=${new Date().getTime()}`;
-                                    img.alt = 'Analysis result';
-                                    img.className = 'shadow-effect';
-                                    resultsContainer.appendChild(img);
-                                });
-                            }
-                        }
-                        document.getElementById('loadingOverlay').style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('Error training model:', error);
-                        document.getElementById('loadingOverlay').style.display = 'none';
-                    })
-                    .finally(() => {
-                        isTraining = false;
-                        loadingCircleConfirm.style.display = 'none';
-                        retryBtn.disabled = false; // Re-enable retry button after training
-                    });
-                } else {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                }
+                document.getElementById('loadingOverlay').style.display = 'none';
             })
             .catch(error => {
                 console.error('Error sending confirmation:', error);
                 confirmationResult.innerHTML = 'Error sending confirmation';
                 confirmationResult.style.color = 'red';
                 loadingCircleConfirm.style.display = 'none';
-                retryBtn.disabled = false; // Re-enable retry button on error
                 document.getElementById('loadingOverlay').style.display = 'none';
             });
         }
@@ -705,6 +703,99 @@
             .catch(error => console.error('Error processing new instruction:', error));
         }
 
+        async function runExperiment() {
+            const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
+                .map(cb => cb.value);
+
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const observedState = document.getElementById('observedStateSelect').value;
+            const selectedPlot = document.getElementById('plotSelect').value;
+
+            if (!selectedApp) {
+                alert('Please select an application');
+                return;
+            }
+
+            const params = {
+                userInput: document.getElementById('userInput').value,
+                trainingEpisodes: parseInt(document.getElementById('trainingEpisodes').value),
+                trainingRepeats: parseInt(document.getElementById('trainingRepeats').value),
+                trainingSeeds: parseInt(document.getElementById('trainingSeeds').value),
+                selectedAgents: selectedAgents,
+                selectedApps: [selectedApp],
+                localConfigInput: localConfig,
+                selectedPlot: selectedPlot,
+            };
+
+            if (selectedAgents.includes('DQN')) {
+                params.dqnParams = {
+                    input_size: parseInt(document.getElementById('input_size').value),
+                    sent_hidden_dim: parseInt(document.getElementById('sent_hidden_dim').value),
+                    hidden_dim: parseInt(document.getElementById('hidden_dim').value),
+                    num_hidden: parseInt(document.getElementById('num_hidden').value),
+                    sequence_size: parseInt(document.getElementById('sequence_size').value),
+                    memory_size: parseInt(document.getElementById('memory_size').value),
+                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
+                    learning_rate: parseFloat(document.getElementById('learning_rate').value),
+                    batch_size: parseInt(document.getElementById('batch_size').value)
+                };
+            }
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const response = await fetch('/train_model', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(params)
+                });
+
+                const data = await response.json();
+                const instructionsSummary = document.getElementById('instructionsSummary');
+                const resultsContainer = document.getElementById('resultsContainer');
+                const varianceAnalysisContainer = document.getElementById('varianceAnalysisContainer');
+                instructionsSummary.innerHTML = ''; // Clear existing instructions summary
+                resultsContainer.innerHTML = ''; // Clear existing results
+                varianceAnalysisContainer.innerHTML = ''; // Clear existing variance analysis
+
+                // Fetch all validated correct instructions
+                const correctInstructionsResponse = await fetch('/get_correct_instructions');
+                const correctInstructionsData = await correctInstructionsResponse.json();
+                const correctInstructions = correctInstructionsData.correctInstructions;
+
+                // Populate instructions summary
+                correctInstructions.forEach((instruction, index) => {
+                    const instructionDiv = document.createElement('div');
+                    const instructions = instruction.split('\n').join(' - ');
+                    instructionDiv.innerHTML = `<b>Instruction ${index}:</b> ${instructions}`;
+                    instructionsSummary.appendChild(instructionDiv);
+                });
+
+                // Populate results and variance analysis
+                if (data.figures && data.figures.length > 0) {
+                    data.figures.forEach(figPath => {
+                        const img = document.createElement('img');
+                        img.src = `/${figPath}?t=${new Date().getTime()}`;
+                        img.alt = 'Analysis result';
+                        img.className = 'shadow-effect';
+                        if (figPath.includes('variance_analysis')) {
+                            varianceAnalysisContainer.appendChild(img);
+                        } else {
+                            resultsContainer.appendChild(img);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error running experiment:', error);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             
@@ -726,7 +817,13 @@
         }
 
         window.onload = function() {
-            openTab(null, 'configTab');
+            openTab(null, 'setupTab');
+            fetch('/load_data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data loaded successfully');
+                })
+                .catch(error => console.error('Error loading data:', error));
         };
 
         document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {

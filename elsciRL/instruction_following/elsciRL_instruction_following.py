@@ -100,7 +100,7 @@ class elsciRLOptimize:
         if not predicted_path:
             if not os.path.exists(save_dir):
                 os.mkdir(save_dir)
-            self.save_dir = save_dir+'/Supervised_Instr_Experiment'
+            self.save_dir = save_dir+'/Instr_Experiment'
         else:
             save_dir_extra = save_dir.split("/")[-1]
             save_dir = '/'.join(save_dir.split("/")[:-1])

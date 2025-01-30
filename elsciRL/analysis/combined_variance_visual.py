@@ -98,7 +98,11 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
             cum_R_SE = np.array(results['cum_R_se'])
             time_mean = np.array(results['time_mean'])
             
-            axs.plot(x,avg_R, color=c, linestyle=l, label=str(experiment))
+            if 'instr_exp' in str(experiment).lower():
+                label = str(experiment[0:7])
+            else:
+                label = 'No Instructions'
+            axs.plot(x,avg_R, color=c, linestyle=l, label=label)
             if len(experiment_names) > 0:
                 axs.set_label(experiment_names[n])
             axs.fill_between(x,avg_R-avg_R_SE, avg_R+avg_R_SE, color=c, alpha = 0.2)
@@ -107,9 +111,9 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
         axs.set_ylabel('Reward')
         axs.axes.get_xaxis().set_ticks([0, num_episode])
         axs.set_title("Mean Reward per Episode")
-        fig.legend(loc='upper right', fancybox=True, shadow=True, 
+        fig.legend(loc='upper left', fancybox=True, shadow=True, 
                    framealpha=1, prop={'size': 14})
-
+        fig.set_size_inches(12, 8)
         
     else:
         fig, axs = plt.subplots(2,2)
@@ -134,8 +138,12 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
             cum_R = np.array(results['cum_R_mean'])
             cum_R_SE = np.array(results['cum_R_se'])
             time_mean = np.array(results['time_mean'])
-            
-            axs[0,0].plot(x,avg_R, color=c, linestyle=l, label=str(experiment))
+
+            if 'instr' in str(experiment).lower():
+                label = str(experiment[0:7])
+            else:
+                label = 'No Instructions'
+            axs[0,0].plot(x,avg_R, color=c, linestyle=l, label=label)
             axs[0,0].fill_between(x,avg_R-avg_R_SE, avg_R+avg_R_SE, color=c, alpha = 0.2)
             axs[0,1].plot(avg_r_mean_sorted,cdf_mean, color=c, linestyle=l)
             axs[1,0].plot(x,cum_R, color=c, linestyle=l)

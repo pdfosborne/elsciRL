@@ -29,11 +29,10 @@ pull_data = PullApplications()
 
 class WebApp:
     def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
-        self.global_input_count = 0
         self.global_save_dir = save_dir
         self.num_explor_epi = num_explor_epi
         self.available_applications = possible_applications
-        self.instruction_results = {}
+        
 
         # Currently pulls all the available applications
         # - TODO: Make it so it pulls all the file names but not the data
@@ -41,6 +40,13 @@ class WebApp:
         self.pull_app_data = pull_data.pull(problem_selection=possible_applications)
 
     def load_data(self):
+        # Init data here so it reset when page is reloaded
+        self.global_input_count = 0
+        self.instruction_results = {}
+        self.instruction_results_validated = {}
+        self.correct_instructions = []
+        self.incorrect_instructions = []
+
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
         if 'search' not in self.global_save_dir:
@@ -64,49 +70,55 @@ class WebApp:
         config_input = data.get('localConfigInput', '')
         selected_plot = data.get('selectedPlot', '')
         
-        if application not in self.instruction_results:
+        if application not in self.instruction_results_validated:
             print(f"No instruction results found for {application}")
             return jsonify({'error': 'No instruction results found for the selected application'}), 400
         
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
-        instruction_results = self.instruction_results[application]
+        # Use validated instructions for training
+        instruction_results = self.instruction_results_validated[application]
+        print(instruction_results.keys())
         
-
         if not os.path.exists(self.global_save_dir+'/'+application):
-            os.mkdir(self.global_save_dir+'/'+application)        
-
-        reinforced_experiment = elsciRLOptimize(
+            os.mkdir(self.global_save_dir+'/'+application)  
+        
+        # Train for all correctly validated instructions
+        flat_agent_run = False
+        for instr_key, instr_results in instruction_results.items():
+            reinforced_experiment = elsciRLOptimize(
+                            Config=self.ExperimentConfig, 
+                            LocalConfig=local_config, 
+                            Engine=engine, Adapters=adapters,
+                            save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
+                            show_figures = 'No', window_size=0.1,
+                            instruction_path=instr_results, predicted_path=None, 
+                            instruction_episode_ratio=0.1,
+                            instruction_chain=True, instruction_chain_how='exact' )
+            reinforced_experiment.train()
+            reinforced_experiment.test()
+            
+            # Baseline flat experiment
+            # - only ran first time otherwise copied from prior input
+            if not flat_agent_run:
+                standard_experiment = STANDARD_RL(
                         Config=self.ExperimentConfig, 
-                        LocalConfig=local_config, 
+                        ProblemConfig=local_config, 
                         Engine=engine, Adapters=adapters,
-                        save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
-                        show_figures = 'No', window_size=0.1,
-                        instruction_path=instruction_results, predicted_path=None, 
-                        instruction_episode_ratio=0.1,
-                        instruction_chain=True, instruction_chain_how='exact' )
-        reinforced_experiment.train()
-        reinforced_experiment.test()
-
-        # Baseline flat experiment
-        # - only ran first time otherwise copied from prior input
-        if self.global_input_count == 0:
-            standard_experiment = STANDARD_RL(
-                    Config=self.ExperimentConfig, 
-                    ProblemConfig=local_config, 
-                    Engine=engine, Adapters=adapters,
-                    save_dir=self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count), 
-                    show_figures = 'No', window_size=0.1)
-            standard_experiment.train()
-            standard_experiment.test()
-        else:
-            previous_input_dir = self.global_save_dir+'/'+application + '/input_0/Standard_Experiment'
-            current_input_dir = self.global_save_dir+'/'+application + '/input_'+str(self.global_input_count)+'/Standard_Experiment'
-            if not os.path.exists(current_input_dir):
-                os.makedirs(current_input_dir)
-            for filename in os.listdir(previous_input_dir):
-                shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
+                        save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
+                        show_figures = 'No', window_size=0.1)
+                standard_experiment.train()
+                standard_experiment.test()
+                flat_agent_run = True
+            # else:
+            #     previous_input_dir = self.global_save_dir+'/'+application + '/instr_0/Standard_Experiment'
+            #     current_input_dir = self.global_save_dir+'/'+application + '/'+instr_key+'/Standard_Experiment'
+            #     if not os.path.exists(current_input_dir):
+            #         os.makedirs(current_input_dir)
+            #     for filename in os.listdir(previous_input_dir):
+            #         if not os.path.isdir(os.path.join(previous_input_dir, filename)):
+            #             shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
 
         # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
         #            "cum_R_mean","cum_R_se","time_mean"]
@@ -125,23 +137,30 @@ class WebApp:
         #     writer = csv.DictWriter(csv_file, fieldnames=headers)
         #     writer.writeheader()
         #     for key, value in testing_data.data.items():
-        #         writer.writerow(value)             
+        #         writer.writerow(value) 
+
+
+        #         # TODO RUN FOR ALL INSTR
+    
+        
+
         figures_to_display = []
         if selected_plot != '':
             analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
-            analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/input_'+str(self.global_input_count))
-            analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
+            for instr_key, instr_results in instruction_results.items():
+                analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/'+instr_key)
+                analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
 
-            for i, func_name in enumerate(analysis_functions):
-                func = getattr(analysis_instance, func_name)
-                fig_dict = func()
-                for figure_names,figure in fig_dict.items():
-                    if figure:
-                        fig_filename = f'{application}_{func_name}_{self.global_input_count}_{figure_names}.png'
-                        fig_path = os.path.join(self.uploads_dir, fig_filename)
-                        figure.savefig(fig_path)
-                        figures_to_display.append(f'uploads/{fig_filename}')
-        
+                for i, func_name in enumerate(analysis_functions):
+                    func = getattr(analysis_instance, func_name)
+                    fig_dict = func()
+                    for figure_names,figure in fig_dict.items():
+                        if figure:
+                            fig_filename = f'{application}_{func_name}_{instr_key}_{figure_names}.png'
+                            fig_path = os.path.join(self.uploads_dir, fig_filename)
+                            figure.savefig(fig_path)
+                            figures_to_display.append(f'uploads/{fig_filename}')
+            
         COMBINED_VARIANCE_ANALYSIS_GRAPH(
             results_dir=self.global_save_dir+'/'+application, 
             analysis_type='training', 
@@ -171,7 +190,6 @@ class WebApp:
         application = data.get('selectedApps', [])[0]
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
-        
 
         if not application:
             return jsonify({'error': 'No application selected'}), 400
@@ -227,11 +245,11 @@ class WebApp:
         
         self.ExperimentConfig = config
 
-        
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
         if len(self.pull_app_data[application]['prerender_data'].keys())>0:
+            print("Pre-rendered data found...")
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
                                         LocalConfig=local_config,
@@ -241,6 +259,7 @@ class WebApp:
                                         match_sim_threshold=0.9,
                                         observed_states=observed_states)
         else:
+            print("No pre-rendered data found...")
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
                                         LocalConfig=local_config,
                                         Engine=engine, Adapters=adapters,
@@ -258,7 +277,9 @@ class WebApp:
             instr_descriptions=instruction_descriptions
         )
         results[application] = best_match_dict
-        self.instruction_results[application] = instruction_results
+        if application not in self.instruction_results:
+            self.instruction_results[application] = {}
+        self.instruction_results[application]['instr_'+str(self.global_input_count)] = instruction_results
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
@@ -373,6 +394,45 @@ class WebApp:
         self.global_input_count += 1
         return jsonify({'status': 'success'})
 
+    def confirm_result(self):
+        data = request.json
+
+        is_correct = data.get('isCorrect')
+        user_input = data.get('userInput')
+
+        if is_correct is None or user_input is None:
+            print("Error: Invalid data provided")
+            print(f"Received data: {data}")
+            return jsonify({'error': 'Invalid data provided'}), 400            
+        
+        print(f"Received confirmation: isCorrect={is_correct}, userInput={user_input}")
+        
+        # Filter instruction results if validated correct
+        application = data.get('selectedApps', [])[0]
+        if application not in self.instruction_results_validated:
+            self.instruction_results_validated[application] = {}
+
+        if is_correct:
+            self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = self.instruction_results[application]['instr_'+str(self.global_input_count)]
+            self.correct_instructions.append(user_input)
+            message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+        else:
+            self.incorrect_instructions.append(user_input)
+            message = "<br>Thanks for the feedback. The model will use this to improve."
+
+        # Instr count increased on new instr or when correct/incorrect
+        self.global_input_count += 1
+        
+        return jsonify({
+            'status': 'received',
+            'message': message
+        })
+
+    def get_correct_instructions(self):
+        return jsonify({
+            'correctInstructions': self.correct_instructions
+        })
+
 if len(sys.argv)>1:
     if 'search' in sys.argv[1]:
         if 'output' in sys.argv[1]:
@@ -410,28 +470,8 @@ def process_input_route():
     return response
 
 @app.route('/confirm_result', methods=['POST'])
-def confirm_result():
-    data = request.json
-
-    is_correct = data.get('isCorrect')
-    user_input = data.get('userInput')
-
-    if is_correct is None or user_input is None:
-        print("Error: Invalid data provided")
-        print(f"Received data: {data}")
-        return jsonify({'error': 'Invalid data provided'}), 400
-    
-    print(f"Received confirmation: isCorrect={is_correct}, userInput={user_input}")
-
-    if is_correct:
-        message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
-    else:
-        message = "<br>Thanks for the feedback. The model will use this to improve."
-    
-    return jsonify({
-        'status': 'received',
-        'message': message
-    })
+def confirm_result_route():
+    return WebApp.confirm_result()
 
 @app.route('/train_model', methods=['POST'])
 def train_model_route():
@@ -521,6 +561,16 @@ def get_prerender_image_route():
 def new_instruction_route():
     response = WebApp.new_instruction()
     return response
+
+@app.route('/get_correct_instructions')
+def get_correct_instructions_route():
+    return WebApp.get_correct_instructions()
+
+@app.route('/load_data')
+def load_data_route():
+    WebApp.global_save_dir = ''
+    WebApp.load_data()
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
