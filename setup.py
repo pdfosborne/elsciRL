@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='elsciRL',
-    version='0.2.52',
+    version='0.2.6',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
