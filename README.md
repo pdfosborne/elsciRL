@@ -1,7 +1,7 @@
 # elsciRL
 ## Improve Reinforcement Learning with Language AI
 
-<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_text_logo_cropped.png" align="left" height="250" width="250" ></a> 
+<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_stag_outline_cropped.jpg" align="left" height="250" width="187.5" ></a>
 
 <div align="center">
   <br>
