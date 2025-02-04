@@ -21,16 +21,17 @@ class StateEncNet(nn.Module):
         input_size: int,
         output_size: int,
         sequence_size: int = 1,
-        seq_hidden_dim: int = 10,
+        sent_hidden_dim: int = 10,
         hidden_dim: int = 128,
         num_hidden: int = 1,
     ):
         super(StateEncNet, self).__init__()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        #self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cpu"
         self.input_size: int = input_size
         self.output_size: int = output_size
         self.seq_size: int = sequence_size
-        self.sent_hidden_dim: int = seq_hidden_dim
+        self.sent_hidden_dim: int = sent_hidden_dim
         self.hidden_dim: int = hidden_dim
         self.num_hidden: int = num_hidden
         self.seq: nn.LSTM = None
@@ -38,10 +39,10 @@ class StateEncNet(nn.Module):
 
         if sequence_size > 1:
             self.seq: nn.LSTM = nn.LSTM(
-                input_size, seq_hidden_dim, 1, batch_first=True
+                input_size, sent_hidden_dim, 1, batch_first=True
             ).to(self.device)
             self.hidden: nn.Sequential = nn.Sequential(
-                nn.Linear(seq_hidden_dim, hidden_dim, device=self.device),
+                nn.Linear(sent_hidden_dim, hidden_dim, device=self.device),
                 *[nn.Linear(hidden_dim, hidden_dim) for i in range(num_hidden)]
             ).to(self.device)
             h0 = torch.randn(1, 10).to(self.device)
@@ -105,7 +106,7 @@ class DQN:
         input_size: int,
         output_size: int,
         action_space_index: Dict[str, int] = None,
-        seq_hidden_dim: int = 10,
+        sent_hidden_dim: int = 10,
         hidden_dim: int = 128,
         num_hidden: int = 1,
         learn_step_counter: int = 0,
@@ -121,7 +122,7 @@ class DQN:
             input_size,
             output_size,
             sequence_size,
-            seq_hidden_dim,
+            sent_hidden_dim,
             hidden_dim,
             num_hidden,
         )
@@ -129,7 +130,7 @@ class DQN:
             input_size,
             output_size,
             sequence_size,
-            seq_hidden_dim,
+            sent_hidden_dim,
             hidden_dim,
             num_hidden,
         )
@@ -159,7 +160,6 @@ class DQN:
         x = torch.as_tensor(
             state_enc, device=self.policy_net.device, dtype=torch.float32
         )
-
         for act in legal_actions:
             if act not in self.action_space_index:
                 self.action_space_index[act] = np.random.randint(
@@ -230,10 +230,13 @@ class DQN:
 
         # q_eval w.r.t the action in experience
         q_eval = self.policy_net(b_state)[range(b_action.shape[0]), b_action]
-        q_next = self.target_net(b_next_state).max(dim=1)[0][
-            0
-        ]  # .detach()  # detach from graph, don't backpropagate
-        q_target = b_reward + 0.8 * q_next
+        q_next = self.target_net(b_next_state).max(dim=1)[0][0]  # .detach()  # detach from graph, don't backpropagate
+        # TODO made abs value because its giving negative value which breaks BCEloss
+        if abs(b_reward + 0.8 * q_next) > 1:
+            q_target = torch.tensor([1.0], device=self.policy_net.device)
+        else:
+            q_target = abs(b_reward + 0.8 * q_next)
+       
         loss = self.loss_func(q_eval, q_target)
 
         self.q_eval_list.extend(q_eval.tolist())
@@ -253,6 +256,7 @@ class DQN:
 class NeuralQLearningAgent(QLearningAgent):
     def __init__(
         self,
+        input_type: str, # TODO Not used currently
         sequence_size: int,
         input_size: int,
         output_size: int,
@@ -260,7 +264,7 @@ class NeuralQLearningAgent(QLearningAgent):
         memory_size: int = 2000,
         epsilon: float = 0.05,
         epsilon_step: float = 0.05,
-        seq_hidden_dim: int = 10,
+        sent_hidden_dim: int = 10,
         hidden_dim: int = 128,
         num_hidden: int = 1,
         action_space_index: Dict[str, int] = None,
@@ -273,7 +277,7 @@ class NeuralQLearningAgent(QLearningAgent):
             input_size,
             output_size,
             action_space_index,
-            seq_hidden_dim,
+            sent_hidden_dim,
             hidden_dim,
             num_hidden,
             learn_step_counter,

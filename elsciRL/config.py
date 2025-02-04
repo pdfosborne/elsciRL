@@ -46,9 +46,8 @@ class ExperimentConfig(Config):
             "experience_sample_batch_ratio", 0)
 
         # Training repeated 
-        self.num_episodes = self.data.get("num_episodes", 1000)
-        self.number_training_repeats = self.data.get(
-            "number_training_repeats", 2)
+        self.num_training_episodes = self.data.get("num_training_episodes", 1000)
+        self.number_training_repeats = self.data.get("number_training_repeats", 5)
 
         # Testing repeated
         self.number_test_episodes = self.data.get("number_test_episodes", 100)

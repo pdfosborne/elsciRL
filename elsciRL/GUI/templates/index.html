@@ -172,7 +172,7 @@
                 </div>
                 <div class="tab-text">
                     See <a href="https://elsci.org">elsci.org</a> for more information 
-                    <a href="https://elsci.org"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo_stag_transparent_cropped_fix.png?raw=true" alt="elsciRL-Logo" style="width:24px;height:24px;"></a>  
+                    <a href="https://elsci.org"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo_simple_cropped.png?raw=true" alt="elsciRL-Logo" style="width:18px;height:24px;"></a>  
                 </div>
                 
             </div>
@@ -324,6 +324,26 @@
                         <div class="training-params">
                             <label for="batch_size">Batch Size:</label>
                             <input type="number" id="batch_size" min="1" value="1">
+                        </div>
+                        <div class="training-params">
+                            <label for="output_size">Output Size:</label>
+                            <input type="number" id="output_size" min="1" value="10">
+                        </div>
+                        <div class="training-params">
+                            <label for="learn_step_counter">Learn Step Counter:</label>
+                            <input type="number" id="learn_step_counter" min="1" value="0">
+                        </div>
+                        <div class="training-params">
+                            <label for="dqn_epsilon">DQN Epsilon:</label>
+                            <input type="number" id="dqn_epsilon" min="0" max="1" value="0.9" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="dqn_epsilon_step">DQN Epsilon Step:</label>
+                            <input type="number" id="dqn_epsilon_step" min="0" max="1" value="0.01" step="0.001">
+                        </div>
+                        <div class="training-params">
+                            <label for="action_space_index">Action Space Index:</label>
+                            <input type="number" id="action_space_index" min="0" value="0">
                         </div>
                     </div>
                 </div>
@@ -583,6 +603,8 @@
             const observedState = document.getElementById('observedStateSelect').value;
             const selectedPlot = document.getElementById('plotSelect').value;
 
+            const trainingEpisodes = document.getElementById('trainingEpisodes').value;
+
             if (!selectedApp) {
                 alert('Please select an application');
                 return;
@@ -712,6 +734,16 @@
             const observedState = document.getElementById('observedStateSelect').value;
             const selectedPlot = document.getElementById('plotSelect').value;
 
+            const trainingEpisodes = parseInt(document.getElementById('trainingEpisodes').value);
+            const trainingRepeats = parseInt(document.getElementById('trainingRepeats').value);
+            const trainingSeeds = parseInt(document.getElementById('trainingSeeds').value);
+            const testEpisodes = parseInt(document.getElementById('testEpisodes').value);
+            const testRepeats = parseInt(document.getElementById('testRepeats').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const gamma = parseFloat(document.getElementById('gamma').value);
+            const epsilon = parseFloat(document.getElementById('epsilon').value);
+            const epsilonStep = parseFloat(document.getElementById('epsilonStep').value);
+
             if (!selectedApp) {
                 alert('Please select an application');
                 return;
@@ -719,12 +751,19 @@
 
             const params = {
                 userInput: document.getElementById('userInput').value,
-                trainingEpisodes: parseInt(document.getElementById('trainingEpisodes').value),
-                trainingRepeats: parseInt(document.getElementById('trainingRepeats').value),
-                trainingSeeds: parseInt(document.getElementById('trainingSeeds').value),
+                trainingEpisodes: trainingEpisodes,
+                trainingRepeats: trainingRepeats,
+                trainingSeeds: trainingSeeds,
+                testEpisodes: testEpisodes,
+                testRepeats: testRepeats,
+                alpha: alpha,
+                gamma: gamma,
+                epsilon: epsilon,
+                epsilonStep: epsilonStep,
                 selectedAgents: selectedAgents,
                 selectedApps: [selectedApp],
                 localConfigInput: localConfig,
+                observedStateInput: observedState,
                 selectedPlot: selectedPlot,
             };
 
@@ -738,7 +777,13 @@
                     memory_size: parseInt(document.getElementById('memory_size').value),
                     target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
                     learning_rate: parseFloat(document.getElementById('learning_rate').value),
-                    batch_size: parseInt(document.getElementById('batch_size').value)
+                    batch_size: parseInt(document.getElementById('batch_size').value),
+                    output_size: parseInt(document.getElementById('output_size').value),
+                    learn_step_counter: parseInt(document.getElementById('learn_step_counter').value),
+                    epsilon: parseFloat(document.getElementById('dqn_epsilon').value),
+                    epsilon_step: parseFloat(document.getElementById('dqn_epsilon_step').value),
+                    action_space_index: document.getElementById('action_space_index').value,
+                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value)
                 };
             }
 

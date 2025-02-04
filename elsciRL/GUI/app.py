@@ -77,6 +77,81 @@ class WebApp:
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
+
+        # --- Update Experiment Parameters with User Input ---
+        selected_agents = data.get('selectedAgents', ['Qlearntab'])
+        training_repeats = data.get('trainingRepeats', 5)
+        training_seeds = data.get('trainingSeeds', 1)
+        test_episodes = data.get('testEpisodes', 200)
+        test_repeats = data.get('testRepeats', 10)
+        alpha = data.get('alpha', 0.1)
+        gamma = data.get('gamma', 0.95)
+        epsilon = data.get('epsilon', 0.2)
+        epsilon_step = data.get('epsilonStep', 0.01)
+
+        self.ExperimentConfig.update({
+            'problem_type': data.get('problemType', 'Default'),
+            'number_training_repeats': int(training_repeats),
+            'number_training_seeds': int(training_seeds),
+            'number_test_episodes': int(test_episodes),
+            'number_test_repeats': int(test_repeats),
+            'agent_select': selected_agents,
+            'agent_parameters': {}
+        })
+
+        # Always include Qlearntab for search agent
+        self.ExperimentConfig['agent_parameters']['Qlearntab'] = {
+            'alpha': float(alpha),
+            'gamma': float(gamma),
+            'epsilon': float(epsilon),
+            'epsilon_step': float(epsilon_step)
+        }
+
+        if 'DQN' in selected_agents:
+            dqn_params = data.get('dqnParams', {})
+            self.ExperimentConfig['agent_parameters']['DQN'] = {
+                'input_type': 'lm',
+                'input_size': int(dqn_params.get('input_size', 768)),
+                'sent_hidden_dim': int(dqn_params.get('sent_hidden_dim', 10)),
+                'hidden_dim': int(dqn_params.get('hidden_dim', 128)),
+                'num_hidden': int(dqn_params.get('num_hidden', 2)),
+                'sequence_size': int(dqn_params.get('sequence_size', 1)),
+                'memory_size': int(dqn_params.get('memory_size', 2000)),
+                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100)),
+                'learning_rate': float(dqn_params.get('learning_rate', 0.001)),
+                'batch_size': int(dqn_params.get('batch_size', 1)),
+                'output_size': int(dqn_params.get('output_size', 1000)),
+                'learn_step_counter': int(dqn_params.get('learn_step_counter', 0)),
+                'epsilon': float(dqn_params.get('epsilon', 0.2)),
+                'epsilon_step': float(dqn_params.get('epsilon_step', 0.001)),
+                #'action_space_index': dqn_params.get('action_space_index', {}),
+                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100))
+            }
+
+        # TODO Update all adapter inputs to dict if matching to agents
+        # --> otherwise will match all adapters to all agents
+        adapter_input = list(self.pull_app_data[application]['adapters'].keys())
+        if type(adapter_input) != dict:
+            agent_adapter_dict = {}
+            for n, agent in enumerate(selected_agents):
+                adapter_list = []
+                for adapter in adapter_input:
+                    # DEFAULT ADAPTERS NEED TO BE SETUP FOR DQN INPUT
+                    # Reaplce 'DQN' to match to language version
+                    if agent =='DQN':
+                        if ('language' in adapter.lower()) or ('lang' in adapter.lower()):
+                            agent = 'DQN_language'
+                            self.ExperimentConfig['agent_parameters'][agent] = self.ExperimentConfig['agent_parameters']['DQN']
+                            selected_agents[n] = agent
+                            adapter_list.append(adapter)    
+                    else:
+                        adapter_list.append(adapter)
+                            
+                agent_adapter_dict[agent] = adapter_list
+        else:
+            agent_adapter_dict = adapter_input
+        self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+        # --- End of User Input Update ---
         # Use validated instructions for training
         instruction_results = self.instruction_results_validated[application]
         print(instruction_results.keys())
@@ -111,39 +186,8 @@ class WebApp:
                 standard_experiment.train()
                 standard_experiment.test()
                 flat_agent_run = True
-            # else:
-            #     previous_input_dir = self.global_save_dir+'/'+application + '/instr_0/Standard_Experiment'
-            #     current_input_dir = self.global_save_dir+'/'+application + '/'+instr_key+'/Standard_Experiment'
-            #     if not os.path.exists(current_input_dir):
-            #         os.makedirs(current_input_dir)
-            #     for filename in os.listdir(previous_input_dir):
-            #         if not os.path.isdir(os.path.join(previous_input_dir, filename)):
-            #             shutil.copy(os.path.join(previous_input_dir, filename), os.path.join(current_input_dir, filename))
-
-        # headers = ["","agent","num_repeats","episode","avg_R_mean","avg_R_se",
-        #            "cum_R_mean","cum_R_se","time_mean"]
-        
-        # if not os.path.exists(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment'): 
-        #     os.mkdir(self.global_save_dir+'/input_'+str(self.global_input_count)+'/Standard_Experiment')
-
-        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
-        #           +'/Standard_Experiment/training_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
-        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
-        #     writer.writeheader()
-        #     for key, value in training_data.data.items():
-        #         writer.writerow(value)
-        # with open(self.global_save_dir+'/input_'+str(self.global_input_count)
-        #           +'/Standard_Experiment/testing_variance_results_Qlearntab_Language.csv', 'w') as csv_file:  
-        #     writer = csv.DictWriter(csv_file, fieldnames=headers)
-        #     writer.writeheader()
-        #     for key, value in testing_data.data.items():
-        #         writer.writerow(value) 
-
-
-        #         # TODO RUN FOR ALL INSTR
-    
-        
-
+           
+        # --- RESULTS ---
         figures_to_display = []
         if selected_plot != '':
             analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
@@ -185,7 +229,6 @@ class WebApp:
         if data is None:
             return jsonify({'error': 'No data provided'}), 400
 
-
         user_input = data.get('userInput', '')
         application = data.get('selectedApps', [])[0]
         config_input = data.get('localConfigInput', '')
@@ -201,72 +244,39 @@ class WebApp:
         console_output = ''
         match_plots = []
 
-        selected_agents = data.get('selectedAgents', ['Qlearntab'])
+        # Update search number of episodes ONLY for instruction match
         training_episodes = data.get('trainingEpisodes', 1000)
+
         config = pull_data.setup()
         config.update({
             'problem_type': data.get('problemType', 'Default'),
             'number_training_episodes': int(training_episodes),
-            'number_training_repeats': int(data.get('trainingRepeats', 5)),
-            'number_training_seeds': int(data.get('trainingSeeds', 1)),
-            'number_test_episodes': int(data.get('testEpisodes', 200)),
-            'number_test_repeats': int(data.get('testRepeats', 10)),
-            'agent_select': selected_agents,
-            'agent_parameters': {}
         })
 
-        # Always include Qlearntab for search agent
-        config['agent_parameters']['Qlearntab'] = {
-            'alpha': float(data.get('alpha', 0.1)),
-            'gamma': float(data.get('gamma', 0.95)),
-            'epsilon': float(data.get('epsilon', 0.2)),
-            'epsilon_step': float(data.get('epsilonStep', 0.01))
-        }
-
-        if 'DQN' in selected_agents:
-            dqn_params = data.get('dqnParams', {})
-            config['agent_parameters']['DQN'] = {
-                'input_type': 'lm',
-                'input_size': int(dqn_params.get('input_size', 384)),
-                'sent_hidden_dim': int(dqn_params.get('sent_hidden_dim', 10)),
-                'hidden_dim': int(dqn_params.get('hidden_dim', 128)),
-                'num_hidden': int(dqn_params.get('num_hidden', 2)),
-                'sequence_size': int(dqn_params.get('sequence_size', 20)),
-                'memory_size': int(dqn_params.get('memory_size', 2000)),
-                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100)),
-                'learning_rate': float(dqn_params.get('learning_rate', 0.001)),
-                'batch_size': int(dqn_params.get('batch_size', 1))
-            }
-     
-        for n, agent in enumerate(selected_agents):
-            adapter_select = self.pull_app_data[application]['adapters']
-            adapter_list = ['DQN_language' if 'language' in adapter.lower() or 'lang' in adapter.lower() else agent for adapter in adapter_select]
-        config['adapter_select'] = adapter_list
-        
         self.ExperimentConfig = config
 
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
-        if len(self.pull_app_data[application]['prerender_data'].keys())>0:
+        if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
             print("Pre-rendered data found...")
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                        LocalConfig=local_config,
-                                        Engine=engine, Adapters=adapters,
-                                        save_dir=self.global_save_dir,
-                                        number_exploration_episodes=self.num_explor_epi,
-                                        match_sim_threshold=0.9,
-                                        observed_states=observed_states)
+                                          LocalConfig=local_config,
+                                          Engine=engine, Adapters=adapters,
+                                          save_dir=self.global_save_dir,
+                                          number_exploration_episodes=self.num_explor_epi,
+                                          match_sim_threshold=0.9,
+                                          observed_states=observed_states)
         else:
             print("No pre-rendered data found...")
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                        LocalConfig=local_config,
-                                        Engine=engine, Adapters=adapters,
-                                        save_dir=self.global_save_dir,
-                                        number_exploration_episodes=self.num_explor_epi,
-                                        match_sim_threshold=0.9,
-                                        observed_states=None)
+                                          LocalConfig=local_config,
+                                          Engine=engine, Adapters=adapters,
+                                          save_dir=self.global_save_dir,
+                                          number_exploration_episodes=self.num_explor_epi,
+                                          match_sim_threshold=0.9,
+                                          observed_states=None)
             observed_states = self.elsci_run.search()
             with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)
@@ -279,27 +289,27 @@ class WebApp:
         results[application] = best_match_dict
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
-        self.instruction_results[application]['instr_'+str(self.global_input_count)] = instruction_results
+        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
             for n, instr in enumerate(list(results[application].keys())):
                 if results[application][instr] is None:
-                    console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>No match found</i><br>'
+                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
                 else:
                     best_match = results[application][instr]['best_match']
-                    console_output+='<b>'+str(n+1)+' - '+instruction_descriptions[n]+':</b> <i>'+results[application][instr]['sub_goal']+'</i><br>'
-                    
+                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
+
                     plot_filename = f'match_plot_{n}.png'
                     plot_path = os.path.abspath(os.path.join(self.uploads_dir, plot_filename))
                     print(f"Saving plot to (absolute path): {plot_path}")
-                    
+
                     engine_dummy = engine(local_config)
                     instr_match_plot = engine_dummy.render(best_match)
                     instr_match_plot_filename = f'current_state_plot_{n}.png'
                     instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
                     instr_match_plot.savefig(instr_match_plot_path)
-                    
+
                     if os.path.exists(instr_match_plot_path):
                         print(f"Current state plot created successfully at {instr_match_plot_path}")
                         print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
