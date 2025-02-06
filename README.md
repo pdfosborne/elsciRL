@@ -29,7 +29,7 @@
 ## What is elsciRL?
 
 <div align="center">
-	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-key-benefits-alt3-transparent-fade.gif?raw=true" />
+	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-key-benefits-alt3-transparent.png?raw=true" />
 </div>
 
 
