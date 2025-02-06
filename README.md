@@ -28,10 +28,6 @@
 
 ## What is elsciRL?
 
-<div align="center">
-	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-key-benefits-alt3-transparent.png?raw=true" />
-</div>
-
 
 **elsciRL (pronounced L-SEE)** offers a general purpose framework and infrastructure for accelerating the development of language based Reinforcement Learning (RL) solutions.
 
