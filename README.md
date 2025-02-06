@@ -1,5 +1,5 @@
 # elsciRL
-## Improve Reinforcement Learning with Language AI
+## Language Guidance Framework for Reinforcement Learning
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_owl_cropped.png" align="left" height="250" width="250" ></a>
 
@@ -26,13 +26,34 @@
 <div align="left">
 
 
-
-
 ## What is elsciRL?
 
-**elsciRL (pronounced L-SEE)** is an abbreviation of our mission: *"Everything can be automated using Language and Self-Completing Instructions in Reinforcement Learning"*.
+<div align="center">
+	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-key-benefits-alt3-transparent-pop.gif?raw=true" />
+</div>
 
-To achieve this, **elsciRL** offers a novel framework and infrastructure for accelerating the development of language based Reinforcement Learning solutions.
+
+**elsciRL (pronounced L-SEE)** offers a general purpose framework and infrastructure for accelerating the development of language based Reinforcement Learning (RL) solutions.
+
+This has also been known as AI agents but we notably do not require the problem to already contain language.
+
+### Features
+1. **Accelerates Research** by dividing the Reinforcement Learning process and providing an open-source Wiki to share knowledge
+2. **Improve Reproducability** by offering generally applicable alogorithms and applications with exact configurations to re-create prior experiments
+3. **Extract Domain Expert Knowledge** by using the App Interface to let non-technical users provide instructions
+4. **Enchance New Applications** by reducing the amount of data required in early development 
+
+<div width="75%" align="center">
+	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/Agent-Performance-2.gif?raw=true" />
+</div>
+
+### What is Reinforcement Learning?
+
+Reinforcement Learning is an Artificial Intelligence methodology that teaches machines how to make decisions and perform actions to achieve a goal.
+
+It's based on the idea that machines can learn from their experiences to automate a task without being told exactly what to do, similar to how humans learn through trial and error.
+
+See the [FAQs](https://elsci.org/FAQs) for more information.
 
 ## Install Guide
 
@@ -78,7 +99,7 @@ This will give you a localhost link to open the App in a browser.
 
 *Click the image to watch the demo video*
 
-[![YouTube](http://i.ytimg.com/vi/JbPtl7Sk49Y/hqdefault.jpg)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
+[![YouTube](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-WebApp-Demo.png?raw=true)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 
 
 The App will looks similar to the [public demo](https://osbornep.pythonanywhere.com/) except now the algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
