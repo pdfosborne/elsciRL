@@ -28,8 +28,9 @@
 
 ## What is elsciRL?
 
+**elsciRL (pronounced L-SEE)**** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) solutions.
 
-**elsciRL (pronounced L-SEE)** offers a general purpose framework and infrastructure for accelerating the development of language based Reinforcement Learning (RL) solutions.
+Our novel solution is a patent pending framework that allows end users to give instructions to Reinforcement Learning agents without direct supervision. In other words, prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
 
 This has also been known as AI agents but we notably do not require the problem to already contain language.
 
