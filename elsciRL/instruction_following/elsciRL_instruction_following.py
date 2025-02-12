@@ -85,6 +85,11 @@ class elsciRLOptimize:
             # Get start position to start instr chains
             train_setup_info = self.setup_info.copy()
             agent_type = "Qlearntab" # Force agent to Qlearntab for compatibility
+            # Add Qlearntab if not existed and select first adapter
+            if "Qlearntab" not in train_setup_info["adapter_input_dict"]:
+                first_agent_type = list(train_setup_info["adapter_input_dict"].keys())[0]
+                first_adapter = train_setup_info["adapter_input_dict"][first_agent_type][0]
+                train_setup_info["adapter_input_dict"]["Qlearntab"] = [first_adapter]
             adapter = train_setup_info["adapter_input_dict"][agent_type][0]
             # ----- Agent parameters
             agent_parameters = train_setup_info["agent_parameters"][agent_type]

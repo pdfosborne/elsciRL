@@ -63,5 +63,3 @@ class SB_DQN(QLearningAgent):
     def clone(self):
         clone = pickle.loads(pickle.dumps(self))
         return clone
-    
-    

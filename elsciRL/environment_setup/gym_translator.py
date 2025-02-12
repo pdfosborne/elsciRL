@@ -54,14 +54,18 @@ class EngineToGym(gym.Env):
         #self.obs_history = []
         return obs_enc, {}
 
-    def step(self, action=None):
+    def step(self, state=[], action=0):
+        print(action)
         # Gym step function combines elsciRL Engine step and Adapter
-        observation, reward, terminated, info = self.engine.step(action=int(action))
+        observation, reward, terminated, info = self.engine.step(state=state, action=action)
         self.action_history.append(action)
         # if observation not in self.obs_history:
         #     reward += 0.05 # Give small reward to encourage exploration
         # self.obs_history.append(observation)
-        info['obs'] = observation
+        if info:
+            info['obs'] = observation
+        else:
+            info = {'obs': observation}
 
         # Apply custom reward signal if defined
         # - Defined as dict:= {obs:reward, obs:reward, ...}

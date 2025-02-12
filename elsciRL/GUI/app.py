@@ -26,7 +26,7 @@ app = Flask(__name__, static_folder=os.path.join(dir_path, 'static'),
 imports = Applications().data
 possible_applications = list(imports.keys())
 pull_data = PullApplications()
-
+ 
 class WebApp:
     def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
         self.global_save_dir = save_dir
@@ -124,11 +124,20 @@ class WebApp:
                 'learn_step_counter': int(dqn_params.get('learn_step_counter', 0)),
                 'epsilon': float(dqn_params.get('epsilon', 0.2)),
                 'epsilon_step': float(dqn_params.get('epsilon_step', 0.001)),
-                #'action_space_index': dqn_params.get('action_space_index', {}),
+                'action_space_index': dqn_params.get('action_space_index', {}),
                 'target_replace_iter': int(dqn_params.get('target_replace_iter', 100))
             }
 
+        if 'SB3_DQN' in selected_agents:
+            SB3_DQN_params = data.get('sbDqnParams', {})
+            self.ExperimentConfig['agent_parameters']['SB3_DQN'] = {
+                'policy': SB3_DQN_params.get('policy', 'MlpPolicy'),
+                'learning_rate': float(SB3_DQN_params.get('learning_rate', 0.0001)),
+                'buffer_size': int(SB3_DQN_params.get('buffer_size', 1000000))
+            }
+
         # TODO Update all adapter inputs to dict if matching to agents
+        # TODO MAKE THIS A GENERIC FUNCTION CALL IN ELSCIRL
         # --> otherwise will match all adapters to all agents
         adapter_input = list(self.pull_app_data[application]['adapters'].keys())
         if type(adapter_input) != dict:
