@@ -117,6 +117,7 @@ class Experiment:
                 # Added gym based agents as selection
                 is_gym_agent = self.is_gym_agent[agent_type]
                 if is_gym_agent:
+                    train_setup_info = self.setup_info.copy()
                     # --- GYM EXPERIMENT TRAINING
                     for adapter in train_setup_info["adapter_input_dict"][agent_type]:
                         self.gym_exp.setup_info['agent_select'] = [agent_type] 
@@ -287,8 +288,8 @@ class Experiment:
 
                         # Collate complete setup info to full dict
                     self.training_setups['Training_Setup_'+str(engine_name) + '_' + str(agent_type)+'_'+str(adapter)] = train_setup_info
-        if (number_training_repeats>1)|(self.num_training_seeds):
-            self.analysis.training_variance_report(self.save_dir, self.show_figures)
+                    if (number_training_repeats>1)|(self.num_training_seeds):
+                        self.analysis.training_variance_report(self.save_dir, self.show_figures)
 
         return self.training_setups
 

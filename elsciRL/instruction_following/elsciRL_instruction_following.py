@@ -22,9 +22,6 @@ from elsciRL.agents.stable_baselines.A2C import SB_A2C
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
-    "DQN": NeuralQLearningAgent,
-    "DQN_2": NeuralQLearningAgent,
-    "DQN_language": NeuralQLearningAgent,
     "Random": random,
     "SB3_DQN": SB_DQN,
     "SB3_PPO": SB_PPO,
@@ -33,13 +30,10 @@ AGENT_TYPES = {
 
 PLAYER_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
-    "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "Random": [],
-    "SB3_DQN": ["policy"],
-    "SB3_PPO": ["policy"],
-    "SB3_A2C": ["policy"]
+    "SB3_DQN": ["policy", "learning_rate", "buffer_size"],
+    "SB3_PPO": ["policy", "learning_rate", "n_steps"],
+    "SB3_A2C": ["policy", "learning_rate", "n_steps"]
 }
 
 # This is the main run functions for elsciRL to be imported
@@ -264,6 +258,7 @@ class elsciRLOptimize:
                 print("GYM REWARD SIGNAL: ", reward_signal)
                 self.gym_exp.reward_signal = reward_signal
                 # --- GYM EXPERIMENT TRAINING
+                train_setup_info = self.setup_info.copy()
                 for adapter in train_setup_info["adapter_input_dict"][agent_type]:
                     self.gym_exp.setup_info['agent_select'] = [agent_type] 
                     self.training_setups = self.gym_exp.train() 
@@ -666,8 +661,8 @@ class elsciRLOptimize:
                                                 
                     # Store last train_setup_info as collection of observed states and experience sampling
                     self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info
-        if (number_training_repeats>1)|(self.num_training_seeds):
-            self.analysis.training_variance_report(self.save_dir, self.show_figures)
+                if (number_training_repeats>1)|(self.num_training_seeds):
+                    self.analysis.training_variance_report(self.save_dir, self.show_figures)
                     
         #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
         return self.training_setups

@@ -21,17 +21,16 @@ class StateEncNet(nn.Module):
         input_size: int,
         output_size: int,
         sequence_size: int = 1,
-        sent_hidden_dim: int = 10,
+        seq_hidden_dim: int = 10,
         hidden_dim: int = 128,
         num_hidden: int = 1,
     ):
         super(StateEncNet, self).__init__()
-        #self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.device = "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.input_size: int = input_size
         self.output_size: int = output_size
         self.seq_size: int = sequence_size
-        self.sent_hidden_dim: int = sent_hidden_dim
+        self.sent_hidden_dim: int = seq_hidden_dim
         self.hidden_dim: int = hidden_dim
         self.num_hidden: int = num_hidden
         self.seq: nn.LSTM = None
@@ -39,10 +38,10 @@ class StateEncNet(nn.Module):
 
         if sequence_size > 1:
             self.seq: nn.LSTM = nn.LSTM(
-                input_size, sent_hidden_dim, 1, batch_first=True
+                input_size, seq_hidden_dim, 1, batch_first=True
             ).to(self.device)
             self.hidden: nn.Sequential = nn.Sequential(
-                nn.Linear(sent_hidden_dim, hidden_dim, device=self.device),
+                nn.Linear(seq_hidden_dim, hidden_dim, device=self.device),
                 *[nn.Linear(hidden_dim, hidden_dim) for i in range(num_hidden)]
             ).to(self.device)
             h0 = torch.randn(1, 10).to(self.device)
@@ -54,7 +53,7 @@ class StateEncNet(nn.Module):
                 *[nn.Linear(hidden_dim, hidden_dim) for i in range(num_hidden)]
             ).to(self.device)
 
-        self.output:nn.Linear=nn.Linear(hidden_dim, output_size).to(self.device)
+        self.output: nn.Linear = nn.Linear(hidden_dim, output_size).to(self.device)
 
     def forward(self, x):
         x = x.to(self.device)
@@ -77,8 +76,7 @@ class StateEncNet(nn.Module):
 
 
 class Transition:
-    def __init__(self, state: Tensor, action: int,
-                 next_state: Tensor, reward: float):
+    def __init__(self, state: Tensor, action: int, next_state: Tensor, reward: float):
         self.state: Tensor = state
         self.action: int = action
         self.next_state: Tensor = next_state
@@ -106,7 +104,7 @@ class DQN:
         input_size: int,
         output_size: int,
         action_space_index: Dict[str, int] = None,
-        sent_hidden_dim: int = 10,
+        seq_hidden_dim: int = 10,
         hidden_dim: int = 128,
         num_hidden: int = 1,
         learn_step_counter: int = 0,
@@ -122,7 +120,7 @@ class DQN:
             input_size,
             output_size,
             sequence_size,
-            sent_hidden_dim,
+            seq_hidden_dim,
             hidden_dim,
             num_hidden,
         )
@@ -130,7 +128,7 @@ class DQN:
             input_size,
             output_size,
             sequence_size,
-            sent_hidden_dim,
+            seq_hidden_dim,
             hidden_dim,
             num_hidden,
         )
@@ -160,11 +158,10 @@ class DQN:
         x = torch.as_tensor(
             state_enc, device=self.policy_net.device, dtype=torch.float32
         )
+
         for act in legal_actions:
             if act not in self.action_space_index:
-                self.action_space_index[act] = np.random.randint(
-                    0, self.policy_net.output_size
-                )
+                self.action_space_index[act] = np.random.randint(0, self.policy_net.output_size)
 
         # Epsilon greedy action selection
         rng = np.random.rand()
@@ -179,10 +176,9 @@ class DQN:
                     self.epsilon = 0
             with torch.no_grad():
                 actions_value = self.policy_net(x)
-                list_value_legal_moves = [
-                    (act, actions_value[self.action_space_index[act]])
-                    for act in legal_actions
-                ]
+                list_value_legal_moves = [(act, actions_value[self.action_space_index[act]]) for act in legal_actions]
+                print("---")
+                print(list_value_legal_moves)
                 action = max(list_value_legal_moves, key=lambda e: e[1])[0]
         return action
 
@@ -231,12 +227,7 @@ class DQN:
         # q_eval w.r.t the action in experience
         q_eval = self.policy_net(b_state)[range(b_action.shape[0]), b_action]
         q_next = self.target_net(b_next_state).max(dim=1)[0][0]  # .detach()  # detach from graph, don't backpropagate
-        # TODO made abs value because its giving negative value which breaks BCEloss
-        if abs(b_reward + 0.8 * q_next) > 1:
-            q_target = torch.tensor([1.0], device=self.policy_net.device)
-        else:
-            q_target = abs(b_reward + 0.8 * q_next)
-       
+        q_target = b_reward + 0.8 * q_next
         loss = self.loss_func(q_eval, q_target)
 
         self.q_eval_list.extend(q_eval.tolist())
@@ -270,7 +261,7 @@ class NeuralQLearningAgent(QLearningAgent):
         action_space_index: Dict[str, int] = None,
         target_replace_iter: int = 100,
         learning_rate: float = 0.001,
-        batch_size: int = 1,
+        batch_size: int = 1
     ):
         self.dqn: DQN = DQN(
             sequence_size,

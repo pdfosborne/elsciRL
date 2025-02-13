@@ -107,33 +107,26 @@ class WebApp:
             'epsilon_step': float(epsilon_step)
         }
 
-        if 'DQN' in selected_agents:
-            dqn_params = data.get('dqnParams', {})
-            self.ExperimentConfig['agent_parameters']['DQN'] = {
-                'input_type': 'lm',
-                'input_size': int(dqn_params.get('input_size', 768)),
-                'sent_hidden_dim': int(dqn_params.get('sent_hidden_dim', 10)),
-                'hidden_dim': int(dqn_params.get('hidden_dim', 128)),
-                'num_hidden': int(dqn_params.get('num_hidden', 2)),
-                'sequence_size': int(dqn_params.get('sequence_size', 1)),
-                'memory_size': int(dqn_params.get('memory_size', 2000)),
-                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100)),
-                'learning_rate': float(dqn_params.get('learning_rate', 0.001)),
-                'batch_size': int(dqn_params.get('batch_size', 1)),
-                'output_size': int(dqn_params.get('output_size', 1000)),
-                'learn_step_counter': int(dqn_params.get('learn_step_counter', 0)),
-                'epsilon': float(dqn_params.get('epsilon', 0.2)),
-                'epsilon_step': float(dqn_params.get('epsilon_step', 0.001)),
-                'action_space_index': dqn_params.get('action_space_index', {}),
-                'target_replace_iter': int(dqn_params.get('target_replace_iter', 100))
-            }
-
         if 'SB3_DQN' in selected_agents:
-            SB3_DQN_params = data.get('sbDqnParams', {})
+            sb_dqn_params = data.get('sbDqnParams', {})
             self.ExperimentConfig['agent_parameters']['SB3_DQN'] = {
-                'policy': SB3_DQN_params.get('policy', 'MlpPolicy'),
-                'learning_rate': float(SB3_DQN_params.get('learning_rate', 0.0001)),
-                'buffer_size': int(SB3_DQN_params.get('buffer_size', 1000000))
+                'policy': sb_dqn_params.get('policy', 'MlpPolicy'),
+                'learning_rate': float(sb_dqn_params.get('learning_rate', 0.0001)),
+                'buffer_size': int(sb_dqn_params.get('buffer_size', 1000000))
+            }
+        if 'SB3_PPO' in selected_agents:
+            sb_ppo_params = data.get('sbPpoParams', {})
+            self.ExperimentConfig['agent_parameters']['SB3_PPO'] = {
+                'policy': sb_ppo_params.get('policy', 'MlpPolicy'),
+                'learning_rate': float(sb_ppo_params.get('learning_rate', 0.0003)),
+                'n_steps': int(sb_ppo_params.get('n_steps', 2048))
+            }
+        if 'SB3_A2C' in selected_agents:
+            sb_a2c_params = data.get('sbA2cParams', {})
+            self.ExperimentConfig['agent_parameters']['SB3_A2C'] = {
+                'policy': sb_a2c_params.get('policy', 'MlpPolicy'),
+                'learning_rate': float(sb_a2c_params.get('learning_rate', 0.0007)),
+                'n_steps': int(sb_a2c_params.get('n_steps', 5))
             }
 
         # TODO Update all adapter inputs to dict if matching to agents
@@ -163,6 +156,7 @@ class WebApp:
         # --- End of User Input Update ---
         # Use validated instructions for training
         instruction_results = self.instruction_results_validated[application]
+        print(instruction_results.keys())
         
         if not os.path.exists(self.global_save_dir+'/'+application):
             os.mkdir(self.global_save_dir+'/'+application)  

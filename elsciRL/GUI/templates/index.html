@@ -231,12 +231,16 @@
                                     <label for="agent-Qlearntab">Q-Learning</label>
                                 </div>
                                 <div class="application-item">
-                                    <input type="checkbox" id="agent-DQN" name="agentType" value="DQN">
-                                    <label for="agent-DQN">Deep Q-Network</label>
-                                </div>
-                                <div class="application-item">
                                     <input type="checkbox" id="agent-SB3_DQN" name="agentType" value="SB3_DQN">
                                     <label for="agent-SB3_DQN">Stable Baselines DQN</label>
+                                </div>
+                                <div class="application-item">
+                                    <input type="checkbox" id="agent-SB3_PPO" name="agentType" value="SB3_PPO">
+                                    <label for="agent-SB3_PPO">Stable Baselines PPO</label>
+                                </div>
+                                <div class="application-item">
+                                    <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
+                                    <label for="agent-SB3_A2C">Stable Baselines A2C</label>
                                 </div>
                             </div>
                         </div>
@@ -291,66 +295,6 @@
                         </div>
                     </div>
 
-                    <div id="dqn-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>DQN Parameters</h3>
-                        <div class="training-params">
-                            <label for="input_size">Input Size:</label>
-                            <input type="number" id="input_size" min="1" value="384">
-                        </div>
-                        <div class="training-params">
-                            <label for="sent_hidden_dim">Sentence Hidden Dimension:</label>
-                            <input type="number" id="sent_hidden_dim" min="1" value="10">
-                        </div>
-                        <div class="training-params">
-                            <label for="hidden_dim">Hidden Dimension:</label>
-                            <input type="number" id="hidden_dim" min="1" value="128">
-                        </div>
-                        <div class="training-params">
-                            <label for="num_hidden">Number of Hidden Layers:</label>
-                            <input type="number" id="num_hidden" min="1" value="2">
-                        </div>
-                        <div class="training-params">
-                            <label for="sequence_size">Sequence Size:</label>
-                            <input type="number" id="sequence_size" min="1" value="20">
-                        </div>
-                        <div class="training-params">
-                            <label for="memory_size">Memory Size:</label>
-                            <input type="number" id="memory_size" min="1" value="2000">
-                        </div>
-                        <div class="training-params">
-                            <label for="target_replace_iter">Target Replace Iterations:</label>
-                            <input type="number" id="target_replace_iter" min="1" value="100">
-                        </div>
-                        <div class="training-params">
-                            <label for="learning_rate">Learning Rate:</label>
-                            <input type="number" id="learning_rate" min="0" max="1" value="0.001" step="0.001">
-                        </div>
-                        <div class="training-params">
-                            <label for="batch_size">Batch Size:</label>
-                            <input type="number" id="batch_size" min="1" value="1">
-                        </div>
-                        <div class="training-params">
-                            <label for="output_size">Output Size:</label>
-                            <input type="number" id="output_size" min="1" value="10">
-                        </div>
-                        <div class="training-params">
-                            <label for="learn_step_counter">Learn Step Counter:</label>
-                            <input type="number" id="learn_step_counter" min="1" value="0">
-                        </div>
-                        <div class="training-params">
-                            <label for="dqn_epsilon">DQN Epsilon:</label>
-                            <input type="number" id="dqn_epsilon" min="0" max="1" value="0.9" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="dqn_epsilon_step">DQN Epsilon Step:</label>
-                            <input type="number" id="dqn_epsilon_step" min="0" max="1" value="0.01" step="0.001">
-                        </div>
-                        <!-- <div class="training-params">
-                            <label for="action_space_index">Action Space Index:</label>
-                            <input type="number" id="action_space_index" min="0" value="0">
-                        </div> -->
-                    </div>
-
                     <div id="sb3-dqn-params" class="config-group" style="flex: 1; display: none;">
                         <h3>SB3 DQN Parameters</h3>
                         <div class="training-params">
@@ -364,6 +308,36 @@
                         <div class="training-params">
                             <label for="sb3_buffer_size">Buffer Size:</label>
                             <input type="number" id="sb3_buffer_size" min="1" value="1000000">
+                        </div>
+                    </div>
+                    <div id="sb3-ppo-params" class="config-group" style="flex: 1; display: none;">
+                        <h3>SB3 PPO Parameters</h3>
+                        <div class="training-params">
+                            <label for="sb3_ppo_policy">Policy:</label>
+                            <input type="text" id="sb3_ppo_policy" value="MlpPolicy">
+                        </div>
+                        <div class="training-params">
+                            <label for="sb3_ppo_learning_rate">Learning Rate:</label>
+                            <input type="number" id="sb3_ppo_learning_rate" min="0" max="1" value="0.0003" step="0.0001">
+                        </div>
+                        <div class="training-params">
+                            <label for="sb3_ppo_n_steps">N Steps:</label>
+                            <input type="number" id="sb3_ppo_n_steps" min="1" value="2048">
+                        </div>
+                    </div>
+                    <div id="sb3-a2c-params" class="config-group" style="flex: 1; display: none;">
+                        <h3>SB3 A2C Parameters</h3>
+                        <div class="training-params">
+                            <label for="sb3_a2c_policy">Policy:</label>
+                            <input type="text" id="sb3_a2c_policy" value="MlpPolicy">
+                        </div>
+                        <div class="training-params">
+                            <label for="sb3_a2c_learning_rate">Learning Rate:</label>
+                            <input type="number" id="sb3_a2c_learning_rate" min="0" max="1" value="0.0007" step="0.0001">
+                        </div>
+                        <div class="training-params">
+                            <label for="sb3_a2c_n_steps">N Steps:</label>
+                            <input type="number" id="sb3_a2c_n_steps" min="1" value="5">
                         </div>
                     </div>
                 </div>
@@ -787,31 +761,25 @@
                 selectedPlot: selectedPlot,
             };
 
-            if (selectedAgents.includes('DQN')) {
-                params.dqnParams = {
-                    input_size: parseInt(document.getElementById('input_size').value),
-                    sent_hidden_dim: parseInt(document.getElementById('sent_hidden_dim').value),
-                    hidden_dim: parseInt(document.getElementById('hidden_dim').value),
-                    num_hidden: parseInt(document.getElementById('num_hidden').value),
-                    sequence_size: parseInt(document.getElementById('sequence_size').value),
-                    memory_size: parseInt(document.getElementById('memory_size').value),
-                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
-                    learning_rate: parseFloat(document.getElementById('learning_rate').value),
-                    batch_size: parseInt(document.getElementById('batch_size').value),
-                    output_size: parseInt(document.getElementById('output_size').value),
-                    learn_step_counter: parseInt(document.getElementById('learn_step_counter').value),
-                    epsilon: parseFloat(document.getElementById('dqn_epsilon').value),
-                    epsilon_step: parseFloat(document.getElementById('dqn_epsilon_step').value),
-                    // action_space_index: document.getElementById('action_space_index').value,
-                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value)
-                };
-            }
-
             if (selectedAgents.includes('SB3_DQN')) {
                 params.sbDqnParams = {
                     policy: document.getElementById('sb3_policy').value,
                     learning_rate: parseFloat(document.getElementById('sb3_learning_rate').value),
                     buffer_size: parseInt(document.getElementById('sb3_buffer_size').value)
+                };
+            }
+            if (selectedAgents.includes('SB3_PPO')) {
+                params.sbPpoParams = {
+                    policy: document.getElementById('sb3_ppo_policy').value,
+                    learning_rate: parseFloat(document.getElementById('sb3_ppo_learning_rate').value),
+                    n_steps: parseInt(document.getElementById('sb3_ppo_n_steps').value)
+                };
+            }
+            if (selectedAgents.includes('SB3_A2C')) {
+                params.sbA2cParams = {
+                    policy: document.getElementById('sb3_a2c_policy').value,
+                    learning_rate: parseFloat(document.getElementById('sb3_a2c_learning_rate').value),
+                    n_steps: parseInt(document.getElementById('sb3_a2c_n_steps').value)
                 };
             }
 
@@ -902,15 +870,18 @@
         document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 const qlearnParams = document.getElementById('qlearn-params');
-                const dqnParams = document.getElementById('dqn-params');
                 const sb3DqnParams = document.getElementById('sb3-dqn-params');
+                const sb3PpoParams = document.getElementById('sb3-ppo-params');
+                const sb3A2cParams = document.getElementById('sb3-a2c-params');
                 
                 if (this.value === 'Qlearntab') {
                     qlearnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'DQN') {
-                    dqnParams.style.display = this.checked ? 'block' : 'none';
                 } else if (this.value === 'SB3_DQN') {
                     sb3DqnParams.style.display = this.checked ? 'block' : 'none';
+                } else if (this.value === 'SB3_PPO') {
+                    sb3PpoParams.style.display = this.checked ? 'block' : 'none';
+                } else if (this.value === 'SB3_A2C') {
+                    sb3A2cParams.style.display = this.checked ? 'block' : 'none';
                 }
             });
         });
