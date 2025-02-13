@@ -66,6 +66,10 @@ class GymInteractionLoop:
                     end_time = time.time()
                     reward, actions, states, render_stack = self.agent.test(self.env, render=render)
                     episode_render.append(render_stack)
+                    # Need to get values from actions
+                    if isinstance(actions[0], np.int64):
+                        actions = [action.item() for action in actions]
+
                     self.results.results_per_episode(self.agent_name, None, episode, len(actions), 
                                                     reward, (end_time-start_time), actions, 0, 0)  
             else:
@@ -73,6 +77,10 @@ class GymInteractionLoop:
                     start_time = time.time()
                     # Evaluate fixed policy on single episode
                     reward, actions, states, render_stack = self.agent.test(self.env, render=render)
+                    # Need to get values from actions
+                    if isinstance(actions[0], np.int64):
+                        actions = [action.item() for action in actions]
+
                     episode_render.append(render_stack)
                     end_time = time.time()
                     self.results.results_per_episode(self.agent_name, None, episode, len(actions), 

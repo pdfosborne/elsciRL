@@ -113,7 +113,11 @@ class StandardInteractionLoop:
                     # Agent takes action
                     legal_moves = self.engine.legal_move_generator(obs)
                     agent_action = self.agent.policy(state, legal_moves)
-                    action_history.append(agent_action)
+
+                    if isinstance(agent_action, np.int64):
+                        action_history.append(agent_action.item())
+                    else:
+                        action_history.append(agent_action)
 
                     next_obs, reward, terminated, _ = self.engine.step(
                         state=obs, action=agent_action

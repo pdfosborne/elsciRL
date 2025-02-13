@@ -2,6 +2,7 @@ from typing import Callable, Any
 import gymnasium as gym
 from gymnasium.envs.registration import register
 from gymnasium import spaces
+import numpy as np
 
 class EngineToGym(gym.Env):
     def __init__(self):
@@ -12,8 +13,6 @@ class EngineToGym(gym.Env):
         self.Adapter = Adapter()
         self.reward_signal = None
         self.reward_signal_tracker = []
-        #self.action_history = []
-        #self.obs_history = []
         # Use name if given directly, otherwise check engine ledger
         if engine_name is not None:
             self.name = engine_name
@@ -55,10 +54,12 @@ class EngineToGym(gym.Env):
         return obs_enc, {}
 
     def step(self, state=[], action=0):
-        print(action)
         # Gym step function combines elsciRL Engine step and Adapter
         observation, reward, terminated, info = self.engine.step(state=state, action=action)
-        self.action_history.append(action)
+        if isinstance(action, np.int64):
+            self.action_history.append(action.item())
+        else:
+            self.action_history.append(action)
         # if observation not in self.obs_history:
         #     reward += 0.05 # Give small reward to encourage exploration
         # self.obs_history.append(observation)

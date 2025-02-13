@@ -74,41 +74,6 @@ class elsciRLOptimize:
         self.adapters = Adapters
         self.env = StandardInteractionLoop
         
-        # New: Flag for if using gym agents to optimize instead
-        # - Generates reward signal from instructions that is passed to gym eng translator
-        if self.setup_info['agent_select'][0].split('_')[0] == "SB3":
-            self.is_gym_agent = True
-            self.sub_goal_reward = self.setup_info['reward_signal'][0]
-            self.gym_exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig=self.LocalConfig, 
-                    Engine=self.engine, Adapters=self.adapters,
-                    save_dir=save_dir, show_figures = 'No', window_size=0.1)
-            # Get start position to start instr chains
-            train_setup_info = self.setup_info.copy()
-            agent_type = "Qlearntab" # Force agent to Qlearntab for compatibility
-            # Add Qlearntab if not existed and select first adapter
-            if "Qlearntab" not in train_setup_info["adapter_input_dict"]:
-                first_agent_type = list(train_setup_info["adapter_input_dict"].keys())[0]
-                first_adapter = train_setup_info["adapter_input_dict"][first_agent_type][0]
-                train_setup_info["adapter_input_dict"]["Qlearntab"] = [first_adapter]
-            adapter = train_setup_info["adapter_input_dict"][agent_type][0]
-            # ----- Agent parameters
-            agent_parameters = train_setup_info["agent_parameters"][agent_type]
-            train_setup_info['agent_type'] = agent_type
-            train_setup_info['agent_name'] = str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
-            train_setup_info['adapter_select'] = adapter
-            agent = AGENT_TYPES[agent_type](**agent_parameters)
-            train_setup_info['agent'] = agent
-            train_setup_info['train'] = True
-            train_setup_info['live_env'] = True
-            train_setup_info['training_results'] = False
-            train_setup_info['observed_states'] = False
-            train_setup_info['experience_sampling'] = False
-            live_env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=train_setup_info)
-            self.start_obs = live_env.start_obs
-        else:
-            self.is_gym_agent = False
-
-
         if not predicted_path:
             if not os.path.exists(save_dir):
                 os.mkdir(save_dir)
@@ -121,7 +86,44 @@ class elsciRLOptimize:
             self.save_dir = save_dir+'/'+save_dir_extra
         self.show_figures = show_figures
         if (self.show_figures.lower() != 'y')|(self.show_figures.lower() != 'yes'):
-            print("Figures will not be shown and only saved.")    
+            print("Figures will not be shown and only saved.")  
+
+        # New: Flag for if using gym agents to optimize instead
+        # - Generates reward signal from instructions that is passed to gym eng translator
+        # - init gym experiment if any gym agent selected
+        self.is_gym_agent = {}
+        for n,agent_type in enumerate(self.setup_info['agent_select']):
+            if agent_type.split('_')[0] == "SB3":
+                self.is_gym_agent[agent_type] = True
+                self.sub_goal_reward = self.setup_info['reward_signal'][0]
+                self.gym_exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig=self.LocalConfig, 
+                        Engine=self.engine, Adapters=self.adapters,
+                        save_dir=self.save_dir, show_figures = 'No', window_size=0.1)
+                # Get start position to start instr chains
+                train_setup_info = self.setup_info.copy()
+                agent_type = "Qlearntab" # Force agent to Qlearntab for compatibility
+                # Add Qlearntab if not existed and select first adapter
+                if "Qlearntab" not in train_setup_info["adapter_input_dict"]:
+                    first_agent_type = list(train_setup_info["adapter_input_dict"].keys())[0]
+                    first_adapter = train_setup_info["adapter_input_dict"][first_agent_type][0]
+                    train_setup_info["adapter_input_dict"]["Qlearntab"] = [first_adapter]
+                adapter = train_setup_info["adapter_input_dict"][agent_type][0]
+                # ----- Agent parameters
+                agent_parameters = train_setup_info["agent_parameters"][agent_type]
+                train_setup_info['agent_type'] = agent_type
+                train_setup_info['agent_name'] = str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
+                train_setup_info['adapter_select'] = adapter
+                agent = AGENT_TYPES[agent_type](**agent_parameters)
+                train_setup_info['agent'] = agent
+                train_setup_info['train'] = True
+                train_setup_info['live_env'] = True
+                train_setup_info['training_results'] = False
+                train_setup_info['observed_states'] = False
+                train_setup_info['experience_sampling'] = False
+                live_env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=train_setup_info)
+                self.start_obs = live_env.start_obs
+            else:
+                self.is_gym_agent[agent_type] = False
 
         self.training_setups: dict = {}
         # New instruction learning
@@ -218,52 +220,54 @@ class elsciRLOptimize:
             print("\n \t - ", instr, " -> ", list(self.instruction_path[instr].keys()))
             self.total_num_instructions+=1
         
-        
-                
+   
     def train(self):
         if not os.path.exists(self.save_dir):
             os.mkdir(self.save_dir)
 
-        # Added gym based agents as selection
-        if self.is_gym_agent:
-            env_start = self.start_obs 
-            start = str(env_start).split(".")[0]
-            goal = start + "---" + "GOAL"
-            print("Long-term Goal: ", goal)
-            # ---- 
-            # New reward signal passed to engine to generate gym reward
-            reward_signal = {}
-            while True:
-                max_count = 0
-                # Go through path and extract a a reward signal for each sub-instruction
-                # If search cant use agent, it will default to Qlearntab
-                agent_adapter = (self.setup_info["agent_select"][0]+'_'+self.setup_info["adapter_input_dict"][self.setup_info["agent_select"][0]][0])
-                if agent_adapter not in self.known_instructions_dict:
-                    agent_adapter = "Qlearntab"+"_"+self.setup_info["adapter_input_dict"]["Qlearntab"][0]
-                if start in self.known_instructions_dict[agent_adapter]:
-                    for end in self.known_instructions_dict[agent_adapter][start]:
-                        if self.known_instructions_dict[agent_adapter][start][end] > max_count:
-                            max_count = self.known_instructions_dict[agent_adapter][start][end]
-                            instr = start + "---" + end
-                            print("Sub-instr: ", instr) 
+        for n, agent_type in enumerate(self.setup_info['agent_select']):
+            # Added gym based agents as selection
+            is_gym_agent = self.is_gym_agent[agent_type]
+            if is_gym_agent:
+                env_start = self.start_obs 
+                start = str(env_start).split(".")[0]
+                goal = start + "---" + "GOAL"
+                print("Long-term Goal: ", goal)
+                # ---- 
+                # New reward signal passed to engine to generate gym reward
+                reward_signal = {}
+                while True:
+                    max_count = 0
+                    # Go through path and extract a a reward signal for each sub-instruction
+                    # If search cant use agent, it will default to Qlearntab
+                    agent_adapter = (self.setup_info["agent_select"][n]+'_'+self.setup_info["adapter_input_dict"][self.setup_info["agent_select"][n]][0])
+                    if agent_adapter not in self.known_instructions_dict:
+                        agent_adapter = "Qlearntab"+"_"+self.setup_info["adapter_input_dict"]["Qlearntab"][0]
+                    if start in self.known_instructions_dict[agent_adapter]:
+                        for end in self.known_instructions_dict[agent_adapter][start]:
+                            if self.known_instructions_dict[agent_adapter][start][end] > max_count:
+                                max_count = self.known_instructions_dict[agent_adapter][start][end]
+                                instr = start + "---" + end
+                                print("Sub-instr: ", instr) 
 
-                    sub_goal = self.instruction_path[instr][agent_adapter]['sub_goal']
-                    # Get reward signal for each sub-goal
-                    # - Sub-goals are lists of all matching env labels
-                    for sg in sub_goal:
-                        reward_signal[sg] = self.sub_goal_reward#*np.round(1/i, 4) # e.g. r=1 --> 1/2, 1/3, 1/4, ..
-                    # ---
-                    start = end
-                    prior_instr = instr
-                else:
-                    break     
-            # Apply signal using dict:= {obs:reward, obs:reward, ...}
-            print("GYM REWARD SIGNAL: ", reward_signal )
-            self.gym_exp.reward_signal = reward_signal
-            self.training_setups = self.gym_exp.train()   
-                       
-        else:
-            for n, agent_type in enumerate(self.setup_info['agent_select']):
+                        sub_goal = self.instruction_path[instr][agent_adapter]['sub_goal']
+                        # Get reward signal for each sub-goal
+                        # - Sub-goals are lists of all matching env labels
+                        for sg in sub_goal:
+                            reward_signal[sg] = self.sub_goal_reward#*np.round(1/i, 4) # e.g. r=1 --> 1/2, 1/3, 1/4, ..
+                        # ---
+                        start = end
+                        prior_instr = instr
+                    else:
+                        break     
+                # Apply signal using dict:= {obs:reward, obs:reward, ...}
+                print("GYM REWARD SIGNAL: ", reward_signal)
+                self.gym_exp.reward_signal = reward_signal
+                # --- GYM EXPERIMENT TRAINING
+                for adapter in train_setup_info["adapter_input_dict"][agent_type]:
+                    self.gym_exp.setup_info['agent_select'] = [agent_type] 
+                    self.training_setups = self.gym_exp.train() 
+            else:
                 # We are adding then overriding some inputs from general configs for experimental setups
                 train_setup_info = self.setup_info.copy()
                 # TODO: fix experience sampling
@@ -662,8 +666,8 @@ class elsciRLOptimize:
                                                 
                     # Store last train_setup_info as collection of observed states and experience sampling
                     self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info
-            if (number_training_repeats>1)|(self.num_training_seeds):
-                self.analysis.training_variance_report(self.save_dir, self.show_figures)
+        if (number_training_repeats>1)|(self.num_training_seeds):
+            self.analysis.training_variance_report(self.save_dir, self.show_figures)
                     
         #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
         return self.training_setups

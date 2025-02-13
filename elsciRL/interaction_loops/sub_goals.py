@@ -90,7 +90,10 @@ class Environment:
                     # Agent takes action
                     legal_moves = self.env.legal_move_generator(obs)
                     agent_action = self.agent.policy(state, legal_moves)
-                    action_history.append(agent_action)
+                    if isinstance(agent_action, np.int64):
+                        action_history.append(agent_action.item())
+                    else:
+                        action_history.append(agent_action)
                     
                     next_obs, reward, terminated = self.env.step(state=obs, action=agent_action)
                     # Can override reward per action with small negative punishment

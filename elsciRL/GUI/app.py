@@ -49,9 +49,9 @@ class WebApp:
 
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
-        if 'search' not in self.global_save_dir:
+        if 'results' not in self.global_save_dir:
             time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            save_dir = './elsciRL-App-output/' + str('search') + '_' + time
+            save_dir = './elsciRL-App-output/' + str('results') + '_' + time
             if not os.path.exists(save_dir):                
                 os.mkdir(save_dir)
             self.global_save_dir = save_dir
@@ -163,7 +163,6 @@ class WebApp:
         # --- End of User Input Update ---
         # Use validated instructions for training
         instruction_results = self.instruction_results_validated[application]
-        print(instruction_results.keys())
         
         if not os.path.exists(self.global_save_dir+'/'+application):
             os.mkdir(self.global_save_dir+'/'+application)  

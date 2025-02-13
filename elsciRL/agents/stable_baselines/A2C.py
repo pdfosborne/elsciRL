@@ -7,11 +7,11 @@ from PIL import Image # Used to generate GIF
 
 
 class SB_A2C(QLearningAgent):
-    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None):
+    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None, learning_rate=0.0007, n_steps=500):
         self.epsilon: int = 0 # Not used currently but required for compatibility
         self.device = "auto" if torch.cuda.is_available() else "cpu" # A2C is meant to be run primarily on the CPU, especially when you are not using a CNN.
-        self.a2c = A2C("MlpPolicy", env, verbose=0, device="cpu", 
-                       learning_rate=0.0007, n_steps=500)
+        self.a2c = A2C(policy, env, verbose=0, device="cpu", 
+                       learning_rate=learning_rate, n_steps=n_steps)
         if torch.cuda.is_available():
             print("---- A2C is meant to be run primarily on the CPU ----")
             print("Device:", self.a2c.device)

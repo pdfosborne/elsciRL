@@ -7,11 +7,11 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from PIL import Image # Used to generate GIF
 
 class SB_PPO(QLearningAgent):
-    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None):
+    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None, learning_rate:float=0.0003, n_steps:int=2048):
         self.epsilon: int = 0 # Not used currently but required for compatibility
         self.device = "auto" if torch.cuda.is_available() else "cpu"
-        self.ppo = PPO("MlpPolicy", env, verbose=0, device=self.device, 
-                       learning_rate=0.0003, n_steps=2048)
+        self.ppo = PPO(policy, env, verbose=0, device=self.device, 
+                       learning_rate=learning_rate, n_steps=n_steps)
         if torch.cuda.is_available():
             print("---- Using GPU ----")
             print("Device:", self.ppo.device)

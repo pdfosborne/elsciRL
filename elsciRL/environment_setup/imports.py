@@ -1,7 +1,6 @@
 from typing import List
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 
-
 class ImportHelper:
     def __init__(self, local_setup_info:dict={}) -> None:
         self.setup_info = local_setup_info

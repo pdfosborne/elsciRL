@@ -7,11 +7,11 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from PIL import Image # Used to generate GIF
 
 class SB_DQN(QLearningAgent):
-    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None):
+    def __init__(self, policy:str='MlpPolicy', env:gym.Env = None, learning_rate:float=0.0001, buffer_size:int=1000000):
         self.epsilon: int = 0 # Not used currently but required for compatibility
         self.device = "auto" if torch.cuda.is_available() else "cpu" 
-        self.dqn = DQN("MlpPolicy", env, verbose=0, device=self.device, 
-                       learning_rate=0.0001, buffer_size=1000000)
+        self.dqn = DQN(policy, env, verbose=0, device=self.device, 
+                       learning_rate=learning_rate, buffer_size=buffer_size)
         if torch.cuda.is_available():
             print("---- Using GPU ----")
             print("Device:", self.dqn.device)
