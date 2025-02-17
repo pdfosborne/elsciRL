@@ -112,13 +112,15 @@ Once you've finished a test you can see the results will show on the App and als
 Please use the following to cite this work
 
 ```bibtex
+@phdthesis{Osborne2024,
   title        = {Improving Real-World Reinforcement Learning by Self Completing Human Instructions on Rule Defined Language},  
   author       = {Philip Osborne},  
   year         = 2024,  
   month        = {August},  
   address      = {Manchester, UK},  
   note         = {Available at \url{https://research.manchester.ac.uk/en/studentTheses/improving-real-world-reinforcement-learning-by-self-completing-hu}},  
-  school       = {Department of Computer Science},  
+  school       = {The University of Manchester},  
   type         = {PhD thesis}
+}
 ```
 
