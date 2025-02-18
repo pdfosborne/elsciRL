@@ -20,7 +20,7 @@ class EngineToGym(gym.Env):
             self.name = self.engine.ledger['id']
         else:
             print("\n WARNING: Engine name not set, using default name --> set inside ledger [id] field.")
-            self.name = "elsciRLEnv-v0"
+            self.name = "elsciRLGymEnv-v0"
             
         # --------------------------
         # Define observation and action spaces
@@ -80,7 +80,8 @@ class EngineToGym(gym.Env):
                     
 
         # If a language problem then we also want processed observation
-        if self.engine.ledger['type'] =='Language':
+        # TODO: Need better method for checking if language problem
+        if 'lang' in self.engine.ledger['type'].lower():
             obs_adapted = self.Adapter.adapter(observation, self.engine.legal_move_generator(), 
                                     self.engine.action_history, encode = False)
             info['obs_adapted'] = obs_adapted

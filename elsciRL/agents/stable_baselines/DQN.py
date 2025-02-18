@@ -1,5 +1,6 @@
 import pickle
 import torch
+import numpy as np
 from elsciRL.agents.agent_abstract import QLearningAgent
 import gymnasium as gym
 from stable_baselines3 import DQN
@@ -38,7 +39,11 @@ class SB_DQN(QLearningAgent):
                 )
         while not done: 
             action, _state = self.dqn.predict(obs, deterministic=True)
-            actions.append(action[0])
+            if isinstance(action, np.int64):
+                actions.append(action.item())
+            else:
+                actions.append(action[0])
+            #actions.append(action[0])
             
             obs, r, done, info = vec_env.step(action)
             states.append(info[0]['obs'])

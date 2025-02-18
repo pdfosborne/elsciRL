@@ -1,5 +1,6 @@
 import pickle
 import torch
+import numpy as np
 from elsciRL.agents.agent_abstract import QLearningAgent
 import gymnasium as gym
 from stable_baselines3 import A2C
@@ -42,7 +43,11 @@ class SB_A2C(QLearningAgent):
                 )
         while not done: 
             action, _state = self.a2c.predict(obs, deterministic=True)
-            actions.append(int(action))
+            if isinstance(action, np.int64):
+                actions.append(action.item())
+            else:
+                actions.append(action)
+            # actions.append(int(action))
             obs, r, done, truncated, info = vec_env.step(action)
             episode_reward += r
             if render:

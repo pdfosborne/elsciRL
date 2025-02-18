@@ -22,6 +22,9 @@ from elsciRL.agents.stable_baselines.A2C import SB_A2C
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
+    "DQN": NeuralQLearningAgent,
+    "DQN_2": NeuralQLearningAgent,
+    "DQN_language": NeuralQLearningAgent,
     "Random": random,
     "SB3_DQN": SB_DQN,
     "SB3_PPO": SB_PPO,
@@ -30,10 +33,13 @@ AGENT_TYPES = {
 
 PLAYER_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
+    "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+    "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
+    "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "Random": [],
-    "SB3_DQN": ["policy", "learning_rate", "buffer_size"],
-    "SB3_PPO": ["policy", "learning_rate", "n_steps"],
-    "SB3_A2C": ["policy", "learning_rate", "n_steps"]
+    "SB3_DQN": ["policy"],
+    "SB3_PPO": ["policy"],
+    "SB3_A2C": ["policy"]
 }
 
 # This is the main run functions for elsciRL to be imported
