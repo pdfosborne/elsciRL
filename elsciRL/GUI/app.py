@@ -26,7 +26,7 @@ app = Flask(__name__, static_folder=os.path.join(dir_path, 'static'),
 imports = Applications().data
 possible_applications = list(imports.keys())
 pull_data = PullApplications()
- 
+
 class WebApp:
     def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
         self.global_save_dir = save_dir
@@ -49,9 +49,9 @@ class WebApp:
 
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
-        if 'search' not in self.global_save_dir:
+        if 'results' not in self.global_save_dir:
             time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            save_dir = './elsciRL-App-output/' + str('search') + '_' + time
+            save_dir = './elsciRL-App-output/' + str('results') + '_' + time
             if not os.path.exists(save_dir):                
                 os.mkdir(save_dir)
             self.global_save_dir = save_dir
@@ -70,12 +70,13 @@ class WebApp:
         config_input = data.get('localConfigInput', '')
         selected_plot = data.get('selectedPlot', '')
         selected_adapters = data.get('selectedAdapters', ['default'])
+        user_input = data.get('userInput', '')
+
         
         # if application not in self.instruction_results_validated:
         #     print(f"No instruction results found for {application}")
         #     return jsonify({'error': 'No instruction results found for the selected application'}), 400
-        user_submit = data.get('submitBtn', False)
-        if user_submit:
+        if user_input!='':
             # Use validated instructions for training
             instruction_results = self.instruction_results_validated[application]
             print(instruction_results.keys())
@@ -177,7 +178,7 @@ class WebApp:
             os.mkdir(self.global_save_dir+'/'+application)  
         
         # If no instruciton only run flat agent
-        if user_submit:
+        if user_input!='':
             # Train for all correctly validated instructions
             flat_agent_run = False
             for instr_key, instr_results in instruction_results.items():
@@ -280,7 +281,6 @@ class WebApp:
         application = data.get('selectedApps', [])[0]
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
-        user_submit = data.get('submitBtn', False)
 
         if not application:
             return jsonify({'error': 'No application selected'}), 400
@@ -299,9 +299,9 @@ class WebApp:
         })
 
         self.ExperimentConfig = config
-
+        
         # Process user if submitted, otherwise no instructions
-        if user_submit:
+        if user_input!='':
             instruction_descriptions = user_input.split('\n')
             instruction_descriptions = [i.strip() for i in instruction_descriptions if i.strip()]
             instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
@@ -506,7 +506,7 @@ class WebApp:
         })
 
 if len(sys.argv)>1:
-    if 'search' in sys.argv[1]:
+    if 'output' in sys.argv[1]:
         if 'output' in sys.argv[1]:
             print('Using pre-rendered data from '+sys.argv[1])
             input_save_dir= sys.argv[1]

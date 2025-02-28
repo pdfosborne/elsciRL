@@ -28,7 +28,7 @@ class Applications:
             "Classroom":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Classroom",
-                "commit_id": "7010ad6",
+                "commit_id": "a81d4d1",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "local_config_folder": "configs",

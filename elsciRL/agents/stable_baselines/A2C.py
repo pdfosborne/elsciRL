@@ -18,6 +18,7 @@ class SB_A2C(QLearningAgent):
             print("Device:", self.a2c.device)
 
     def policy(self, state: any) -> str:
+        # TODO: make sure output is int
         return self.a2c.predict(state)
 
     def learn(self, total_steps:int=100) -> float:
@@ -51,9 +52,7 @@ class SB_A2C(QLearningAgent):
             obs, r, done, truncated, info = vec_env.step(action)
             episode_reward += r
             if render:
-                render_stack.append(
-                    Image.fromarray(vec_env.render().astype('uint8'))
-                    )
+                render_stack.append(Image.fromarray(vec_env.render().astype('uint8')))
         
             #states.append(info[0]['obs'])
             states.append(info['obs'])

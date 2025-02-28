@@ -67,8 +67,13 @@ class GymInteractionLoop:
                     reward, actions, states, render_stack = self.agent.test(self.env, render=render)
                     episode_render.append(render_stack)
                     # Need to get values from actions
+                    # TODO: Ensure all agents output int directly to solve this
                     if isinstance(actions[0], np.int64):
                         actions = [action.item() for action in actions]
+                    elif isinstance(actions[0], np.ndarray):
+                        actions = [action.item() for action in actions]
+
+                    
 
                     self.results.results_per_episode(self.agent_name, None, episode, len(actions), 
                                                     reward, (end_time-start_time), actions, 0, 0)  
@@ -78,7 +83,10 @@ class GymInteractionLoop:
                     # Evaluate fixed policy on single episode
                     reward, actions, states, render_stack = self.agent.test(self.env, render=render)
                     # Need to get values from actions
+                    # TODO: Ensure all agents output int directly to solve this
                     if isinstance(actions[0], np.int64):
+                        actions = [action.item() for action in actions]
+                    elif isinstance(actions[0], np.ndarray):
                         actions = [action.item() for action in actions]
 
                     episode_render.append(render_stack)
