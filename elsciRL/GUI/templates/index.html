@@ -155,6 +155,18 @@
             background-color: #f9f9f9;
             margin-bottom: 20px;
         }
+
+        .render-gifs-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .render-gif-item h3 {
+            text-align: center;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -353,6 +365,7 @@
                             <input type="number" id="sb3_a2c_n_steps" min="1" value="500">
                         </div>
                     </div>
+                    
                 </div>
             </div>
 
@@ -411,6 +424,15 @@
                     <div class="instructions-summary" id="instructionsSummary">
                         <!-- Instructions summary will be populated dynamically -->
                     </div>
+                </div>
+                <!-- New Render GIFs Section -->
+                <div><hr><p> </p></div>
+                <div>
+                    <h2>Render GIFs</h2>
+                    <button id="replayRenderGifsBtn" onclick="replayRenderGifs()">Replay Render GIFs</button>
+                </div>
+                <div class="render-gifs-container" id="renderGifsContainer">
+                    <!-- Render GIFs will be displayed dynamically -->
                 </div>
                 <div><hr><p> </p></div>
                 <div><h2>Problems Specific Results</h2></div>
@@ -862,9 +884,11 @@
                 const instructionsSummary = document.getElementById('instructionsSummary');
                 const resultsContainer = document.getElementById('resultsContainer');
                 const varianceAnalysisContainer = document.getElementById('varianceAnalysisContainer');
+                const renderGifsContainer = document.getElementById('renderGifsContainer');
                 instructionsSummary.innerHTML = ''; // Clear existing instructions summary
                 resultsContainer.innerHTML = ''; // Clear existing results
                 varianceAnalysisContainer.innerHTML = ''; // Clear existing variance analysis
+                renderGifsContainer.innerHTML = ''; // Clear existing render GIFs
 
                 // Fetch all validated correct instructions
                 const correctInstructionsResponse = await fetch('/get_correct_instructions');
@@ -882,13 +906,33 @@
                 // Populate results and variance analysis
                 if (data.figures && data.figures.length > 0) {
                     data.figures.forEach(figPath => {
-                        const img = document.createElement('img');
-                        img.src = `/${figPath}?t=${new Date().getTime()}`;
-                        img.alt = 'Analysis result';
-                        img.className = 'shadow-effect';
-                        if (figPath.includes('variance_analysis')) {
+                        const filename = figPath.split('/').pop();
+                        // Check for render gif files
+                        if (filename.includes('render')) {
+                            const renderDiv = document.createElement('div');
+                            renderDiv.className = 'render-gif-item';
+                            // Extract part before "render", replace underscores with spaces, and trim.
+                            let shortName = filename.split('render')[0].replace(/_/g, ' ').trim()+filename.split('render')[1].replace(/_/g, ' ').replace(/.gif/g, '').trim();
+                            const header = document.createElement('h3');
+                            header.textContent = shortName;
+                            renderDiv.appendChild(header);
+                            const img = document.createElement('img');
+                            img.src = `/${figPath}?t=${new Date().getTime()}`;
+                            img.alt = filename;
+                            img.className = 'shadow-effect';
+                            renderDiv.appendChild(img);
+                            renderGifsContainer.appendChild(renderDiv);
+                        } else if (figPath.includes('variance_analysis')) {
+                            const img = document.createElement('img');
+                            img.src = `/${figPath}?t=${new Date().getTime()}`;
+                            img.alt = 'Analysis result';
+                            img.className = 'shadow-effect';
                             varianceAnalysisContainer.appendChild(img);
                         } else {
+                            const img = document.createElement('img');
+                            img.src = `/${figPath}?t=${new Date().getTime()}`;
+                            img.alt = 'Analysis result';
+                            img.className = 'shadow-effect';
                             resultsContainer.appendChild(img);
                         }
                     });
@@ -951,6 +995,16 @@
                 }
             });
         });
+
+        function replayRenderGifs() {
+            const container = document.getElementById('renderGifsContainer');
+            const imgs = container.getElementsByTagName('img');
+            for (let img of imgs) {
+                // Force the image to reload by updating its src with a new timestamp
+                let src = img.src.split('?')[0];
+                img.src = src + '?t=' + new Date().getTime();
+            }
+        }
 
     </script>
 </body>

@@ -267,7 +267,7 @@ class elsciRLOptimize:
                 train_setup_info = self.setup_info.copy()
                 for adapter in train_setup_info["adapter_input_dict"][agent_type]:
                     self.gym_exp.setup_info['agent_select'] = [agent_type] 
-                    self.training_setups = self.gym_exp.train() 
+                    self.training_setups[agent_adapter] = self.gym_exp.train() 
             else:
                 # We are adding then overriding some inputs from general configs for experimental setups
                 train_setup_info = self.setup_info.copy()
@@ -281,7 +281,9 @@ class elsciRLOptimize:
                     agent_parameters = train_setup_info["agent_parameters"][agent_type]
                     train_setup_info['agent_type'] = agent_type
                     train_setup_info['agent_name'] = str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
-                    train_setup_info['adapter_select'] = adapter
+                    train_setup_info['adapter_select'] = str(adapter)
+                    print("+++++++++++++++++++")
+                    print(agent_type,adapter)
                     # ----- Sub-Goal
                     # - If we have setup dict to include agent_adapter specific location of sub-goals
                     #   i.e. {instr:{env_code:{agent_adapter:{sub_goal:'ENV_CODE', sim_score:0.8}}, action_cap:5}}
@@ -666,35 +668,43 @@ class elsciRLOptimize:
 
                                                 
                     # Store last train_setup_info as collection of observed states and experience sampling
-                    self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info
-                if (number_training_repeats>1)|(self.num_training_seeds):
-                    self.analysis.training_variance_report(self.save_dir, self.show_figures)
+                    self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info.copy()
+                #if (number_training_repeats>1)|(self.num_training_seeds):
+                self.analysis.training_variance_report(self.save_dir, self.show_figures)
                     
         #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
         return self.training_setups
 
     # TESTING PLAY
     def test(self, training_setups:str=None):
-        # Added gym based agents as selection
-        # - Strip reward signal from instructions for testing
-        if self.is_gym_agent:
-            self.gym_exp.reward_signal = None
-            self.gym_exp.test()
+        # Override input training setups with previously saved 
+        if training_setups is None:
+            training_setups = self.training_setups
+            print("=== TESTING SETUPS ===")
+            print(training_setups.keys())
         else:
-            # Override input training setups with previously saved 
-            if training_setups is None:
-                training_setups = self.training_setups
-            else:
-                json.load(training_setups)
+            json.load(training_setups)
 
-            for training_key in list(training_setups.keys()):    
-                test_setup_info = training_setups[training_key]
-                test_setup_info['train'] = False # Testing Phase
-                print("----------")
-                print("Testing results for trained agents in saved setup configuration:")
-                number_training_repeats = test_setup_info['number_test_repeats']
-                agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-                
+        for training_key in list(training_setups.keys()):   
+            test_setup_info = training_setups[training_key]
+            test_setup_info['train'] = False # Testing Phase
+            agent_type = test_setup_info['agent_type']
+            print("----------")
+            print(training_key) 
+            print("Testing results for trained agents in saved setup configuration:")
+            print("TESTING SETUP INFO")
+            print(test_setup_info['agent_type'])
+            print(test_setup_info['adapter_select'])
+            print("----------")
+            agent_adapter = agent_type + "_" + test_setup_info['adapter_select']
+            print(agent_adapter)
+            # Added gym based agents as selection
+            # - Strip reward signal from instructions for testing
+            if self.is_gym_agent[agent_type]:
+                gym_test_exp = self.training_setups[agent_adapter]
+                gym_test_exp.reward_signal = None
+                gym_test_exp.test()                        
+            else:
                 # Only use the trained agent with best return
                 if self.test_agent_type.lower()=='best':
                     for testing_repeat in range(0, test_setup_info['number_test_repeats']):  
@@ -715,6 +725,7 @@ class elsciRLOptimize:
                         # Testing generally is the agents replaying on the testing ENV
                         testing_results = env.episode_loop() 
                         test_save_dir = (self.save_dir+'/'+agent_adapter+'__testing_results_'+str(goal).split("/")[0]+"_"+str(testing_repeat))
+                        print(test_save_dir)
                         if not os.path.exists(test_save_dir):
                             os.mkdir(test_save_dir)
                         # Produce training report with Analysis.py
@@ -755,8 +766,8 @@ class elsciRLOptimize:
                             Return = self.analysis.test_report(testing_results, test_save_dir, self.show_figures)
 
             # Path is the experiment save dir + the final instruction
-            if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
-                self.analysis.testing_variance_report(self.save_dir, self.show_figures)
+            #if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
+            self.analysis.testing_variance_report(self.save_dir, self.show_figures)
 
 
     def render_results(self, training_setups:str=None):
@@ -777,20 +788,55 @@ class elsciRLOptimize:
 
             # Only use the trained agent with best return
             if self.test_agent_type.lower()=='best':
-                for testing_repeat in range(0, test_setup_info['number_test_repeats']):  
-                    # Re-init env for testing
-                    env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=test_setup_info)
-                    # ---
-                    start_obs = env.start_obs
-                    goal = str(start_obs).split(".")[0] + "---" + "GOAL"
-                    print("Flat agent Goal: ", goal)
-                    # Override with trained agent if goal seen previously
-                    if goal in self.trained_agents[test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
-                        print("Trained agent available for testing.")
-                        env.agent = self.trained_agents[test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
-                    else:
-                        print("NO agent available for testing position.")
+                # Re-init env for testing
+                env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=test_setup_info)
+                # ---
+                start_obs = env.start_obs
+                goal = str(start_obs).split(".")[0] + "---" + "GOAL"
+                print("Flat agent Goal: ", goal)
+                # Override with trained agent if goal seen previously
+                if goal in self.trained_agents[test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
+                    print("Trained agent available for testing.")
+                    env.agent = self.trained_agents[test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
+                else:
+                    print("NO agent available for testing position.")
+                env.agent.epsilon = 0 # Remove random actions
+                # ---
+                # Testing generally is the agents replaying on the testing ENV
+                render_save_dir = self.save_dir+'/render_results'
+                if not os.path.exists(render_save_dir):
+                    os.mkdir(render_save_dir)
+                render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
+                # Produce training report with Analysis.py
+                #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
+                
+            # Re-apply all trained agents with fixed policy
+            elif self.test_agent_type.lower()=='all':
+                # All trained agents are used:
+                # - Repeats can be used to vary start position
+                # - But assumed environment is deterministic otherwise
+                # Re-init env for testing
+                env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=test_setup_info)
+                # ---
+                start_obs = env.start_obs
+                goal = str(start_obs).split(".")[0] + "---" + "GOAL"
+                print("Flat agent Goal: ", goal)
+                # Override with trained agent if goal seen previously
+                if goal in self.trained_agents[test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
+                    print("Trained agents available for testing.")
+                    all_agents = self.trained_agents[test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
+                else:
+                    print("NO agent available for testing position.")
+                
+                for ag,agent in enumerate(all_agents):
+                    env.results.reset() # Reset results table for each agent
+                    env.start_obs = start_obs
+                    env.agent = agent
+                    # only run once
+                    env.num_train_repeat = 1
+                    env.num_test_repeat = 1
                     env.agent.epsilon = 0 # Remove random actions
+                    agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
                     # ---
                     # Testing generally is the agents replaying on the testing ENV
                     render_save_dir = self.save_dir+'/render_results'
@@ -799,41 +845,4 @@ class elsciRLOptimize:
                     render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
                     # Produce training report with Analysis.py
                     #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
-                    
-            # Re-apply all trained agents with fixed policy
-            elif self.test_agent_type.lower()=='all':
-                # All trained agents are used:
-                # - Repeats can be used to vary start position
-                # - But assumed environment is deterministic otherwise
-                # Re-init env for testing
-                for testing_repeat in range(0, test_setup_info['number_test_repeats']):
-                    env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=test_setup_info)
-                    # ---
-                    start_obs = env.start_obs
-                    goal = str(start_obs).split(".")[0] + "---" + "GOAL"
-                    print("Flat agent Goal: ", goal)
-                    # Override with trained agent if goal seen previously
-                    if goal in self.trained_agents[test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
-                        print("Trained agents available for testing.")
-                        all_agents = self.trained_agents[test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
-                    else:
-                        print("NO agent available for testing position.")
-                    
-                    for ag,agent in enumerate(all_agents):
-                        env.results.reset() # Reset results table for each agent
-                        env.start_obs = start_obs
-                        env.agent = agent
-                        # only run once
-                        env.num_train_repeat = 1
-                        env.num_test_repeat = 1
-                        env.agent.epsilon = 0 # Remove random actions
-                        agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-                        # ---
-                        # Testing generally is the agents replaying on the testing ENV
-                        render_save_dir = self.save_dir+'/render_results'
-                        if not os.path.exists(render_save_dir):
-                            os.mkdir(render_save_dir)
-                        render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
-                        # Produce training report with Analysis.py
-                        #Return = self.analysis.test_report(render_results, render_save_dir, self.show_figures)
 

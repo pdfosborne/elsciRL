@@ -2,6 +2,7 @@
 import time
 import numpy as np
 from tqdm import tqdm
+import io
 from PIL import Image  # Used to generate GIF
 
 # ------ Imports -----------------------------------------
@@ -20,9 +21,20 @@ class StandardInteractionLoop:
         - Adapters: Dictionary of local adapters with unique names: {"name_1": Adapter_1, "name_2": Adapter_2,...}
         - local_setup_info: Dictionary of local setup info (i.e. local config file)
     """
+    @staticmethod
+    def fig2img(fig):
+        """Convert a Matplotlib figure to a PIL Image and return it"""
+        buf = io.BytesIO()
+        fig.savefig(buf)
+        buf.seek(0)
+        img = Image.open(buf)
+        return img
+
+
 
     def __init__(self, Engine, Adapters: dict, local_setup_info: dict):
         # --- INIT state space from engine
+        self.agent_adapter_name = local_setup_info['agent_type'] + "_" + local_setup_info['adapter_select']
         self.engine = Engine(local_setup_info)
         self.start_obs = self.engine.reset()
         # if self.engine.render() is not None:
@@ -90,7 +102,11 @@ class StandardInteractionLoop:
             # Start observation is used instead of .reset()  fn so that this can be overridden for repeat analysis from the same start pos
             obs = self.engine.reset(start_obs=self.start_obs)
             if render:
-                render_stack.append(Image.fromarray(self.engine.render().astype("uint8")))
+                if isinstance(self.engine.render(), np.ndarray):
+                    render_stack.append(Image.fromarray(self.engine.render().astype("uint8")))
+                else:
+                    img = self.fig2img(self.engine.render())
+                    render_stack.append(img)
             legal_moves = self.engine.legal_move_generator(obs)
             state = self.agent_state_adapter.adapter(
                 state=obs,
@@ -123,10 +139,11 @@ class StandardInteractionLoop:
                         state=obs, action=agent_action
                     )
                     if render:
-                        render_stack.append(
-                            Image.fromarray(self.engine.render().astype("uint8"))
-                        )
-
+                        if isinstance(self.engine.render(), np.ndarray):
+                            render_stack.append(Image.fromarray(self.engine.render().astype("uint8")))
+                        else:
+                            img = self.fig2img(self.engine.render())
+                            render_stack.append(img)
                     # Can override reward per action with small negative punishment
                     if reward == 0:
                         reward = self.reward_signal[1]
@@ -274,7 +291,7 @@ class StandardInteractionLoop:
         # Output GIF image of all episode frames
         if render:
             render_stack[0].save(
-                render_save_dir + "/render.gif",
+                render_save_dir + "/render_" + self.agent_adapter_name +".gif",
                 save_all=True,
                 append_images=render_stack[1:],
                 optimize=False,
