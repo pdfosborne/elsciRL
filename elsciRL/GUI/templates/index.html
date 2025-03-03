@@ -155,18 +155,6 @@
             background-color: #f9f9f9;
             margin-bottom: 20px;
         }
-
-        .render-gifs-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .render-gif-item h3 {
-            text-align: center;
-            font-size: 1em;
-            margin-bottom: 5px;
-        }
     </style>
 </head>
 <body>
@@ -178,6 +166,7 @@
             <div class="tabs">
                 <div class="tab-buttons">
                     <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
+                    <button class="tab-btn" onclick="openTab(event, 'presetsTab')">Presets</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
                     <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Language Input</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
@@ -425,15 +414,6 @@
                         <!-- Instructions summary will be populated dynamically -->
                     </div>
                 </div>
-                <!-- New Render GIFs Section -->
-                <div><hr><p> </p></div>
-                <div>
-                    <h2>Render GIFs</h2>
-                    <button id="replayRenderGifsBtn" onclick="replayRenderGifs()">Replay Render GIFs</button>
-                </div>
-                <div class="render-gifs-container" id="renderGifsContainer">
-                    <!-- Render GIFs will be displayed dynamically -->
-                </div>
                 <div><hr><p> </p></div>
                 <div><h2>Problems Specific Results</h2></div>
                 <div class="results-container" id="resultsContainer">
@@ -445,6 +425,17 @@
                     <!-- Variance analysis chart will be populated dynamically -->
                 </div>
             </div>
+            <!-- Added content container for Presets tab -->
+            <div id="presetsTab" class="tab-content" style="display:none;">
+                <!-- New experiment config dropdown -->
+                <div class="config-group">
+                    <label for="experimentConfigSelect">Select Experiment Config:</label>
+                    <select id="experimentConfigSelect" class="form-select">
+                        <option value="" disabled selected>Choose experiment config...</option>
+                    </select>
+                </div>
+                <!-- ...existing or additional presets content can go here... -->
+            </div>
         </div>
     </div>
 
@@ -454,7 +445,7 @@
         let allConfigs = {};
         let allObservedStates = {};
         let allPlotOptions = {};
-        let allPrerenderImages = {};
+        let allExperimentConfigs = {}; // New global variable for experiment configs
 
         fetch('/get_applications')
             .then(response => response.json())
@@ -481,6 +472,7 @@
                 allConfigs = data.localConfigs;
                 allObservedStates = data.observedStates;
                 allPlotOptions = data.plotOptions;
+                allExperimentConfigs = data.experimentConfigs; // assign experiment configs
             })
             .catch(error => console.error('Error loading options:', error));
 
@@ -546,6 +538,27 @@
                                 option.selected = true;
                             }
                             plotSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // New: Populate Experiment Config dropdown in Presets tab
+                    const experimentConfigSelect = document.getElementById('experimentConfigSelect');
+                    experimentConfigSelect.innerHTML = '';
+                    const defaultExperimentConfigOption = document.createElement('option');
+                    defaultExperimentConfigOption.value = '';
+                    defaultExperimentConfigOption.text = 'Choose experiment config...';
+                    defaultExperimentConfigOption.disabled = true;
+                    defaultExperimentConfigOption.selected = true;
+                    experimentConfigSelect.appendChild(defaultExperimentConfigOption);
+                    if (allExperimentConfigs[selectedApp]) {
+                        allExperimentConfigs[selectedApp].forEach((config, index) => {
+                            const option = document.createElement('option');
+                            option.value = config;
+                            option.text = config;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
+                            experimentConfigSelect.appendChild(option);
                         });
                     }
 
@@ -884,11 +897,9 @@
                 const instructionsSummary = document.getElementById('instructionsSummary');
                 const resultsContainer = document.getElementById('resultsContainer');
                 const varianceAnalysisContainer = document.getElementById('varianceAnalysisContainer');
-                const renderGifsContainer = document.getElementById('renderGifsContainer');
                 instructionsSummary.innerHTML = ''; // Clear existing instructions summary
                 resultsContainer.innerHTML = ''; // Clear existing results
                 varianceAnalysisContainer.innerHTML = ''; // Clear existing variance analysis
-                renderGifsContainer.innerHTML = ''; // Clear existing render GIFs
 
                 // Fetch all validated correct instructions
                 const correctInstructionsResponse = await fetch('/get_correct_instructions');
@@ -906,33 +917,13 @@
                 // Populate results and variance analysis
                 if (data.figures && data.figures.length > 0) {
                     data.figures.forEach(figPath => {
-                        const filename = figPath.split('/').pop();
-                        // Check for render gif files
-                        if (filename.includes('render')) {
-                            const renderDiv = document.createElement('div');
-                            renderDiv.className = 'render-gif-item';
-                            // Extract part before "render", replace underscores with spaces, and trim.
-                            let shortName = filename.split('render')[0].replace(/_/g, ' ').trim()+filename.split('render')[1].replace(/_/g, ' ').replace(/.gif/g, '').trim();
-                            const header = document.createElement('h3');
-                            header.textContent = shortName;
-                            renderDiv.appendChild(header);
-                            const img = document.createElement('img');
-                            img.src = `/${figPath}?t=${new Date().getTime()}`;
-                            img.alt = filename;
-                            img.className = 'shadow-effect';
-                            renderDiv.appendChild(img);
-                            renderGifsContainer.appendChild(renderDiv);
-                        } else if (figPath.includes('variance_analysis')) {
-                            const img = document.createElement('img');
-                            img.src = `/${figPath}?t=${new Date().getTime()}`;
-                            img.alt = 'Analysis result';
-                            img.className = 'shadow-effect';
+                        const img = document.createElement('img');
+                        img.src = `/${figPath}?t=${new Date().getTime()}`;
+                        img.alt = 'Analysis result';
+                        img.className = 'shadow-effect';
+                        if (figPath.includes('variance_analysis')) {
                             varianceAnalysisContainer.appendChild(img);
                         } else {
-                            const img = document.createElement('img');
-                            img.src = `/${figPath}?t=${new Date().getTime()}`;
-                            img.alt = 'Analysis result';
-                            img.className = 'shadow-effect';
                             resultsContainer.appendChild(img);
                         }
                     });
@@ -995,16 +986,6 @@
                 }
             });
         });
-
-        function replayRenderGifs() {
-            const container = document.getElementById('renderGifsContainer');
-            const imgs = container.getElementsByTagName('img');
-            for (let img of imgs) {
-                // Force the image to reload by updating its src with a new timestamp
-                let src = img.src.split('?')[0];
-                img.src = src + '?t=' + new Date().getTime();
-            }
-        }
 
     </script>
 </body>

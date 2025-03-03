@@ -397,16 +397,21 @@ class WebApp:
         all_local_configs = {}
         all_observed_states = {}
         all_plot_options = {}
-
+        all_experiment_configs = {}
         for app in self.available_applications:
             all_observed_states[app] = self.get_observed_states([app])
             all_local_configs[app] = self.get_local_configs(app)
             all_plot_options[app] = self.get_plot_options(app)
-
+            try:
+                all_experiment_configs[app] = list(self.pull_app_data[app]['experiment_configs'].keys())
+            except Exception as e:
+                print(f"Error fetching experiment configs for {app}: {e}")
+                all_experiment_configs[app] = []
         return jsonify({
             'localConfigs': all_local_configs,
             'observedStates': all_observed_states,
-            'plotOptions': all_plot_options
+            'plotOptions': all_plot_options,
+            'experimentConfigs': all_experiment_configs
         })
 
     def new_instruction(self):

@@ -53,9 +53,14 @@ class PullApplications:
                 except:
                     self.current_test[problem]['adapters'][adapter_name] = adapter_module.LanguageAdapter
             # ---
+            self.current_test[problem]['experiment_configs'] = {}
+            for config_name,config in self.imports[problem]['experiment_config_filenames'].items():
+                experiment_config = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
+                self.current_test[problem]['experiment_configs'][config_name] = experiment_config
+            # ---
             self.current_test[problem]['local_configs'] = {}
             for config_name,config in self.imports[problem]['local_config_filenames'].items():
-                local_config = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['local_config_folder']+'/'+config).read())
+                local_config = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
                 self.current_test[problem]['local_configs'][config_name] = local_config
             # ---
             self.current_test[problem]['local_analysis'] = {}
