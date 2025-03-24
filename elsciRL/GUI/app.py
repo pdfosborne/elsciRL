@@ -23,21 +23,22 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, static_folder=os.path.join(dir_path, 'static'), 
             template_folder=os.path.join(dir_path, 'templates'))
 
-imports = Applications().data
-possible_applications = list(imports.keys())
-pull_data = PullApplications()
- 
+
 class WebApp:
     def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
         self.global_save_dir = save_dir
         self.num_explor_epi = num_explor_epi
+        imports = Applications().data
+        possible_applications = list(imports.keys())
         self.available_applications = possible_applications
         
 
         # Currently pulls all the available applications
         # - TODO: Make it so it pulls all the file names but not the data
         #    ---> Then once problem is selected it then pulls data
+        pull_data = PullApplications()
         self.pull_app_data = pull_data.pull(problem_selection=possible_applications)
+        self.config = pull_data.setup()
 
     def load_data(self):
         # Init data here so it reset when page is reloaded
@@ -64,6 +65,191 @@ class WebApp:
             os.makedirs(self.uploads_dir, exist_ok=True)
         print(f"Uploads directory (absolute path): {self.uploads_dir}")
 
+    def home(self):
+        template_path = os.path.join(app.template_folder, 'index.html')
+        print(f"Trying to get HTML file from: {template_path}")
+        return render_template('index.html')
+
+    def get_applications(self):
+        return jsonify({
+            'applications': self.available_applications
+        })
+    
+    def get_adapters(self, selected_application: str = ''):
+        if selected_application == '':
+            return []
+        
+        try:
+            adapters = list(self.pull_app_data[selected_application]['adapters'].keys())
+            return adapters
+        except:
+            print("Error fetching adapters...")
+            return []
+    
+    def get_observed_states(self, selected_application):
+        observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
+        return observed_states
+
+    def get_local_configs(self, selected_application:str=''):
+        if selected_application == '':
+            return []
+            
+        try:
+            local_configs = list(self.pull_app_data[selected_application]['local_configs'].keys())
+            return local_configs
+        except:
+            print("Application data not found...")
+            return []
+
+    def get_plot_options(self, selected_application: str = ''):
+        if selected_application == '':
+            return []
+        
+        try:
+            plot_options = list(self.pull_app_data[selected_application]['local_analysis'].keys())
+            return plot_options
+        except:
+            print("Error fetching plot options...")
+            return []
+
+    def get_all_options(self):
+        all_local_configs = {}
+        all_observed_states = {}
+        all_plot_options = {}
+        all_experiment_configs = {}
+        for app in self.available_applications:
+            all_observed_states[app] = self.get_observed_states([app])
+            all_local_configs[app] = self.get_local_configs(app)
+            all_plot_options[app] = self.get_plot_options(app)
+            try:
+                all_experiment_configs[app] = list(self.pull_app_data[app]['experiment_configs'].keys())
+            except Exception as e:
+                print(f"Error fetching experiment configs for {app}: {e}")
+                all_experiment_configs[app] = None
+        return jsonify({
+            'localConfigs': all_local_configs,
+            'observedStates': all_observed_states,
+            'plotOptions': all_plot_options,
+            'experimentConfigs': all_experiment_configs
+        })
+
+    def process_input(self):
+        data = request.get_json()
+        if data is None:
+            return jsonify({'error': 'No data provided'}), 400
+
+        user_input = data.get('userInput', '')
+        application = data.get('selectedApps', [])[0]
+        config_input = data.get('localConfigInput', '')
+        observed_states_filename = data.get('observedStateInput', '')
+
+        if not application:
+            return jsonify({'error': 'No application selected'}), 400
+
+        instruction_descriptions = user_input.split('\n')
+        instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+
+        results = {}
+        console_output = ''
+        match_plots = []
+
+        # Update search number of episodes ONLY for instruction match
+        training_episodes = data.get('trainingEpisodes', 1000)
+        
+        self.config.update({
+            'problem_type': data.get('problemType', 'Default'),
+            'number_training_episodes': int(training_episodes),
+        })
+
+        # Use default config for search agent
+        self.ExperimentConfig = self.config.copy()
+
+        engine = self.pull_app_data[application]['engine']
+        local_config = self.pull_app_data[application]['local_configs'][config_input]
+        adapters = self.pull_app_data[application]['adapters']
+        if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
+            print("Pre-rendered data found...")
+            observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
+            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+                                          LocalConfig=local_config,
+                                          Engine=engine, Adapters=adapters,
+                                          save_dir=self.global_save_dir,
+                                          number_exploration_episodes=self.num_explor_epi,
+                                          match_sim_threshold=0.9,
+                                          observed_states=observed_states)
+        else:
+            print("No pre-rendered data found...")
+            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+                                          LocalConfig=local_config,
+                                          Engine=engine, Adapters=adapters,
+                                          save_dir=self.global_save_dir,
+                                          number_exploration_episodes=self.num_explor_epi,
+                                          match_sim_threshold=0.9,
+                                          observed_states=None)
+            observed_states = self.elsci_run.search()
+            with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
+                json.dump(observed_states, f)
+
+        best_match_dict, instruction_results = self.elsci_run.match(
+            action_cap=5,
+            instructions=instructions,
+            instr_descriptions=instruction_descriptions
+        )
+        results[application] = best_match_dict
+        if application not in self.instruction_results:
+            self.instruction_results[application] = {}
+        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results
+
+        try:
+            console_output += f'<br><b>Results for {application}:</b><br>'
+            for n, instr in enumerate(list(results[application].keys())):
+                if results[application][instr] is None:
+                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
+                else:
+                    best_match = results[application][instr]['best_match']
+                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
+
+                    plot_filename = f'match_plot_{n}.png'
+                    plot_path = os.path.abspath(os.path.join(self.uploads_dir, plot_filename))
+                    print(f"Saving plot to (absolute path): {plot_path}")
+
+                    engine_dummy = engine(local_config)
+                    instr_match_plot = engine_dummy.render(best_match)
+                    instr_match_plot_filename = f'current_state_plot_{n}.png'
+                    instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
+                    instr_match_plot.savefig(instr_match_plot_path)
+
+                    if os.path.exists(instr_match_plot_path):
+                        print(f"Current state plot created successfully at {instr_match_plot_path}")
+                        print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
+                        match_plots.append(f'uploads/{instr_match_plot_filename}')
+                    else:
+                        print(f"Error: Current state plot not created at {instr_match_plot_path}")
+
+        except Exception as e:
+            print(f"Error in process_input: {str(e)}")
+            raise
+
+        prerender_image = self.get_prerender_image(application)
+
+        return jsonify({
+            'console_output': console_output,
+            'matchPlots': match_plots,
+            'prerenderImage': prerender_image
+        })
+
+    def get_prerender_image(self, application):
+        image_data = self.pull_app_data[application]['prerender_images']
+        image_paths = []
+        if image_data:
+            for image_name, image_content in image_data.items():
+                image_path = os.path.join(self.uploads_dir, image_name)
+                with open(image_path, 'wb') as img_file:
+                    img_file.write(image_content)
+                image_paths.append(f'uploads/{image_name}')
+        return image_paths
+        
+
     def train_model(self):
         data = request.json
         application = data.get('selectedApps', [])[0]
@@ -77,6 +263,16 @@ class WebApp:
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
+
+        # Get the selected experiment config (use default if none selected)
+        experimentConfigSelect = data.get('experimentConfigSelect', '')
+        # 1) Selection is made, 2) Selection exists, 3) Selection is in the experiment configs
+        if (experimentConfigSelect is not None)&(experimentConfigSelect != ''):
+            if experimentConfigSelect in self.pull_app_data[app]['experiment_configs']:
+                if self.pull_app_data[app]['experiment_configs'][experimentConfigSelect] is not None:
+                    self.ExperimentConfig = self.pull_app_data[app]['experiment_configs'][experimentConfigSelect].copy()
+        else:
+            self.ExperimentConfig = self.config.copy()
 
         # --- Update Experiment Parameters with User Input ---
         selected_agents = data.get('selectedAgents', ['Qlearntab'])
@@ -227,128 +423,7 @@ class WebApp:
         return jsonify({
             'figures': figures_to_display
         })
-
-    def home(self):
-        template_path = os.path.join(app.template_folder, 'index.html')
-        print(f"Trying to get HTML file from: {template_path}")
-        return render_template('index.html')
-
-    def process_input(self):
-        data = request.get_json()
-        if data is None:
-            return jsonify({'error': 'No data provided'}), 400
-
-        user_input = data.get('userInput', '')
-        application = data.get('selectedApps', [])[0]
-        config_input = data.get('localConfigInput', '')
-        observed_states_filename = data.get('observedStateInput', '')
-
-        if not application:
-            return jsonify({'error': 'No application selected'}), 400
-
-        instruction_descriptions = user_input.split('\n')
-        instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
-
-        results = {}
-        console_output = ''
-        match_plots = []
-
-        # Update search number of episodes ONLY for instruction match
-        training_episodes = data.get('trainingEpisodes', 1000)
-
-        config = pull_data.setup()
-        config.update({
-            'problem_type': data.get('problemType', 'Default'),
-            'number_training_episodes': int(training_episodes),
-        })
-
-        self.ExperimentConfig = config
-
-        engine = self.pull_app_data[application]['engine']
-        local_config = self.pull_app_data[application]['local_configs'][config_input]
-        adapters = self.pull_app_data[application]['adapters']
-        if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
-            print("Pre-rendered data found...")
-            observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
-            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                          LocalConfig=local_config,
-                                          Engine=engine, Adapters=adapters,
-                                          save_dir=self.global_save_dir,
-                                          number_exploration_episodes=self.num_explor_epi,
-                                          match_sim_threshold=0.9,
-                                          observed_states=observed_states)
-        else:
-            print("No pre-rendered data found...")
-            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                          LocalConfig=local_config,
-                                          Engine=engine, Adapters=adapters,
-                                          save_dir=self.global_save_dir,
-                                          number_exploration_episodes=self.num_explor_epi,
-                                          match_sim_threshold=0.9,
-                                          observed_states=None)
-            observed_states = self.elsci_run.search()
-            with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
-                json.dump(observed_states, f)
-
-        best_match_dict, instruction_results = self.elsci_run.match(
-            action_cap=5,
-            instructions=instructions,
-            instr_descriptions=instruction_descriptions
-        )
-        results[application] = best_match_dict
-        if application not in self.instruction_results:
-            self.instruction_results[application] = {}
-        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results
-
-        try:
-            console_output += f'<br><b>Results for {application}:</b><br>'
-            for n, instr in enumerate(list(results[application].keys())):
-                if results[application][instr] is None:
-                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
-                else:
-                    best_match = results[application][instr]['best_match']
-                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
-
-                    plot_filename = f'match_plot_{n}.png'
-                    plot_path = os.path.abspath(os.path.join(self.uploads_dir, plot_filename))
-                    print(f"Saving plot to (absolute path): {plot_path}")
-
-                    engine_dummy = engine(local_config)
-                    instr_match_plot = engine_dummy.render(best_match)
-                    instr_match_plot_filename = f'current_state_plot_{n}.png'
-                    instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
-                    instr_match_plot.savefig(instr_match_plot_path)
-
-                    if os.path.exists(instr_match_plot_path):
-                        print(f"Current state plot created successfully at {instr_match_plot_path}")
-                        print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
-                        match_plots.append(f'uploads/{instr_match_plot_filename}')
-                    else:
-                        print(f"Error: Current state plot not created at {instr_match_plot_path}")
-
-        except Exception as e:
-            print(f"Error in process_input: {str(e)}")
-            raise
-
-        prerender_image = self.get_prerender_image(application)
-
-        return jsonify({
-            'console_output': console_output,
-            'matchPlots': match_plots,
-            'prerenderImage': prerender_image
-        })
-
-    def get_prerender_image(self, application):
-        image_data = self.pull_app_data[application]['prerender_images']
-        image_paths = []
-        if image_data:
-            for image_name, image_content in image_data.items():
-                image_path = os.path.join(self.uploads_dir, image_name)
-                with open(image_path, 'wb') as img_file:
-                    img_file.write(image_content)
-                image_paths.append(f'uploads/{image_name}')
-        return image_paths
-
+    
     def upload_file(self):
         if 'file' not in request.files:
             return 'No file part'
@@ -359,60 +434,6 @@ class WebApp:
             filename = file.filename
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             return 'File uploaded successfully'
-
-    def get_applications(self):
-        return jsonify({
-            'applications': self.available_applications
-        })
-    
-    def get_observed_states(self, selected_application):
-        
-        observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
-
-        return observed_states
-
-    def get_local_configs(self, selected_application:str=''):
-        if selected_application == '':
-            return []
-            
-        try:
-            local_configs = list(self.pull_app_data[selected_application]['local_configs'].keys())
-            return local_configs
-        except:
-            print("Application data not found...")
-            return []
-
-    def get_plot_options(self, selected_application: str = ''):
-        if selected_application == '':
-            return []
-        
-        try:
-            plot_options = list(self.pull_app_data[selected_application]['local_analysis'].keys())
-            return plot_options
-        except:
-            print("Error fetching plot options...")
-            return []
-
-    def get_all_options(self):
-        all_local_configs = {}
-        all_observed_states = {}
-        all_plot_options = {}
-        all_experiment_configs = {}
-        for app in self.available_applications:
-            all_observed_states[app] = self.get_observed_states([app])
-            all_local_configs[app] = self.get_local_configs(app)
-            all_plot_options[app] = self.get_plot_options(app)
-            try:
-                all_experiment_configs[app] = list(self.pull_app_data[app]['experiment_configs'].keys())
-            except Exception as e:
-                print(f"Error fetching experiment configs for {app}: {e}")
-                all_experiment_configs[app] = []
-        return jsonify({
-            'localConfigs': all_local_configs,
-            'observedStates': all_observed_states,
-            'plotOptions': all_plot_options,
-            'experimentConfigs': all_experiment_configs
-        })
 
     def new_instruction(self):
         self.global_input_count += 1
@@ -457,16 +478,7 @@ class WebApp:
             'correctInstructions': self.correct_instructions
         })
 
-    def get_adapters(self, selected_application: str = ''):
-        if selected_application == '':
-            return []
-        
-        try:
-            adapters = list(self.pull_app_data[selected_application]['adapters'].keys())
-            return adapters
-        except:
-            print("Error fetching adapters...")
-            return []
+    
 
 if len(sys.argv)>1:
     if 'results' in sys.argv[1]:

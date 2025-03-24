@@ -1,6 +1,4 @@
 # Removed from init for now as it pre-loads data that is not needed for the package to run
-#from .examples.experiment import DemoExperiment
-from .examples.WebApp.app import app as Demo
 from .GUI.app import app as App
 
 from .experiments.standard import Experiment as STANDARD_RL
