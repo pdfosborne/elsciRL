@@ -306,7 +306,62 @@
                             <input type="number" id="epsilonStep" min="0" max="1" value="0.01" step="0.001">
                         </div>
                     </div>
-
+                    <div id="dqn-params" class="config-group" style="flex: 1; display: none;">
+                        <h3>DQN Parameters</h3>
+                        <div class="training-params">
+                            <label for="input_size">Input Size:</label>
+                            <input type="number" id="input_size" min="1" value="64">
+                        </div>
+                        <div class="training-params">
+                            <label for="sent_hidden_dim">Sentence Hidden Dimension:</label>
+                            <input type="number" id="sent_hidden_dim" min="1" value="32">
+                        </div>
+                        <div class="training-params">
+                            <label for="hidden_dim">Hidden Dimension:</label>
+                            <input type="number" id="hidden_dim" min="1" value="64">
+                        </div>
+                        <div class="training-params">
+                            <label for="num_hidden">Number of Hidden Layers:</label>
+                            <input type="number" id="num_hidden" min="1" value="2">
+                        </div>
+                        <div class="training-params">
+                            <label for="sequence_size">Sequence Size:</label>
+                            <input type="number" id="sequence_size" min="1" value="32">
+                        </div>
+                        <div class="training-params">
+                            <label for="memory_size">Memory Size:</label>
+                            <input type="number" id="memory_size" min="1" value="2000">
+                        </div>
+                        <div class="training-params">
+                            <label for="target_replace_iter">Target Replace Iterations:</label>
+                            <input type="number" id="target_replace_iter" min="1" value="100">
+                        </div>
+                        <div class="training-params">
+                            <label for="learning_rate">Learning Rate:</label>
+                            <input type="number" id="learning_rate" min="0" max="1" value="0.01" step="0.001">
+                        </div>
+                        <div class="training-params">
+                            <label for="batch_size">Batch Size:</label>
+                            <input type="number" id="batch_size" min="1" value="32">
+                        </div>
+                        <div class="training-params">
+                            <label for="output_size">Output Size:</label>
+                            <input type="number" id="output_size" min="1" value="4">
+                        </div>
+                        <div class="training-params">
+                            <label for="learn_step_counter">Learn Step Counter:</label>
+                            <input type="number" id="learn_step_counter" min="0" value="0">
+                        </div>
+                        <div class="training-params">
+                            <label for="dqn_epsilon">Epsilon:</label>
+                            <input type="number" id="dqn_epsilon" min="0" max="1" value="0.9" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="dqn_epsilon_step">Epsilon Step:</label>
+                            <input type="number" id="dqn_epsilon_step" min="0" max="1" value="0.0005" step="0.0001">
+                        </div>
+                    </div>
+                    
                     <div id="sb3-dqn-params" class="config-group" style="flex: 1; display: none;">
                         <h3>SB3 DQN Parameters</h3>
                         <div class="training-params">
@@ -561,6 +616,87 @@
                             experimentConfigSelect.appendChild(option);
                         });
                     }
+
+                    // Add event listener for experiment config selection
+                    experimentConfigSelect.addEventListener('change', function() {
+                        const selectedConfig = this.value;
+                        if (selectedConfig && allExperimentConfigs[selectedApp]) {
+                            // Get the config data from the server
+                            fetch('/get_experiment_config', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    application: selectedApp,
+                                    config: selectedConfig
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.config) {
+                                    // Update agent checkboxes
+                                    const agentCheckboxes = document.querySelectorAll('input[name="agentType"]');
+                                    agentCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = data.config.agent_select.includes(checkbox.value);
+                                    });
+
+                                    // Update training parameters
+                                    document.getElementById('trainingEpisodes').value = data.config.number_training_episodes || 1000;
+                                    document.getElementById('trainingRepeats').value = data.config.number_training_repeats || 5;
+                                    document.getElementById('trainingSeeds').value = data.config.number_training_seeds || 1;
+                                    document.getElementById('testEpisodes').value = data.config.number_test_episodes || 200;
+                                    document.getElementById('testRepeats').value = data.config.number_test_repeats || 10;
+
+                                    // Update Q-Learning parameters if they exist
+                                    if (data.config.agent_parameters && data.config.agent_parameters.Qlearntab) {
+                                        const qlearnParams = data.config.agent_parameters.Qlearntab;
+                                        document.getElementById('alpha').value = qlearnParams.alpha || 0.1;
+                                        document.getElementById('gamma').value = qlearnParams.gamma || 0.95;
+                                        document.getElementById('epsilon').value = qlearnParams.epsilon || 0.2;
+                                        document.getElementById('epsilonStep').value = qlearnParams.epsilon_step || 0.01;
+                                    }
+
+                                    // Update SB3 DQN parameters if they exist
+                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_DQN) {
+                                        const sb3DqnParams = data.config.agent_parameters.SB3_DQN;
+                                        document.getElementById('sb3_policy').value = sb3DqnParams.policy || 'MlpPolicy';
+                                        document.getElementById('sb3_learning_rate').value = sb3DqnParams.learning_rate || 0.0001;
+                                        document.getElementById('sb3_buffer_size').value = sb3DqnParams.buffer_size || 1000000;
+                                    }
+
+                                    // Update SB3 PPO parameters if they exist
+                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_PPO) {
+                                        const sb3PpoParams = data.config.agent_parameters.SB3_PPO;
+                                        document.getElementById('sb3_ppo_policy').value = sb3PpoParams.policy || 'MlpPolicy';
+                                        document.getElementById('sb3_ppo_learning_rate').value = sb3PpoParams.learning_rate || 0.0003;
+                                        document.getElementById('sb3_ppo_n_steps').value = sb3PpoParams.n_steps || 2048;
+                                    }
+
+                                    // Update SB3 A2C parameters if they exist
+                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_A2C) {
+                                        const sb3A2cParams = data.config.agent_parameters.SB3_A2C;
+                                        document.getElementById('sb3_a2c_policy').value = sb3A2cParams.policy || 'MlpPolicy';
+                                        document.getElementById('sb3_a2c_learning_rate').value = sb3A2cParams.learning_rate || 0.0007;
+                                        document.getElementById('sb3_a2c_n_steps').value = sb3A2cParams.n_steps || 500;
+                                    }
+
+                                    // Update adapter checkboxes
+                                    const adapterCheckboxes = document.querySelectorAll('input[name="adapter"]');
+                                    adapterCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = data.config.adapter_input_dict[checkbox.value] !== undefined;
+                                    });
+
+                                    // Show/hide parameter sections based on selected agents
+                                    document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                                        const event = new Event('change');
+                                        checkbox.dispatchEvent(event);
+                                    });
+                                }
+                            })
+                            .catch(error => console.error('Error loading experiment config:', error));
+                        }
+                    });
 
                     configSelections.style.display = 'block';
                     loadingOverlay.style.display = 'none';

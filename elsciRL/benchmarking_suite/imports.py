@@ -6,17 +6,20 @@
 #   |-----> changed to commit id which is tied to branch and more stable
 # - Compatibility defined to a single engine file
 #   |-----> Adapters must be compatible with the given engine
+# - Experiment configs are defined in the experiment_configs folder
+#   |-----> NOTE: AT LEAST TWO EXPERIMENT CONFIGS MUST BE DEFINED
+#       |-----> This is so that it triggers the selection swap on the server side
 class Applications:
     def __init__(self):
         self.data ={
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
-                "commit_id": "2bb857c",
+                "commit_id": "cdf4be9",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
-                "experiment_config_filenames": {"default":"config.json"},
+                "experiment_config_filenames": {"quick-test":"testing.json", "default":"config.json"},
                 "local_config_filenames": {"easy":"config_local.json"},
                 "local_adapter_folder": "adapters",
                 "adapter_filenames": {"default":"default", "language":"language"},

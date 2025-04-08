@@ -314,12 +314,12 @@ class WebApp:
         # TODO Update all adapter inputs to dict if matching to agents
         # TODO MAKE THIS A GENERIC FUNCTION CALL IN ELSCIRL
         # --> otherwise will match all adapters to all agents
-        adapter_input = list(self.pull_app_data[application]['adapters'].keys())
-        if type(adapter_input) != dict:
+        selected_adapters = data.get('selectedAdapters', [])
+        if len(selected_agents) != 0:
             agent_adapter_dict = {}
             for n, agent in enumerate(selected_agents):
                 adapter_list = []
-                for adapter in adapter_input:
+                for adapter in selected_adapters:
                     # DEFAULT ADAPTERS NEED TO BE SETUP FOR DQN INPUT
                     # Reaplce 'DQN' to match to language version
                     if agent =='DQN':
@@ -333,7 +333,7 @@ class WebApp:
                             
                 agent_adapter_dict[agent] = adapter_list
         else:
-            agent_adapter_dict = adapter_input
+            agent_adapter_dict = list(self.pull_app_data[application]['adapters'].keys())
         self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
         # --- End of User Input Update ---
         # Use validated instructions for training
@@ -478,7 +478,18 @@ class WebApp:
             'correctInstructions': self.correct_instructions
         })
 
-    
+    def get_experiment_config(self, application, config):
+        if not application or not config:
+            return jsonify({'error': 'Missing application or config parameter'}), 400
+        
+        try:
+            # Get the experiment config from the pull_app_data
+            experiment_config = self.pull_app_data[application]['experiment_configs'][config]
+            print(experiment_config)
+            return jsonify({'config': experiment_config})
+        except Exception as e:
+            print(f"Error getting experiment config: {str(e)}")
+            return jsonify({'error': 'Failed to get experiment config'}), 500
 
 if len(sys.argv)>1:
     if 'results' in sys.argv[1]:
@@ -627,6 +638,23 @@ def get_adapters_route():
     return jsonify({
         'adapters': adapters
     })
+
+@app.route('/get_experiment_config', methods=['POST'])
+def get_experiment_config_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    config = data.get('config', '')
+    
+    if not application or not config:
+        return jsonify({'error': 'Missing application or config parameter'}), 400
+        
+    try:
+        # Get the experiment config from the pull_app_data
+        experiment_config = WebApp.pull_app_data[application]['experiment_configs'][config]
+        return jsonify({'config': experiment_config})
+    except Exception as e:
+        print(f"Error getting experiment config: {str(e)}")
+        return jsonify({'error': 'Failed to get experiment config'}), 500
 
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
