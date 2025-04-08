@@ -166,7 +166,6 @@
             <div class="tabs">
                 <div class="tab-buttons">
                     <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
-                    <button class="tab-btn" onclick="openTab(event, 'presetsTab')">Presets</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
                     <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Language Input</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
@@ -223,6 +222,17 @@
             </div>
             <div id="configTab" class="tab-content" style="display:none;">
                 <div class="config-section" style="width: 95%;">
+                    <!-- Add experiment config selection at the top -->
+                    <div class="config-group" style="margin-bottom: 20px;">
+                        <h3>Experiment Configuration</h3>
+                        <div class="select-container">
+                            <label for="experimentConfigSelect">Select Experiment Config:</label>
+                            <select id="experimentConfigSelect" class="form-select">
+                                <option value="" disabled selected>Choose experiment config...</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
                             <h3>Agent Type</h3>
@@ -231,10 +241,11 @@
                                     <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab" checked>
                                     <label for="agent-Qlearntab">Q-Learning</label>
                                 </div>
-                                <div class="application-item">
+                                <!-- TODO: DISABLED NEURAL AGENTS FOR NOW, UNCOMMENT WHEN READY -->
+                                <!-- <div class="application-item">
                                     <input type="checkbox" id="agent-DQN" name="agentType" value="DQN">
                                     <label for="agent-DQN">Deep Q-Network</label>
-                                </div>
+                                </div>  
                                 <div class="application-item">
                                     <input type="checkbox" id="agent-SB3_DQN" name="agentType" value="SB3_DQN">
                                     <label for="agent-SB3_DQN">Stable Baselines DQN</label>
@@ -246,7 +257,7 @@
                                 <div class="application-item">
                                     <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
                                     <label for="agent-SB3_A2C">Stable Baselines A2C</label>
-                                </div>
+                                </div> -->
                             </div>
                         </div>
                         <!-- Add new adapter selection section -->
@@ -479,17 +490,6 @@
                 <div class="variance-analysis-container" id="varianceAnalysisContainer">
                     <!-- Variance analysis chart will be populated dynamically -->
                 </div>
-            </div>
-            <!-- Added content container for Presets tab -->
-            <div id="presetsTab" class="tab-content" style="display:none;">
-                <!-- New experiment config dropdown -->
-                <div class="config-group">
-                    <label for="experimentConfigSelect">Select Experiment Config:</label>
-                    <select id="experimentConfigSelect" class="form-select">
-                        <option value="" disabled selected>Choose experiment config...</option>
-                    </select>
-                </div>
-                <!-- ...existing or additional presets content can go here... -->
             </div>
         </div>
     </div>
