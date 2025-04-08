@@ -23,7 +23,7 @@ setup(
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
-        'elsciRL.benchmarking_suite',
+        'elsciRL.application_suite',
         ],
     package_data={
         'elsciRL.examples.WebApp.templates': ['index.html'],

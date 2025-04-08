@@ -4,8 +4,8 @@ import urllib.request
 import json 
 import httpimport
 # Local imports
-from elsciRL.benchmarking_suite.imports import Applications
-from elsciRL.benchmarking_suite.default_agent import DefaultAgentConfig
+from elsciRL.application_suite.import_data import Applications
+from elsciRL.application_suite.default_agent import DefaultAgentConfig
 
 class PullApplications:
     """Simple applications class to run a setup tests of experiments.

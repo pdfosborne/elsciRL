@@ -610,9 +610,7 @@
                             const option = document.createElement('option');
                             option.value = config;
                             option.text = config;
-                            if (index === 0) {
-                                option.selected = true;
-                            }
+                            // Remove the automatic selection of first option
                             experimentConfigSelect.appendChild(option);
                         });
                     }
@@ -1057,10 +1055,39 @@
                         img.src = `/${figPath}?t=${new Date().getTime()}`;
                         img.alt = 'Analysis result';
                         img.className = 'shadow-effect';
+                        
                         if (figPath.includes('variance_analysis')) {
-                            varianceAnalysisContainer.appendChild(img);
+                            // Create a container for the plot with title
+                            const plotContainer = document.createElement('div');
+                            plotContainer.className = 'plot-container';
+                            plotContainer.style.marginBottom = '20px';
+                            
+                            // Extract filename from path and create title
+                            const filename = figPath.split('/').pop().split('.')[0];
+                            const title = document.createElement('h3');
+                            title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            title.style.marginBottom = '10px';
+                            title.style.color = 'var(--text-color)';
+                            
+                            plotContainer.appendChild(title);
+                            plotContainer.appendChild(img);
+                            varianceAnalysisContainer.appendChild(plotContainer);
                         } else {
-                            resultsContainer.appendChild(img);
+                            // Create a container for the plot with title
+                            const plotContainer = document.createElement('div');
+                            plotContainer.className = 'plot-container';
+                            plotContainer.style.marginBottom = '20px';
+                            
+                            // Extract filename from path and create title
+                            const filename = figPath.split('/').pop().split('.')[0];
+                            const title = document.createElement('h3');
+                            title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            title.style.marginBottom = '10px';
+                            title.style.color = 'var(--text-color)';
+                            
+                            plotContainer.appendChild(title);
+                            plotContainer.appendChild(img);
+                            resultsContainer.appendChild(plotContainer);
                         }
                     });
                 }

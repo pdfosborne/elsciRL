@@ -11,8 +11,8 @@ from elsciRL.GUI.elsciRL_demo_search import elsciRLSearch as elsci_search
 from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
 from elsciRL.experiments.standard import Experiment as STANDARD_RL
 # Get application data
-from elsciRL.benchmarking_suite.imports import Applications
-from elsciRL.benchmarking_suite.benchmark_tool import PullApplications
+from elsciRL.application_suite.import_data import Applications
+from elsciRL.application_suite.import_tool import PullApplications
 # Analysis
 import matplotlib
 matplotlib.use('Agg')
@@ -408,17 +408,17 @@ class WebApp:
                             figure.savefig(fig_path)
                             figures_to_display.append(f'uploads/{fig_filename}')
                             
-        # TODO let user select which analysis to show
-        evaluation_type = 'testing'
-        COMBINED_VARIANCE_ANALYSIS_GRAPH(
-            results_dir=self.global_save_dir+'/'+application, 
-            analysis_type=evaluation_type, 
-            results_to_show='simple'
-        )
-        variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_" + evaluation_type + ".png"
-        variance_filename = f'{application}_variance_analysis.png'
-        shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
-        figures_to_display.append(f'uploads/{variance_filename}')
+        evaluation_types = ['training', 'testing']
+        for evaluation_type in evaluation_types:
+            COMBINED_VARIANCE_ANALYSIS_GRAPH(
+                results_dir=self.global_save_dir+'/'+application, 
+                analysis_type=evaluation_type, 
+                results_to_show='simple'
+            )
+            variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_" + evaluation_type + ".png"
+            variance_filename = f'{application}_variance_analysis_{evaluation_type}.png'
+            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
+            figures_to_display.append(f'uploads/{variance_filename}')
 
         return jsonify({
             'figures': figures_to_display

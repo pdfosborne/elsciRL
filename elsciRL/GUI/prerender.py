@@ -1,6 +1,6 @@
 # Get application data
-from elsciRL.benchmarking_suite.imports import Applications
-from elsciRL.benchmarking_suite.benchmark_tool import PullApplications
+from elsciRL.application_suite.import_data import Applications
+from elsciRL.application_suite.import_tool import PullApplications
 
 # Get search method
 from elsciRL.GUI.elsciRL_demo_search import elsciRLSearch as elsci_search
