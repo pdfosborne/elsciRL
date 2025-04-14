@@ -214,6 +214,7 @@ class WebApp:
                     print(f"Saving plot to (absolute path): {plot_path}")
 
                     engine_dummy = engine(local_config)
+                    engine_dummy.reset() # Reset required by gym environments
                     instr_match_plot = engine_dummy.render(best_match)
                     instr_match_plot_filename = f'current_state_plot_{n}.png'
                     instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))

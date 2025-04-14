@@ -50,7 +50,7 @@ class Applications:
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-GymFrozenLake",
-                "commit_id": "9d148d6",
+                "commit_id": "1fd52ea",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -61,7 +61,7 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {},
-                "prerender_image_filenames": {}
+                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
                 }
         }

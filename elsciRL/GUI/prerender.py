@@ -48,6 +48,7 @@ class Prerender:
                                         match_sim_threshold=0.9,
                                         observed_states=None)
             observed_states = elsci_run.search()
+            print(f"\nNumber of observed states: {len(observed_states)}")
             with open(os.path.join(save_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)
 

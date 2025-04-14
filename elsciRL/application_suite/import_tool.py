@@ -38,7 +38,6 @@ class PullApplications:
                 self.current_test[problem] = {}
                 # current_test = {'problem1': {'engine':engine.py, 'local_configs': {'config1':config.json, 'config2':config.json}, 'adapters': {'adapter1':adapter.py, 'adapter2':adapter.py}}}
                 root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + self.imports[problem]['commit_id']
-                print(root)
                 # NOTE - This requires repo to match structure with engine inside environment folder
                 engine_module = httpimport.load(engine, root+'/'+self.imports[problem]['engine_folder']) 
                 # TODO: Pull class name directly from engine file to be called
@@ -78,6 +77,7 @@ class PullApplications:
             # Pull prerender data
             print("-----------------------------------------------")
             print(problem)
+            print("Source: ", root)
             self.current_test[problem]['prerender_data'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
                 try:
