@@ -9,7 +9,6 @@ import json
 from datetime import datetime
 
 class Prerender:
-
     def __init__(self) -> None:
          # Get application data
         imports = Applications().data

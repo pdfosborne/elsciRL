@@ -20,8 +20,8 @@ class DefaultAgentConfig:
                 "Qlearntab":{
                     "alpha": 0.1,
                     "gamma": 0.95,
-                    "epsilon": 0.2,
-                    "epsilon_step":0.01
+                    "epsilon": 1,
+                    "epsilon_step":0
                     },
             }
         }

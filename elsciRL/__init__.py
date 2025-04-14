@@ -1,5 +1,6 @@
 # Removed from init for now as it pre-loads data that is not needed for the package to run
 from .GUI.app import app as App
+from .GUI.prerender import Prerender as get_prerender_data
 
 from .experiments.standard import Experiment as STANDARD_RL
 from .instruction_following.supervised_instruction_following import SupervisedExperiment as SUPERVISED_RL_HIERARCHY

@@ -18,8 +18,20 @@ class ImportHelper:
     def parameter_info(self):
         num_train_episodes: int = self.setup_info['number_training_episodes']
         num_test_episodes: int = self.setup_info['number_test_episodes']
-        training_action_cap: int = self.setup_info['training_action_cap']
-        testing_action_cap: int = self.setup_info['testing_action_cap']
+        try:
+            training_action_cap: int = self.setup_info['training_action_cap']
+            testing_action_cap: int = self.setup_info['testing_action_cap']
+        except:
+            if 'action_limit' in self.setup_info:
+                training_action_cap: int = self.setup_info['action_limit']
+                testing_action_cap: int = self.setup_info['action_limit']
+            elif 'action_cap' in self.setup_info:
+                training_action_cap: int = self.setup_info['action_cap']
+                testing_action_cap: int = self.setup_info['action_cap']
+            else:
+                print('No action cap specified, using default values')
+                training_action_cap: int = 1000
+                testing_action_cap: int = 1000
         reward_signal: List[int] = self.setup_info['reward_signal'] 
 
         return num_train_episodes, num_test_episodes, training_action_cap, testing_action_cap, reward_signal
