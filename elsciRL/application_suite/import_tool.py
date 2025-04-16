@@ -19,6 +19,7 @@ class PullApplications:
     def __init__(self) -> None:
         imports = Applications()
         self.imports = imports.data
+        self.current_test = {}
         
         
     def pull(self, problem_selection:list=[]):
@@ -27,9 +28,8 @@ class PullApplications:
             self.problem_selection = problem_selection
         else:
             self.problem_selection = list(self.imports.keys())
+        
         # Extract data from imports
-        self.current_test = {}
-        #adapters = self.ExperimentConfig['adapter_select']
         for problem in list(self.problem_selection):
             engine = self.imports[problem]['engine_filename']
             if problem not in self.imports:
@@ -123,4 +123,64 @@ class PullApplications:
             self.ExperimentConfig = agent_config 
 
         return self.ExperimentConfig
+    
+    def add_applicaiton(self, problem:str, application_data:dict) -> None:
+        """ Add a new application to the list of applications. 
+        Reqired form:
+            - engine: <engine.py>
+            - experiment_configs: {experiment_config:experiment_config_path|<experiment_config.json>}
+            - local_configs: {local_config:experiment_config_path|<local_config.json>}
+            - adapters: {adapter:<adapter.py>}
+            - local_analysis: {analysis:<analysis.py>}
+            - prerender_data: {data:data_path|<data.txt>}
+            - prerender_images: {image:<image.png>}
+        """
+        # ---
+        # Get configs and data from path directory to imported json/txt files
+        if type(list(application_data['experiment_configs'].values())[0])==str:
+            experiment_config = {}
+            for name,experiment_config_dir in application_data['experiment_configs'].items():
+                with open (experiment_config_dir, 'r') as f:
+                    # Load the JSON data from the file
+                    agent_config = json.loads(f.read())
+                    experiment_config[name] = agent_config
+            application_data['experiment_configs'] = experiment_config
+
+        if type(list(application_data['local_configs'].values())[0])==str:
+            local_config = {}
+            for name,local_config_dir in application_data['local_configs'].items():
+                with open (local_config_dir, 'r') as f:
+                    # Load the JSON data from the file
+                    agent_config = json.loads(f.read())
+                    local_config[name] = agent_config
+            application_data['local_configs'] = local_config
+
+        if len(application_data['prerender_data'])>0:
+            if type(list(application_data['prerender_data'].values())[0])==str:
+                data = {}
+                for name,data_dir in application_data['prerender_data'].items():
+                    with open (data_dir, 'r') as f:
+                        # Load the JSON data from the file
+                        agent_config = json.loads(f.read().decode('utf-8'))
+                        data[name] = agent_config
+                application_data['prerender_data'] = data
+        # ---
+        self.imports[problem] = application_data
+        self.current_test[problem] = application_data
+        print(f"Added {problem} to the list of applications.")
+        print(f"Current applications: {self.imports.keys()}")
+
+        return self.current_test
+    
+    def remove_application(self, problem:str) -> None:
+        # Remove an application from the list of applications
+        if problem in self.imports:
+            del self.imports[problem]
+            del self.current_test[problem]
+            print(f"Removed {problem} from the list of applications.")
+        else:
+            print(f"{problem} not found in the list of applications.")
+
+        return self.imports
+
             
