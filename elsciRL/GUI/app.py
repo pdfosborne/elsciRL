@@ -20,7 +20,7 @@ matplotlib.use('Agg')
 from elsciRL.analysis.combined_variance_visual import combined_variance_analysis_graph as COMBINED_VARIANCE_ANALYSIS_GRAPH
 
 # LLM API Setup
-from elsciRL.GUI.LLM_utils import call_gpt_api, process_gpt_response
+from elsciRL.GUI.LLM.LLM_utils import call_gpt_api, process_gpt_response
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))

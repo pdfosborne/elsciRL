@@ -1,18 +1,4 @@
----
-author:
-  - Philip Osborne
-published: 2025-04-15
-last edited: 2025-04-15
-tags:
-  - Application
-  - First-time
-  - Guide
-  - Tutorial
-  - Foundation
-type: Tutorial
----
----
-# New Application Setup
+# New elsciRL Application Setup
 
 Each application can be added to the elsciRL library to be used within the GUI interface app.
 
