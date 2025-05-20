@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='elsciRL',
-    version='0.2.6',
+    version='0.3.1',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -20,16 +20,15 @@ setup(
         'elsciRL.GUI',
         'elsciRL.GUI.static',
         'elsciRL.GUI.templates',
+        'elsciRL.GUI.LLM',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
         'elsciRL.application_suite',
         ],
     package_data={
-        'elsciRL.examples.WebApp.templates': ['index.html'],
-        'elsciRL.examples.WebApp.static': ['styles.css'],
         'elsciRL.GUI.templates': ['index.html'],
-        'elsciRL.GUI.static': ['styles.css'],
+        'elsciRL.GUI.static': ['styles.css', 'app_setup.md'],
     },
     include_package_data=True,
     url='https://github.com/pdfosborne/elsciRL',
