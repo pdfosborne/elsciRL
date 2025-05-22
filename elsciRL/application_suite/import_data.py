@@ -81,5 +81,29 @@ class Applications:
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
+                },
+            "TextWorldExpress":{
+                "github_user": "pdfosborne",
+                "repository": "elsciRL-App-TextWorldExpress",
+                "commit_id": "46cd028",
+                "engine_folder": "environment",
+                "engine_filename": "engine",
+                "config_folder": "configs",
+                "experiment_config_filenames": {"Osborne2024_agent":"config.json"},
+                "local_config_filenames": {"twc-easy":"twc-easy.json", 
+                                            "twc-medium":"twc-medium.json",
+                                            "twc-hard":"twc-hard.json", 
+                                            "cookingworld-easy":"cookingworld-easy.json",
+                                            "cookingworld-medium":"cookingworld-medium.json",
+                                            "cookingworld-hard":"cookingworld-hard.json", 
+                                            "coincollector":"coincollector.json",
+                                            "mapreader":"mapreader.json"},
+                "local_adapter_folder": "adapters",
+                "adapter_filenames": {"language_default":"language"},
+                "local_analysis_folder": "analysis",
+                "local_analysis_filenames": {},
+                "prerender_data_folder": "prerender",
+                "prerender_data_filenames": {},
+                "prerender_image_filenames": {}
                 }
         }
