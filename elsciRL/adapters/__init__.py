@@ -18,6 +18,6 @@ class StateAdapter(ABC):
         
         
     def sample(self):
-        """Returns a sample of an adapted state form (typically inital positiion of the environment)."""
+        """Returns a sample of an adapted state form (typically initial position of the environment)."""
 
         
