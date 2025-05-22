@@ -12,6 +12,8 @@ class ImportHelper:
         if self.setup_info['adapter_select'] in STATE_ADAPTER_TYPES:
             agent_state_adapter = STATE_ADAPTER_TYPES[self.setup_info['adapter_select']](setup_info=self.setup_info)
         else:
+            print(f"Adapter {self.setup_info['adapter_select']} not found in STATE_ADAPTER_TYPES.")
+            print(STATE_ADAPTER_TYPES)
             agent_state_adapter = ''
         return agent, agent_type, agent_name, agent_state_adapter
 

@@ -36,8 +36,10 @@ class Prerender:
             selected_agents =  ['Qlearntab']
             self.ExperimentConfig.update({
                 'number_training_episodes': int(num_explor_episodes),
-                'agent_select': selected_agents,
-                'adapter_select': selected_adapter             
+                'agent_select': selected_agents         
+            })
+            local_config.update({   
+                'adapter_select': selected_adapter    
             })
 
             elsci_run = elsci_search(Config=self.ExperimentConfig,

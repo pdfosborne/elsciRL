@@ -15,7 +15,7 @@ class Applications:
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
-                "commit_id": "cdf4be9",
+                "commit_id": "4259e94",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -33,7 +33,7 @@ class Applications:
             "Classroom":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Classroom",
-                "commit_id": "51b2240",
+                "commit_id": "192df85",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -50,7 +50,7 @@ class Applications:
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-GymFrozenLake",
-                "commit_id": "1fd52ea",
+                "commit_id": "cca3b57",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -63,5 +63,23 @@ class Applications:
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states.txt"},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
+                },
+            "Chess":{
+                "github_user": "pdfosborne",
+                "repository": "elsciRL-App-Chess",
+                "commit_id": "316fa18",
+                "engine_folder": "environment",
+                "engine_filename": "engine",
+                "config_folder": "configs",
+                "experiment_config_filenames": {"Osborne2024_agent":"config.json"},
+                "local_config_filenames": {"Osborne2024_env":"config_local.json"},
+                "local_adapter_folder": "adapters",
+                "adapter_filenames": {"numeric_piece_counter":"numeric_piece_counter", 
+                                      "active_pieces_language":"language_active_pieces"},
+                "local_analysis_folder": "analysis",
+                "local_analysis_filenames": {},
+                "prerender_data_folder": "prerender",
+                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 }
         }
