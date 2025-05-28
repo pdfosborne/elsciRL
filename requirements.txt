@@ -9,3 +9,4 @@ httpimport
 sentence-transformers'
 gymnasium
 stable-baselines3
+ollama
