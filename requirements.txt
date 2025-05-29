@@ -10,3 +10,4 @@ sentence-transformers'
 gymnasium
 stable-baselines3
 ollama
+openai

@@ -2,7 +2,11 @@ from abc import ABC, abstractmethod
 from typing import List, Any
 import os
 
-from openai import OpenAI
+try:
+    import ollama
+except ImportError:
+    print("Warning: ollama library not found. Please install it with: pip install ollama")
+    ollama = None
 
 try:
     from torch import Tensor
@@ -26,12 +30,14 @@ class LLMAdapter(ABC):
         raise NotImplementedError
 
 
-class GPTAdapter(LLMAdapter):
-    """Adapter for OpenAI GPT models."""
+class OllamaAdapter(LLMAdapter):
+    """Adapter for local Ollama LLM models."""
     
-    def __init__(self, base_prompt: str, model_name: str = "gpt-4"):
+    def __init__(self, base_prompt: str, model_name: str = "llama2", action_history_length: int = 5):
         super().__init__(base_prompt)
         self.model_name = model_name
+        if ollama is None:
+            raise ImportError("ollama library is required. Install it with: pip install ollama")
         
         # Initialize the language encoder for encoding functionality
         if LanguageEncoder is not None:
@@ -39,6 +45,9 @@ class GPTAdapter(LLMAdapter):
         else:
             print("Warning: LanguageEncoder not available. Encoding will not work.")
             self.encoder = None
+
+        # Set the action history length, lower reduces context size and computation time
+        self.action_history_length = action_history_length
     
     def _read(self, raw_state) -> list:
         """Read the data and fill in the feature fields."""
@@ -46,31 +55,31 @@ class GPTAdapter(LLMAdapter):
         # For now, returning the raw state as a list
         return [raw_state] if isinstance(raw_state, str) else raw_state
     
-    def call_gpt_api(self, prompt: str):
-        """Call the OpenAI GPT API with the given prompt."""
+    def call_ollama_api(self, prompt: str):
+        """Call the local Ollama API with the given prompt."""
         try:
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY environment variable not set")
-            
-            client = OpenAI(api_key=api_key)
-            response = client.chat.completions.create(
+            response = ollama.chat(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": self.base_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=5000
+                    {
+                        'role': 'system',
+                        'content': self.base_prompt
+                    },
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ]
             )
-            return response.to_dict() if hasattr(response, 'to_dict') else response
+            return response
         except Exception as e:
-            print(f"Error calling OpenAI API: {e}")
+            print(f"Error calling Ollama API: {e}")
             return None
 
-    def process_gpt_response(self, response):
-        """Process the response from OpenAI API."""
-        if response and 'choices' in response:
-            return response['choices'][0]['message']['content']
+    def process_ollama_response(self, response):
+        """Process the response from Ollama API."""
+        if response and 'message' in response:
+            return response['message']['content']
         return None
 
     def adapter(self, state: any, legal_moves: list = None, episode_action_history: list = None, encode: bool = True, indexed: bool = False) -> Tensor:
@@ -88,15 +97,15 @@ class GPTAdapter(LLMAdapter):
         
         # Add action history if provided
         if episode_action_history is not None and len(episode_action_history) > 0:
-            recent_actions = episode_action_history[-5:]  # Last 5 actions
+            recent_actions = episode_action_history[-self.action_history_length:]  # Last 5 actions
             context_parts.append(f"Recent actions: {recent_actions}")
         
         # Combine all context into a single prompt
         full_prompt = " | ".join(context_parts)
         
-        # Get GPT response
-        adapted_state = self.call_gpt_api(full_prompt)
-        processed_response = self.process_gpt_response(adapted_state)
+        # Get LLM response
+        adapted_state = self.call_ollama_api(full_prompt)
+        processed_response = self.process_ollama_response(adapted_state)
         
         if processed_response is None:
             processed_response = str(state) if state is not None else "No state available"
@@ -122,6 +131,4 @@ class GPTAdapter(LLMAdapter):
         """Returns a sample of an adapted state form (typically initial position of the environment)."""
         if not state:
             state = 'The current state is empty.'
-        return self.adapter(state, encode=True)
-
-        
+        return self.adapter(state, encode=True) 

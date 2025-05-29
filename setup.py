@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='elsciRL',
-    version='0.3.1',
+    version='0.3.2',
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
@@ -48,6 +48,8 @@ setup(
         'sentence-transformers',
         'gymnasium',
         'stable-baselines3',
-        'flask'
+        'flask',
+        'ollama',
+        'openai'
     ] 
 )
