@@ -16,6 +16,9 @@ class PullApplications:
         - Classroom: {'classroom_A'}
     """
     # TODO: Make it so it pulls all possible configs and adapters from the repo
+    # TODO: Allow a blank entry for repo for experimental testing to pull most recent commit by default
+    # TODO: Auto install libraries from application repo requirements.txt
+    # TODO: Improve process for adding local application, cache to local directory to check from
     def __init__(self) -> None:
         imports = Applications()
         self.imports = imports.data

@@ -85,7 +85,7 @@ class Applications:
             "TextWorldExpress":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-TextWorldExpress",
-                "commit_id": "46cd028",
+                "commit_id": "670b7c4",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
