@@ -67,7 +67,7 @@ class Applications:
             "Chess":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Chess",
-                "commit_id": "316fa18",
+                "commit_id": "4bf736f",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -79,7 +79,7 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_data_filenames": {"observed_states_active_pieces_language":"observed_states_active_pieces_language_50000_29-05-2025_16-13.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 },
             "TextWorldExpress":{
