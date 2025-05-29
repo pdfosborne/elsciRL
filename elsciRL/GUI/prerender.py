@@ -19,8 +19,10 @@ class Prerender:
 
         
 
-    def get_observed_states(self, engine, local_config:dict={}, 
-                            adapters:dict={}, selected_adapter:list=[''], 
+    def get_observed_states(self, engine, 
+                            selected_application:str='', selected_config:str='', selected_adapter:list=[''],
+                            local_config:dict={}, 
+                            adapters:dict={},  
                             num_explor_episodes:int=1000):
             
             # Search Save Directory
@@ -28,7 +30,7 @@ class Prerender:
                 os.mkdir('./prerender-data')
                             
             time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            save_dir = './prerender-data/' + str('search') + '_' + time
+            save_dir = './prerender-data/' #+ str('search') + '_' + time
             if not os.path.exists(save_dir):                
                 os.mkdir(save_dir)
             # UPDATE EXPERIMENT CONFIG FOR SEARCH
@@ -51,7 +53,25 @@ class Prerender:
                                         observed_states=None)
             observed_states = elsci_run.search()
             print(f"\nNumber of observed states: {len(observed_states)}")
-            with open(os.path.join(save_dir, 'observed_states.txt'), 'w') as f:
+            # Create save directory structure if not exists
+            if not os.path.exists(save_dir):
+                os.mkdir(save_dir)
+
+            if not os.path.exists(os.path.join(save_dir, selected_application)):
+                os.mkdir(os.path.join(save_dir, selected_application))
+
+            if not os.path.exists(os.path.join(save_dir, selected_application, selected_adapter[0])):
+                os.mkdir(os.path.join(save_dir, selected_application, selected_adapter[0]))
+            # Add problem name to save_dir
+            save_dir = os.path.join(save_dir, selected_application, selected_adapter[0])
+
+
+            # Update file name to include problem name, number of episodes, and timestamp
+            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
+            file_path = os.path.join(save_dir, file_name)
+
+            # Save observed states only
+            with open(file_path, 'w') as f:
                 json.dump(observed_states, f)
 
 
@@ -97,6 +117,8 @@ class Prerender:
         print(f"-- Number of exploration episodes: {num_explor_episodes}")
         print("--------------------------------")
 
-        self.get_observed_states(engine, local_config, 
-                                adapters, selected_adapter,
+        self.get_observed_states(engine, 
+                                selected_application, config_input, selected_adapter,
+                                local_config, 
+                                adapters, 
                                 num_explor_episodes)

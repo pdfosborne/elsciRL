@@ -85,7 +85,7 @@ class Applications:
             "TextWorldExpress":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-TextWorldExpress",
-                "commit_id": "670b7c4",
+                "commit_id": "cd06071",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -103,7 +103,11 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {},
+                "prerender_data_filenames": {
+                    "twc-easy_observed_states":
+                        "observed_states_TextWorldExpress_twc-easy_language_default_10000_29-05-2025_15-53.txt",
+                    "cookingworld-easy_observed_states":
+                        "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
                 "prerender_image_filenames": {}
                 }
         }
