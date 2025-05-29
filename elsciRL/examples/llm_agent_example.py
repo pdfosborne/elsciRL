@@ -12,7 +12,7 @@ import os
 # Add the parent directory to the path to import elsciRL modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from elsciRL.agents.LLM_Agent import LLMAgent
+from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent
 
 
 def main():

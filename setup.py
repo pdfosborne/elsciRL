@@ -7,8 +7,10 @@ setup(
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
+        'elsciRL.adapters.LLM_generators',
         'elsciRL.agents',
         'elsciRL.agents.stable_baselines',
+        'elsciRL.agents.LLM_agents',
         'elsciRL.analysis',
         'elsciRL.encoders', 
         'elsciRL.environment_setup',
@@ -20,7 +22,6 @@ setup(
         'elsciRL.GUI',
         'elsciRL.GUI.static',
         'elsciRL.GUI.templates',
-        'elsciRL.GUI.LLM',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
         'elsciRL.interaction_loops',
