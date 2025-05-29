@@ -383,7 +383,7 @@ class WebApp:
                     if file.endswith('.gif'):
                         file_path = os.path.join(render_results_dir, file)
                         new_filename = f'{instr_key}_{file}'
-                        shutil.copy(file_path, os.path.join(self.uploads_dir, new_filename))
+                        shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
                         figures_to_display.append(f'uploads/{new_filename}')
             # Baseline flat experiment
             # - only ran first time otherwise copied from prior input
@@ -405,7 +405,7 @@ class WebApp:
                         if file.endswith('.gif'):
                             file_path = os.path.join(render_results_dir, file)
                             new_filename = f'No Instr_{file}'
-                            shutil.copy(file_path, os.path.join(self.uploads_dir, new_filename))
+                            shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
                             figures_to_display.append(f'uploads/{new_filename}')
            
         # --- RESULTS ---
@@ -434,7 +434,7 @@ class WebApp:
             )
             variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_" + evaluation_type + ".png"
             variance_filename = f'{application}_variance_analysis_{evaluation_type}.png'
-            shutil.copy(variance_plot, os.path.join(self.uploads_dir, variance_filename))
+            shutil.copyfile(variance_plot, os.path.join(self.uploads_dir, variance_filename))
             figures_to_display.append(f'uploads/{variance_filename}')
 
         return jsonify({
