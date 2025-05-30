@@ -18,6 +18,11 @@ from elsciRL.experiments.GymExperiment import GymExperiment
 from elsciRL.agents.stable_baselines.DQN import SB_DQN
 from elsciRL.agents.stable_baselines.PPO import SB_PPO
 from elsciRL.agents.stable_baselines.A2C import SB_A2C
+# ------ LLM Agents ---------------------------------------------
+from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
+# ---------------------------------------------------------------
+# TODO: COMPLETELY REWRITE THIS FILE TO USE THE NEW EXPERIMENT FRAMEWORK AND REMOVE EXPERIENCE SAMPLING
+
 
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
@@ -28,10 +33,12 @@ AGENT_TYPES = {
     "Random": random,
     "SB3_DQN": SB_DQN,
     "SB3_PPO": SB_PPO,
-    "SB3_A2C": SB_A2C
+    "SB3_A2C": SB_A2C,
+    "LLM_Ollama": OllamaAgent,
+
 }
 
-PLAYER_PARAMS = {
+AGENT_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
     "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
@@ -39,7 +46,8 @@ PLAYER_PARAMS = {
     "Random": [],
     "SB3_DQN": ["policy"],
     "SB3_PPO": ["policy"],
-    "SB3_A2C": ["policy"]
+    "SB3_A2C": ["policy"],
+    "LLM_Ollama": ["model_name", "system_prompt"]
 }
 
 # This is the main run functions for elsciRL to be imported
@@ -59,8 +67,6 @@ class elsciRLOptimize:
                  instruction_chain:bool=False, instruction_chain_how:str='None'):
         self.ExperimentConfig = Config
         self.LocalConfig = LocalConfig
-
-        
 
         try:
             self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data']

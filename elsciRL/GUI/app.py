@@ -297,10 +297,14 @@ class WebApp:
         training_seeds = data.get('trainingSeeds', 1)
         test_episodes = data.get('testEpisodes', 200)
         test_repeats = data.get('testRepeats', 10)
+        # Qlearntab parameters
         alpha = data.get('alpha', 0.1)
         gamma = data.get('gamma', 0.95)
         epsilon = data.get('epsilon', 0.2)
         epsilon_step = data.get('epsilonStep', 0.01)
+        # LLM Ollama parameters
+        ollama_model_name = data.get('ollamaModelName', 'llama3.2')
+        ollama_system_prompt = data.get('ollamaSystemPrompt', '')
 
         self.ExperimentConfig.update({
             'problem_type': data.get('problemType', 'Default'),
@@ -320,13 +324,10 @@ class WebApp:
             'epsilon_step': float(epsilon_step)
         }
 
-        if 'SB3_DQN' in selected_agents:
-            sb_dqn_params = data.get('sbDqnParams', {})
-            self.ExperimentConfig['agent_parameters']['SB3_DQN'] = {
-                'policy': sb_dqn_params.get('policy', 'MlpPolicy'),
-                'learning_rate': float(sb_dqn_params.get('learning_rate', 0.0001)),
-                'buffer_size': int(sb_dqn_params.get('buffer_size', 1000000))
-            }
+        self.ExperimentConfig['agent_parameters']['LLM_Ollama'] = {
+            'model_name': str(ollama_model_name),
+            'system_prompt': str(ollama_system_prompt)
+        }
 
         # TODO Update all adapter inputs to dict if matching to agents
         # TODO MAKE THIS A GENERIC FUNCTION CALL IN ELSCIRL
@@ -361,53 +362,54 @@ class WebApp:
             os.mkdir(self.global_save_dir+'/'+application)  
         
         # Train for all correctly validated instructions
-        flat_agent_run = False
-        figures_to_display = []
-        for instr_key, instr_results in instruction_results.items():
-            reinforced_experiment = elsciRLOptimize(
-                            Config=self.ExperimentConfig, 
-                            LocalConfig=local_config, 
-                            Engine=engine, Adapters=adapters,
-                            save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
-                            show_figures = 'No', window_size=0.1,
-                            instruction_path=instr_results, predicted_path=None, 
-                            instruction_episode_ratio=0.1,
-                            instruction_chain=True, instruction_chain_how='exact' )
-            reinforced_experiment.train()
-            reinforced_experiment.test()
-            reinforced_experiment.render_results()
-            # Get render and add to uploads
-            render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Instr_Experiment', 'render_results')
-            if os.path.exists(render_results_dir):
-                for file in os.listdir(render_results_dir):
-                    if file.endswith('.gif'):
-                        file_path = os.path.join(render_results_dir, file)
-                        new_filename = f'{instr_key}_{file}'
-                        shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
-                        figures_to_display.append(f'uploads/{new_filename}')
-            # Baseline flat experiment
-            # - only ran first time otherwise copied from prior input
-            if not flat_agent_run:
-                standard_experiment = STANDARD_RL(
-                        Config=self.ExperimentConfig, 
-                        ProblemConfig=local_config, 
-                        Engine=engine, Adapters=adapters,
-                        save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
-                        show_figures = 'No', window_size=0.1)
-                standard_experiment.train()
-                standard_experiment.test()
-                standard_experiment.render_results()
-                flat_agent_run = True
+        # - If no instructions provided, run a standard RL experiment        
+        if len(instruction_results) != 0:
+            figures_to_display = []
+            for instr_key, instr_results in instruction_results.items():
+                reinforced_experiment = elsciRLOptimize(
+                                Config=self.ExperimentConfig, 
+                                LocalConfig=local_config, 
+                                Engine=engine, Adapters=adapters,
+                                save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
+                                show_figures = 'No', window_size=0.1,
+                                instruction_path=instr_results, predicted_path=None, 
+                                instruction_episode_ratio=0.1,
+                                instruction_chain=True, instruction_chain_how='exact' )
+                reinforced_experiment.train()
+                reinforced_experiment.test()
+                reinforced_experiment.render_results()
                 # Get render and add to uploads
-                render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Standard_Experiment', 'render_results')
+                render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Instr_Experiment', 'render_results')
                 if os.path.exists(render_results_dir):
                     for file in os.listdir(render_results_dir):
                         if file.endswith('.gif'):
                             file_path = os.path.join(render_results_dir, file)
-                            new_filename = f'No Instr_{file}'
+                            new_filename = f'{instr_key}_{file}'
                             shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
                             figures_to_display.append(f'uploads/{new_filename}')
-           
+                # Baseline flat experiment
+                # - only ran first time otherwise copied from prior input
+        else:
+            standard_experiment = STANDARD_RL(
+                    Config=self.ExperimentConfig, 
+                    ProblemConfig=local_config, 
+                    Engine=engine, Adapters=adapters,
+                    save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
+                    show_figures = 'No', window_size=0.1)
+            standard_experiment.train()
+            standard_experiment.test()
+            standard_experiment.render_results()
+            flat_agent_run = True
+            # Get render and add to uploads
+            render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Standard_Experiment', 'render_results')
+            if os.path.exists(render_results_dir):
+                for file in os.listdir(render_results_dir):
+                    if file.endswith('.gif'):
+                        file_path = os.path.join(render_results_dir, file)
+                        new_filename = f'No Instr_{file}'
+                        shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
+                        figures_to_display.append(f'uploads/{new_filename}')
+        
         # --- RESULTS ---
         if selected_plot != '':
             analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]

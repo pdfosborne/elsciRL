@@ -258,6 +258,10 @@
                                     <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
                                     <label for="agent-SB3_A2C">Stable Baselines A2C</label>
                                 </div> -->
+                                <div class="application-item">
+                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama" checked>
+                                    <label for="agent-LLM_Ollama">LLM Ollama Local</label>
+                                </div>
                             </div>
                         </div>
                         <!-- Add new adapter selection section -->
@@ -677,6 +681,13 @@
                                         document.getElementById('sb3_a2c_policy').value = sb3A2cParams.policy || 'MlpPolicy';
                                         document.getElementById('sb3_a2c_learning_rate').value = sb3A2cParams.learning_rate || 0.0007;
                                         document.getElementById('sb3_a2c_n_steps').value = sb3A2cParams.n_steps || 500;
+                                    }
+
+                                    // Update LLM Ollama parameters if they exist
+                                    if (data.config.agent_parameters && data.config.agent_parameters.LLM_Ollama) {
+                                        const LLMOllamaParams = data.config.agent_parameters.LLM_Ollama;
+                                        document.getElementById('LLM_Ollama_model_name').value = LLMOllamaParams.model_name || 'Llama3.2';
+                                        document.getElementById('LLM_Ollama_system_prompt').value = LLMOllamaParams.system_prompt || '';
                                     }
 
                                     // Update adapter checkboxes
@@ -1146,6 +1157,8 @@
                     sb3PpoParams.style.display = this.checked ? 'block' : 'none';
                 } else if (this.value === 'SB3_A2C') {
                     sb3A2cParams.style.display = this.checked ? 'block' : 'none';
+                } else if (this.value === 'LLM_Ollama') {
+                    LLMOllamaParams.style.display = this.checked ? 'block' : 'none';
                 }
             });
         });

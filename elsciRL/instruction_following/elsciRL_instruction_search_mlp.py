@@ -26,7 +26,7 @@ AGENT_TYPES = {
     "Neural_Q_language": NeuralQLearningAgent
 }
 
-PLAYER_PARAMS = {
+AGENT_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
     "Neural_Q": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "Neural_Q_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],

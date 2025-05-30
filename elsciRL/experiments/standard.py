@@ -16,6 +16,9 @@ from elsciRL.experiments.GymExperiment import GymExperiment
 from elsciRL.agents.stable_baselines.DQN import SB_DQN
 from elsciRL.agents.stable_baselines.PPO import SB_PPO
 from elsciRL.agents.stable_baselines.A2C import SB_A2C
+# ------ LLM Agents ---------------------------------------------
+from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
+# ---------------------------------------------------------------
 
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used
@@ -88,7 +91,9 @@ class Experiment:
             "DQN_language": NeuralQLearningAgent,
             "SB3_DQN": SB_DQN,
             "SB3_PPO": SB_PPO,
-            "SB3_A2C": SB_A2C
+            "SB3_A2C": SB_A2C,
+            "LLM_Ollama": OllamaAgent,
+
         }
         
         self.PLAYER_PARAMS = {
@@ -98,13 +103,14 @@ class Experiment:
             "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
             "SB3_DQN": ["policy"],
             "SB3_PPO": ["policy"],
-            "SB3_A2C": ["policy"]
+            "SB3_A2C": ["policy"],
+            "LLM_Ollama": ["model_name", "system_prompt"]
         }
         # -------------------
 
     def add_agent(self, agent_name:str, agent):
         """Add a custom agent to the experiment using the agent name as a key.
-            - Paramters must be defined in the config.json file with matching name."""
+            - Parameters must be defined in the config.json file with matching name."""
         self.AGENT_TYPES[agent_name] = agent
         print("\n Agent added to experiment, all available agents: ", self.AGENT_TYPES)
 

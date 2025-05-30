@@ -15,25 +15,17 @@ from elsciRL.analysis.convergence_measure import Convergence_Measure
 from elsciRL.instruction_following.elsciRL_instr_input import elsciRLInput as TerminalInput
 # ------ Agent Imports -----------------------------------------
 # Universal Agents
-from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.neural_q_agent import NeuralQLearningAgent
 from elsciRL.agents.random_agent import RandomAgent
 
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
-    "Neural_Q": NeuralQLearningAgent,
-    "Neural_Q_2": NeuralQLearningAgent,
-    "Neural_Q_language": NeuralQLearningAgent,
     "Random": RandomAgent
 }
 
-PLAYER_PARAMS = {
+AGENT_PARAMS = {
     "Qlearntab": ["alpha", "gamma", "epsilon"],
-    "Neural_Q": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
     "Random":[]
 }
 
