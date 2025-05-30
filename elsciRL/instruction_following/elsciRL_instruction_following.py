@@ -47,7 +47,7 @@ AGENT_PARAMS = {
     "SB3_DQN": ["policy"],
     "SB3_PPO": ["policy"],
     "SB3_A2C": ["policy"],
-    "LLM_Ollama": ["model_name", "system_prompt"]
+    "LLM_Ollama": ["epsilon","model_name", "system_prompt"]
 }
 
 # This is the main run functions for elsciRL to be imported

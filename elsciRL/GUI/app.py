@@ -303,6 +303,7 @@ class WebApp:
         epsilon = data.get('epsilon', 0.2)
         epsilon_step = data.get('epsilonStep', 0.01)
         # LLM Ollama parameters
+        ollama_epsilon = data.get('ollamaepsilon', 0.2)
         ollama_model_name = data.get('ollamaModelName', 'llama3.2')
         ollama_system_prompt = data.get('ollamaSystemPrompt', '')
 
@@ -325,7 +326,8 @@ class WebApp:
         }
 
         self.ExperimentConfig['agent_parameters']['LLM_Ollama'] = {
-            'model_name': str(ollama_model_name),
+            "epsilon": float(ollama_epsilon),
+            'model_name': str(ollama_model_name).lower(),
             'system_prompt': str(ollama_system_prompt)
         }
 

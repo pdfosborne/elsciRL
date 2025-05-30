@@ -15,7 +15,7 @@ logger.setLevel(logging.INFO)
 
 
 class LLMAgent:
-    def __init__(self, model_name: str = "llama2", system_prompt: str = None):
+    def __init__(self, epsilon:float=0.2, model_name: str = "llama2", system_prompt: str = None):
         """
         Initialize the Ollama LLM model for policy-based action selection.
         
@@ -38,6 +38,8 @@ class LLMAgent:
             'model_name': model_name,
             'system_prompt': system_prompt
         }
+        # Epsilon-greedy exploration parameter
+        self.epsilon = epsilon
 
 
     def save(self) -> dict:
@@ -60,50 +62,57 @@ class LLMAgent:
     # Fixed order of variables
     def policy(self, state: str, legal_actions: list[str]) -> str:
         """Agent's decision making for next action based on current knowledge and policy type"""
-        try:
-            prompt = f"""Current state: {state}
 
-                        Available actions: {', '.join(legal_actions)}
-
-                        Please select the most appropriate action and explain your reasoning.
-                        Respond in JSON format with the following structure:
-                        {{
-                            "action": "selected_action",
-                            "explanation": "brief explanation of why this action was chosen"
-                        }}"""
-
-            # Use ollama.chat with the correct message format
-            messages = []
-            if self.system_prompt:
-                messages.append({'role': 'system', 'content': self.system_prompt})
-            messages.append({'role': 'user', 'content': prompt})
-
-            response = ollama.chat(
-                model=self.model_name,
-                messages=messages
-            )
-            
-            try:
-                # Result not always ending content with brackets
-                content = response['message']['content'].strip().replace('\n', '').replace('```', '')
-                # Try to parse as JSON object
-                content_split = content.split(',')
-                for i in range(len(content_split)):
-                    if 'action' in content_split[i]:
-                        content_action = (content_split[i])
-                        break
-                action = content_action.split(':')[1].strip().replace('"', '')
-                print("Action:", action)
-                return action
-            
-            except Exception as e:
-                logger.error(f"Error parsing LLM response: {e}, response content does no contain action in required for 'action:action,...': {response['message']['content']}")
-                return random.choice(legal_actions),
-    
-        except Exception as e:
+        # Epsilon-greedy action selection to encourage exploration
+        if random.random() < self.epsilon:
             action = random.choice(legal_actions)
-            logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
+            logger.info(f"Epsilon-greedy: Random action selected: {action}")
             return action
+        else:
+            try:
+                prompt = f"""Current state: {state}
+
+                            Available actions: {', '.join(legal_actions)}
+
+                            Please select the most appropriate action and explain your reasoning.
+                            Respond in JSON format with the following structure:
+                            {{
+                                "action": "selected_action",
+                                "explanation": "brief explanation of why this action was chosen"
+                            }}"""
+
+                # Use ollama.chat with the correct message format
+                messages = []
+                if self.system_prompt:
+                    messages.append({'role': 'system', 'content': self.system_prompt})
+                messages.append({'role': 'user', 'content': prompt})
+
+                response = ollama.chat(
+                    model=self.model_name,
+                    messages=messages
+                )
+                
+                try:
+                    # Result not always ending content with brackets
+                    content = response['message']['content'].strip().replace('\n', '').replace('```', '')
+                    # Try to parse as JSON object
+                    content_split = content.split(',')
+                    for i in range(len(content_split)):
+                        if 'action' in content_split[i]:
+                            content_action = (content_split[i])
+                            break
+                    action = content_action.split(':')[1].strip().replace('"', '')
+                    print("Action:", action)
+                    return action
+                
+                except Exception as e:
+                    logger.error(f"Error parsing LLM response: {e}, response content does no contain action in required for 'action:action,...': {response['message']['content']}")
+                    return random.choice(legal_actions),
+        
+            except Exception as e:
+                action = random.choice(legal_actions)
+                logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
+                return action
 
     # We now break agent into a policy choice, action is taken in game_env then next state is used in learning function
     def learn(self, state: Tensor, next_state: Tensor, r_p: float, action_code: str) -> float:

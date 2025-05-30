@@ -424,7 +424,22 @@
                             <input type="number" id="sb3_a2c_n_steps" min="1" value="500">
                         </div>
                     </div>
-                    
+
+                    <div id="LLM-Ollama-params" class="config-group" style="flex: 1; display: none;">
+                        <h3>LLM Ollama Parameters</h3>
+                        <div class="training-params">
+                            <label for="LLM_Ollama_epsilon">Epsilon:</label>
+                            <input type="number" id="LLM_Ollama_epsilon" min="0" max="1" value="0.2" step="0.01">
+                        </div>
+                        <div class="training-params">
+                            <label for="LLM_Ollama_model_name">Model Name:</label>
+                            <input type="text" id="LLM_Ollama_model_name" value="Llama3.2">
+                        </div>
+                        <div class="training-params">
+                            <label for="LLM_Ollama_system_prompt">System Prompt:</label>
+                            <textarea id="LLM_Ollama_system_prompt" rows="4" placeholder="Enter system prompt..."></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -686,6 +701,7 @@
                                     // Update LLM Ollama parameters if they exist
                                     if (data.config.agent_parameters && data.config.agent_parameters.LLM_Ollama) {
                                         const LLMOllamaParams = data.config.agent_parameters.LLM_Ollama;
+                                        document.getElementById('LLM_Ollama_epsilon').value = LLMOllamaParams.epsilon || 'Llama3.2';
                                         document.getElementById('LLM_Ollama_model_name').value = LLMOllamaParams.model_name || 'Llama3.2';
                                         document.getElementById('LLM_Ollama_system_prompt').value = LLMOllamaParams.system_prompt || '';
                                     }
@@ -1146,6 +1162,7 @@
                 const sb3DqnParams = document.getElementById('sb3-dqn-params');
                 const sb3PpoParams = document.getElementById('sb3-ppo-params');
                 const sb3A2cParams = document.getElementById('sb3-a2c-params');
+                const LLMOllamaParams = document.getElementById('LLM-Ollama-params');
                 
                 if (this.value === 'Qlearntab') {
                     qlearnParams.style.display = this.checked ? 'block' : 'none';
