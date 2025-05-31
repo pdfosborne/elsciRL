@@ -29,7 +29,7 @@ app = Flask(__name__, static_folder=os.path.join(dir_path, 'static'),
 
 
 class WebApp:
-    def __init__(self, save_dir: str = '', num_explor_epi: int = 1000):
+    def __init__(self, save_dir: str = './elsciRL-App-output', num_explor_epi: int = 1000):
         self.global_save_dir = save_dir
         self.num_explor_epi = num_explor_epi
         imports = Applications().data
@@ -273,9 +273,10 @@ class WebApp:
         config_input = data.get('localConfigInput', '')
         selected_plot = data.get('selectedPlot', '')
         
-        if application not in self.instruction_results_validated:
-            print(f"No instruction results found for {application}")
-            return jsonify({'error': 'No instruction results found for the selected application'}), 400
+        if len(self.instruction_results_validated) > 0:
+            if application not in self.instruction_results_validated:
+                print(f"No instruction results found for {application}")
+                return jsonify({'error': 'No instruction results found for the selected application'}), 400
         
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
@@ -293,6 +294,7 @@ class WebApp:
 
         # --- Update Experiment Parameters with User Input ---
         selected_agents = data.get('selectedAgents', ['Qlearntab'])
+        training_episodes = data.get('trainingEpisodes', 1000)
         training_repeats = data.get('trainingRepeats', 5)
         training_seeds = data.get('trainingSeeds', 1)
         test_episodes = data.get('testEpisodes', 200)
@@ -309,6 +311,7 @@ class WebApp:
 
         self.ExperimentConfig.update({
             'problem_type': data.get('problemType', 'Default'),
+            'number_training_episodes': int(training_episodes),
             'number_training_repeats': int(training_repeats),
             'number_training_seeds': int(training_seeds),
             'number_test_episodes': int(test_episodes),
@@ -340,16 +343,7 @@ class WebApp:
             for n, agent in enumerate(selected_agents):
                 adapter_list = []
                 for adapter in selected_adapters:
-                    # DEFAULT ADAPTERS NEED TO BE SETUP FOR DQN INPUT
-                    # Reaplce 'DQN' to match to language version
-                    if agent =='DQN':
-                        if ('language' in adapter.lower()) or ('lang' in adapter.lower()):
-                            agent = 'DQN_language'
-                            self.ExperimentConfig['agent_parameters'][agent] = self.ExperimentConfig['agent_parameters']['DQN']
-                            selected_agents[n] = agent
-                            adapter_list.append(adapter)    
-                    else:
-                        adapter_list.append(adapter)
+                    adapter_list.append(adapter)
                             
                 agent_adapter_dict[agent] = adapter_list
         else:
@@ -357,16 +351,19 @@ class WebApp:
         self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
         # --- End of User Input Update ---
         # Use validated instructions for training
-        instruction_results = self.instruction_results_validated[application]
-        print(instruction_results.keys())
+        if application in self.instruction_results_validated:
+            instruction_results = self.instruction_results_validated[application]
+            print(instruction_results.keys())
+        else:
+            instruction_results = {}
         
         if not os.path.exists(self.global_save_dir+'/'+application):
             os.mkdir(self.global_save_dir+'/'+application)  
         
         # Train for all correctly validated instructions
-        # - If no instructions provided, run a standard RL experiment        
+        figures_to_display = []   
+        # - If no instructions provided, run a standard RL experiment   
         if len(instruction_results) != 0:
-            figures_to_display = []
             for instr_key, instr_results in instruction_results.items():
                 reinforced_experiment = elsciRLOptimize(
                                 Config=self.ExperimentConfig, 
@@ -389,46 +386,62 @@ class WebApp:
                             new_filename = f'{instr_key}_{file}'
                             shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
                             figures_to_display.append(f'uploads/{new_filename}')
-                # Baseline flat experiment
-                # - only ran first time otherwise copied from prior input
-        else:
-            standard_experiment = STANDARD_RL(
-                    Config=self.ExperimentConfig, 
-                    ProblemConfig=local_config, 
-                    Engine=engine, Adapters=adapters,
-                    save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
-                    show_figures = 'No', window_size=0.1)
-            standard_experiment.train()
-            standard_experiment.test()
-            standard_experiment.render_results()
-            flat_agent_run = True
-            # Get render and add to uploads
-            render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Standard_Experiment', 'render_results')
-            if os.path.exists(render_results_dir):
-                for file in os.listdir(render_results_dir):
-                    if file.endswith('.gif'):
-                        file_path = os.path.join(render_results_dir, file)
-                        new_filename = f'No Instr_{file}'
-                        shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
-                        figures_to_display.append(f'uploads/{new_filename}')
+
+            # --- RESULTS ---
+            if selected_plot != '':
+                analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
+                for instr_key, instr_results in instruction_results.items():
+                    analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/'+instr_key)
+                    analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
+
+                    for i, func_name in enumerate(analysis_functions):
+                        func = getattr(analysis_instance, func_name)
+                        fig_dict = func()
+                        for figure_names,figure in fig_dict.items():
+                            if figure:
+                                fig_filename = f'{application}_{func_name}_{instr_key}_{figure_names}.png'
+                                fig_path = os.path.join(self.uploads_dir, fig_filename)
+                                figure.savefig(fig_path)
+                                figures_to_display.append(f'uploads/{fig_filename}')
         
+        # Baseline flat experiment
+        # - only ran first time otherwise copied from prior input
+        standard_experiment = STANDARD_RL(
+                Config=self.ExperimentConfig, 
+                ProblemConfig=local_config, 
+                Engine=engine, Adapters=adapters,
+                save_dir=self.global_save_dir+'/'+application+'/no-instr', 
+                show_figures = 'No', window_size=0.1)
+        standard_experiment.train()
+        standard_experiment.test()
+        standard_experiment.render_results()
+        flat_agent_run = True
+        # Get render and add to uploads
+        render_results_dir = os.path.join(self.global_save_dir, application, 'no-instr', 'Standard_Experiment', 'render_results')
+        if os.path.exists(render_results_dir):
+            for file in os.listdir(render_results_dir):
+                if file.endswith('.gif'):
+                    file_path = os.path.join(render_results_dir, file)
+                    new_filename = f'no-instr_{file}'
+                    shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
+                    figures_to_display.append(f'uploads/{new_filename}')
+            
         # --- RESULTS ---
         if selected_plot != '':
             analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
-            for instr_key, instr_results in instruction_results.items():
-                analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/'+instr_key)
-                analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
+            analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/no-instr')
+            analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
 
-                for i, func_name in enumerate(analysis_functions):
-                    func = getattr(analysis_instance, func_name)
-                    fig_dict = func()
-                    for figure_names,figure in fig_dict.items():
-                        if figure:
-                            fig_filename = f'{application}_{func_name}_{instr_key}_{figure_names}.png'
-                            fig_path = os.path.join(self.uploads_dir, fig_filename)
-                            figure.savefig(fig_path)
-                            figures_to_display.append(f'uploads/{fig_filename}')
-                            
+            for i, func_name in enumerate(analysis_functions):
+                func = getattr(analysis_instance, func_name)
+                fig_dict = func()
+                for figure_names,figure in fig_dict.items():
+                    if figure:
+                        fig_filename = f'{application}_{func_name}_no-instr_{figure_names}.png'
+                        fig_path = os.path.join(self.uploads_dir, fig_filename)
+                        figure.savefig(fig_path)
+                        figures_to_display.append(f'uploads/{fig_filename}')
+                        
         evaluation_types = ['training', 'testing']
         for evaluation_type in evaluation_types:
             COMBINED_VARIANCE_ANALYSIS_GRAPH(
@@ -512,30 +525,10 @@ class WebApp:
             print(f"Error getting experiment config: {str(e)}")
             return jsonify({'error': 'Failed to get experiment config'}), 500
 
-if len(sys.argv)>1:
-    if 'results' in sys.argv[1]:
-        if 'output' in sys.argv[1]:
-            print('Using pre-rendered data from '+sys.argv[1])
-            input_save_dir= sys.argv[1]
-        else:
-            print('Using pre-rendered data from ./output/'+sys.argv[1])
-            input_save_dir= './output/'+sys.argv[1]
-        if len(sys.argv)>2:
-            input_explor_epi = int(sys.argv[2])
-        else:
-            input_explor_epi = 1000
-    else:
-        input_save_dir=''
-        if len(sys.argv)==2:
-            input_explor_epi = int(sys.argv[1])
-        else:
-            input_explor_epi = 1000
-else:
-    input_save_dir = './output'
-    input_explor_epi = 1000
+# ----------------------------------------------------------------
 
-WebApp = WebApp(save_dir=input_save_dir,
-                num_explor_epi=input_explor_epi)
+# Initialize WebApp
+WebApp = WebApp()
 
 @app.route('/')
 def home_route():
