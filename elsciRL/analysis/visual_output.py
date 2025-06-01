@@ -347,7 +347,7 @@ class VisualOutput:
         axs[1,0].set_title("Cumulative R with Std. Err.")
         
         axs[1,1].set_ylabel("Occurence")
-        axs[1,1].set_xlabel("Time")
+        axs[1,1].set_xlabel("Time (seconds)")
         axs[1,1].set_title("Dist of Time per Episode")
 
         #ax1.legend(loc=2, bbox_to_anchor=(-0.05, 0), fancybox=True, shadow=True, framealpha=1)

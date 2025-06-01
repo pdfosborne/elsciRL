@@ -395,7 +395,7 @@ class elsciRLOptimize:
                                 live_sample_batch_size = int(number_training_episodes*train_setup_info['experience_sample_batch_ratio'])
                                 live_sample_batch_count = int(1/train_setup_info['experience_sample_batch_ratio'])
                                 # Train on Live system for limited number of total episodes   
-                                live_env.num_train_episodes = live_sample_batch_size
+                                live_env.number_episodes = live_sample_batch_size
                                 print("-- Training with Simulated Batches, ", live_sample_batch_count, " total...")
                                 # init simulated environment
                                 train_setup_info['live_env'] = False
@@ -549,7 +549,7 @@ class elsciRLOptimize:
                                         if number_instr_episodes<10:
                                             number_instr_episodes=10
                                         total_instr_episodes+=number_instr_episodes
-                                        live_env.num_train_episodes = number_instr_episodes
+                                        live_env.number_episodes = number_instr_episodes
                                         # ---
                                         # Override trained agent with known instruction agent
                                         if instr in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
@@ -631,11 +631,11 @@ class elsciRLOptimize:
                                 # Number of episodes used reduced by those used for instructions (lower bounded)
                                 if (number_training_episodes-total_instr_episodes)<int(number_training_episodes*self.instruction_episode_ratio):
                                     if int(number_training_episodes*self.instruction_episode_ratio) < 10:
-                                        live_env.num_train_episodes = 10
+                                        live_env.number_episodes = 10
                                     else:
-                                        live_env.num_train_episodes = int(number_training_episodes*self.instruction_episode_ratio)
+                                        live_env.number_episodes = int(number_training_episodes*self.instruction_episode_ratio)
                                 else:
-                                    live_env.num_train_episodes = number_training_episodes - total_instr_episodes
+                                    live_env.number_episodes = number_training_episodes - total_instr_episodes
                                 # Remove sub-goal
                                 live_env.sub_goal = None
                                 print("Goal: ", goal)

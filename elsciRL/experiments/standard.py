@@ -242,7 +242,7 @@ class Experiment:
                                     live_sample_batch_size = int(number_training_episodes*train_setup_info['experience_sample_batch_ratio'])
                                     live_sample_batch_count = int(1/train_setup_info['experience_sample_batch_ratio'])
                                     # Train on Live system for limited number of total episodes
-                                    live_env.num_train_episodes = live_sample_batch_size
+                                    live_env.number_episodes = live_sample_batch_size
                                     print("-- Training with Simulated Batches, ", live_sample_batch_count, " total...")
                                     # init simulated environment
                                     train_setup_info['live_env'] = False
