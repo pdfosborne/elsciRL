@@ -3,6 +3,10 @@ import os
 import shutil
 from datetime import datetime
 import json
+import threading
+import queue
+import uuid
+from flask import Response # Added Response for SSE
 
 # App tools
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -78,6 +82,9 @@ class WebApp:
             # },
         }
 
+        self.active_jobs = {}  # Stores job_id: {'queue': Queue, 'thread': Thread, 'status': str}
+        self.job_results = {} # Stores job_id: results payload
+
     def load_data(self):
         # Init data here so it reset when page is reloaded
         self.global_input_count = 0
@@ -89,8 +96,8 @@ class WebApp:
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
         if 'results' not in self.global_save_dir:
-            time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            save_dir = './elsciRL-App-output/' + str('results') + '_' + time
+            time_str = datetime.now().strftime("%d-%m-%Y_%H-%M")
+            save_dir = './elsciRL-App-output/' + str('results') + '_' + time_str
             if not os.path.exists(save_dir):                
                 os.mkdir(save_dir)
             self.global_save_dir = save_dir
@@ -102,6 +109,12 @@ class WebApp:
         if not os.path.exists(self.uploads_dir):
             os.makedirs(self.uploads_dir, exist_ok=True)
         print(f"Uploads directory (absolute path): {self.uploads_dir}")
+
+        # Ensure real_time_render subdirectory exists
+        self.real_time_render_dir = os.path.join(self.uploads_dir, 'real_time_render')
+        if not os.path.exists(self.real_time_render_dir):
+            os.makedirs(self.real_time_render_dir, exist_ok=True)
+        print(f"Real-time render directory: {self.real_time_render_dir}")
 
     def home(self):
         template_path = os.path.join(app.template_folder, 'index.html')
@@ -155,15 +168,15 @@ class WebApp:
         all_observed_states = {}
         all_plot_options = {}
         all_experiment_configs = {}
-        for app in self.available_applications:
-            all_observed_states[app] = self.get_observed_states([app])
-            all_local_configs[app] = self.get_local_configs(app)
-            all_plot_options[app] = self.get_plot_options(app)
+        for app_iter in self.available_applications:
+            all_observed_states[app_iter] = self.get_observed_states([app_iter])
+            all_local_configs[app_iter] = self.get_local_configs(app_iter)
+            all_plot_options[app_iter] = self.get_plot_options(app_iter)
             try:
-                all_experiment_configs[app] = list(self.pull_app_data[app]['experiment_configs'].keys())
+                all_experiment_configs[app_iter] = list(self.pull_app_data[app_iter]['experiment_configs'].keys())
             except Exception as e:
-                print(f"Error fetching experiment configs for {app}: {e}")
-                all_experiment_configs[app] = None
+                print(f"Error fetching experiment configs for {app_iter}: {e}")
+                all_experiment_configs[app_iter] = None
         return jsonify({
             'localConfigs': all_local_configs,
             'observedStates': all_observed_states,
@@ -236,7 +249,7 @@ class WebApp:
             with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)
 
-        best_match_dict, instruction_results = self.elsci_run.match(
+        best_match_dict, instruction_results_data = self.elsci_run.match(
             action_cap=5,
             instructions=instructions,
             instr_descriptions=instruction_descriptions
@@ -244,7 +257,7 @@ class WebApp:
         results[application] = best_match_dict
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
-        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results
+        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
@@ -252,16 +265,11 @@ class WebApp:
                 if results[application][instr] is None:
                     console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
                 else:
-                    best_match = results[application][instr]['best_match']
                     console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
-
-                    plot_filename = f'match_plot_{n}.png'
-                    plot_path = os.path.abspath(os.path.join(self.uploads_dir, plot_filename))
-                    print(f"Saving plot to (absolute path): {plot_path}")
 
                     engine_dummy = engine(local_config)
                     engine_dummy.reset() # Reset required by gym environments
-                    instr_match_plot = engine_dummy.render(best_match)
+                    instr_match_plot = engine_dummy.render(results[application][instr]['best_match'])
                     instr_match_plot_filename = f'current_state_plot_{n}.png'
                     instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
                     instr_match_plot.savefig(instr_match_plot_path)
@@ -297,227 +305,231 @@ class WebApp:
         return image_paths
         
 
+    def _perform_training_async(self, job_id, data):
+        job_queue = self.active_jobs[job_id]['queue']
+        self.active_jobs[job_id]['status'] = 'running'
+        figures_to_display = []
+
+        try:
+            application = data.get('selectedApps', [])[0]
+            config_input = data.get('localConfigInput', '')
+            selected_plot = data.get('selectedPlot', '')
+            
+            job_queue.put(f"EVENT: Starting training for application: {application}")
+
+            if len(self.instruction_results_validated) > 0:
+                if application not in self.instruction_results_validated:
+                    error_msg = f"No instruction results found for {application}"
+                    job_queue.put(f"ERROR: {error_msg}")
+                    self.job_results[job_id] = {'figures': [], 'error': error_msg, 'status': 'failed'}
+                    self.active_jobs[job_id]['status'] = 'failed'
+                    job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Failed")
+                    job_queue.put("EVENT: JOB_FAILED")
+                    return
+
+            engine_class = self.pull_app_data[application]['engine']
+            local_config = self.pull_app_data[application]['local_configs'][config_input]
+            adapters = self.pull_app_data[application]['adapters']
+
+            ExperimentConfig = self.config.copy()
+            experimentConfigSelect = data.get('experimentConfigSelect', '')
+            if (experimentConfigSelect is not None) and (experimentConfigSelect != ''):
+                current_app_for_config = application 
+                if current_app_for_config in self.pull_app_data and \
+                   'experiment_configs' in self.pull_app_data[current_app_for_config] and \
+                   experimentConfigSelect in self.pull_app_data[current_app_for_config]['experiment_configs']:
+                    selected_config_data = self.pull_app_data[current_app_for_config]['experiment_configs'][experimentConfigSelect]
+                    if selected_config_data is not None:
+                        ExperimentConfig = selected_config_data.copy()
+                        job_queue.put(f"EVENT: Loaded experiment config: {experimentConfigSelect}")
+                    else:
+                        job_queue.put(f"WARNING: Experiment config '{experimentConfigSelect}' is None. Using default.")
+                else:
+                    job_queue.put(f"WARNING: Experiment config '{experimentConfigSelect}' not found for app '{current_app_for_config}'. Using default.")
+            else:
+                job_queue.put("EVENT: No specific experiment config selected. Using default.")
+
+            selected_agents = data.get('selectedAgents', ['Qlearntab'])
+            training_episodes = data.get('trainingEpisodes', 1000)
+            training_repeats = data.get('trainingRepeats', 5)
+            training_seeds = data.get('trainingSeeds', 1)
+            test_episodes = data.get('testEpisodes', 200)
+            test_repeats = data.get('testRepeats', 10)
+
+            ExperimentConfig.update({
+                'problem_type': data.get('problemType', 'Default'),
+                'number_training_episodes': int(training_episodes),
+                'number_training_repeats': int(training_repeats),
+                'number_training_seeds': int(training_seeds),
+                'number_test_episodes': int(test_episodes),
+                'number_test_repeats': int(test_repeats),
+                'agent_select': selected_agents,
+                'agent_parameters': {}
+            })
+            job_queue.put(f"EVENT: ExperimentConfig updated. Agents: {selected_agents}")
+
+            for agent_id, agent_config_def in self.AGENT_PARAMETER_DEFINITIONS.items():
+                if agent_id in selected_agents:
+                    ExperimentConfig['agent_parameters'][agent_id] = {}
+                    for param_key, param_config in agent_config_def['params'].items():
+                        form_field_name = f"{agent_id}_{param_key}"
+                        value = data.get(form_field_name)
+                        if value is not None:
+                            if param_config['type'] == 'number':
+                                try:
+                                    float_val = float(value)
+                                    ExperimentConfig['agent_parameters'][agent_id][param_key] = int(float_val) if float_val.is_integer() else float_val
+                                except ValueError:
+                                    job_queue.put(f"WARNING: Could not convert {form_field_name} value '{value}' to number. Using default: {param_config['default']}")
+                                    ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
+                            else:
+                                ExperimentConfig['agent_parameters'][agent_id][param_key] = str(value)
+                        else:
+                            job_queue.put(f"WARNING: Param {form_field_name} not found. Using default: {param_config['default']}")
+                            ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
+            
+            if 'LLM_Ollama' in selected_agents:
+                if 'LLM_Ollama' not in ExperimentConfig['agent_parameters']:
+                    ExperimentConfig['agent_parameters']['LLM_Ollama'] = {}
+                ExperimentConfig['agent_parameters']['LLM_Ollama'].update({
+                    "epsilon": float(data.get('LLM_Ollama_epsilon', 0.2)),
+                    'model_name': str(data.get('LLM_Ollama_model_name', 'llama3.2')).lower(),
+                    'system_prompt': str(data.get('LLM_Ollama_system_prompt', ''))
+                })
+
+            selected_adapters = data.get('selectedAdapters', [])
+            agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
+            ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+            job_queue.put(f"EVENT: Adapter dictionary set up: {agent_adapter_dict}")
+
+            instruction_results_map = self.instruction_results_validated.get(application, {})
+            if not instruction_results_map:
+                job_queue.put(f"INFO: No validated instructions for {application}. Standard RL run only.")
+            
+            app_save_dir = os.path.join(self.global_save_dir, application)
+            if not os.path.exists(app_save_dir):
+                os.makedirs(app_save_dir)
+                job_queue.put(f"EVENT: Created app save directory: {app_save_dir}")
+            
+            if instruction_results_map:
+                job_queue.put("EVENT: Training with instructions...")
+                for instr_key, instr_data_path in instruction_results_map.items():
+                    instr_text = "Instruction (details unavailable)"
+                    try:
+                        instr_idx_str = instr_key.split('_')[-1]
+                        instr_idx = int(instr_idx_str)
+                        if 0 <= instr_idx < len(self.correct_instructions):
+                            instr_text = self.correct_instructions[instr_idx]
+                            instr_text = (instr_text[:75] + '...') if len(instr_text) > 75 else instr_text
+                    except ValueError:
+                        job_queue.put(f"WARNING: Could not parse index from instr_key: {instr_key}")
+                    
+                    job_queue.put(f"EVENT: RENDER_PHASE_TITLE: Instruction: {instr_text}")
+                    job_queue.put(f"EVENT: Processing instruction key: {instr_key}")
+                    instr_save_dir = os.path.join(app_save_dir, instr_key)
+                    reinforced_experiment = elsciRLOptimize(
+                        Config=ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=adapters,
+                        save_dir=instr_save_dir, show_figures='No', window_size=0.1,
+                        instruction_path=instr_data_path, predicted_path=None, instruction_episode_ratio=0.1,
+                        instruction_chain=True, instruction_chain_how='exact',
+                        training_render=True, training_render_save_dir=self.real_time_render_dir)
+                    job_queue.put(f"EVENT: Starting train for {instr_key} ({instr_text})")
+                    reinforced_experiment.train()
+                    job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
+                    reinforced_experiment.test()
+                    job_queue.put(f"EVENT: Test complete for {instr_key}. Rendering results.")
+                    reinforced_experiment.render_results()
+                    
+                    render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
+                    if os.path.exists(render_results_dir_instr):
+                        for file_item in os.listdir(render_results_dir_instr):
+                            if file_item.endswith('.gif'):
+                                shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, f'{instr_key}_{file_item}'))
+                                figures_to_display.append(f'uploads/{instr_key}_{file_item}')
+
+                if selected_plot:
+                    analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
+                    for instr_key_analysis in instruction_results_map:
+                        analysis_instance = analysis_class(save_dir=os.path.join(app_save_dir, instr_key_analysis))
+                        for func_name in [f_name for f_name in dir(analysis_instance) if callable(getattr(analysis_instance, f_name)) and not f_name.startswith("__")]:
+                            fig_dict = getattr(analysis_instance, func_name)()
+                            for fig_name, fig_obj in fig_dict.items():
+                                if fig_obj:
+                                    fig_filename = f'{application}_{func_name}_{instr_key_analysis}_{fig_name}.png'
+                                    fig_obj.savefig(os.path.join(self.uploads_dir, fig_filename))
+                                    figures_to_display.append(f'uploads/{fig_filename}')
+        
+            job_queue.put("EVENT: RENDER_PHASE_TITLE: No Instruction")
+            job_queue.put("EVENT: Running standard (no-instruction) experiment...")
+            no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
+            standard_experiment = STANDARD_RL(
+                Config=ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
+                save_dir=no_instr_save_dir, show_figures='No', window_size=0.1,
+                training_render=True, training_render_save_dir=self.real_time_render_dir)
+            job_queue.put("EVENT: Starting standard train.")
+            standard_experiment.train()
+            job_queue.put("EVENT: Standard train complete. Starting test.")
+            standard_experiment.test()
+            job_queue.put("EVENT: Standard test complete. Rendering results.")
+            standard_experiment.render_results()
+            
+            render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
+            if os.path.exists(render_results_dir_std):
+                for file_item_std in os.listdir(render_results_dir_std):
+                    if file_item_std.endswith('.gif'):
+                        shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, f'no-instr_{file_item_std}'))
+                        figures_to_display.append(f'uploads/no-instr_{file_item_std}')
+            
+            if selected_plot:
+                analysis_class_std = self.pull_app_data[application]['local_analysis'][selected_plot]
+                analysis_instance_std = analysis_class_std(save_dir=no_instr_save_dir)
+                for func_name_std in [f_name for f_name in dir(analysis_instance_std) if callable(getattr(analysis_instance_std, f_name)) and not f_name.startswith("__")]:
+                    fig_dict_std = getattr(analysis_instance_std, func_name_std)()
+                    for fig_name_std, fig_obj_std in fig_dict_std.items():
+                        if fig_obj_std:
+                            fig_filename_std = f'{application}_{func_name_std}_no-instr_{fig_name_std}.png'
+                            fig_obj_std.savefig(os.path.join(self.uploads_dir, fig_filename_std))
+                            figures_to_display.append(f'uploads/{fig_filename_std}')
+                        
+            job_queue.put("EVENT: Performing combined variance analysis...")
+            for eval_type in ['training', 'testing']:
+                COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=app_save_dir, analysis_type=eval_type, results_to_show='simple')
+                src_plot = os.path.join(app_save_dir, f"variance_comparison_{eval_type}.png")
+                if os.path.exists(src_plot):
+                    dest_filename = f'{application}_variance_analysis_{eval_type}.png'
+                    shutil.copyfile(src_plot, os.path.join(self.uploads_dir, dest_filename))
+                    figures_to_display.append(f'uploads/{dest_filename}')
+        
+            self.job_results[job_id] = {'figures': figures_to_display, 'status': 'completed'}
+            self.active_jobs[job_id]['status'] = 'completed'
+            job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Ended, See Results Tab")
+            job_queue.put("EVENT: JOB_COMPLETE")
+
+        except Exception as e:
+            error_msg = f"Error during training: {str(e)}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
+            job_queue.put(f"ERROR: {error_msg}")
+            self.job_results[job_id] = {'figures': figures_to_display, 'error': error_msg, 'status': 'failed'}
+            if job_id in self.active_jobs:
+                 self.active_jobs[job_id]['status'] = 'failed'
+            job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Failed")
+            job_queue.put("EVENT: JOB_FAILED")
+
     def train_model(self):
         data = request.json
-        application = data.get('selectedApps', [])[0]
-        config_input = data.get('localConfigInput', '')
-        selected_plot = data.get('selectedPlot', '')
+        job_id = str(uuid.uuid4())
         
-        if len(self.instruction_results_validated) > 0:
-            if application not in self.instruction_results_validated:
-                print(f"No instruction results found for {application}")
-                return jsonify({'error': 'No instruction results found for the selected application'}), 400
+        job_queue = queue.Queue()
+        thread = threading.Thread(target=self._perform_training_async, args=(job_id, data))
         
-        engine = self.pull_app_data[application]['engine']
-        local_config = self.pull_app_data[application]['local_configs'][config_input]
-        adapters = self.pull_app_data[application]['adapters']
-
-        # Get the selected experiment config (use default if none selected)
-        experimentConfigSelect = data.get('experimentConfigSelect', '')
-        # 1) Selection is made, 2) Selection exists, 3) Selection is in the experiment configs
-        if (experimentConfigSelect is not None)&(experimentConfigSelect != ''):
-            if experimentConfigSelect in self.pull_app_data[app]['experiment_configs']:
-                if self.pull_app_data[app]['experiment_configs'][experimentConfigSelect] is not None:
-                    self.ExperimentConfig = self.pull_app_data[app]['experiment_configs'][experimentConfigSelect].copy()
-        else:
-            self.ExperimentConfig = self.config.copy()
-
-        # --- Update Experiment Parameters with User Input ---
-        selected_agents = data.get('selectedAgents', ['Qlearntab'])
-        training_episodes = data.get('trainingEpisodes', 1000)
-        training_repeats = data.get('trainingRepeats', 5)
-        training_seeds = data.get('trainingSeeds', 1)
-        test_episodes = data.get('testEpisodes', 200)
-        test_repeats = data.get('testRepeats', 10)
-        # Qlearntab parameters
-        alpha = data.get('alpha', 0.1)
-        gamma = data.get('gamma', 0.95)
-        epsilon = data.get('epsilon', 0.2)
-        epsilon_step = data.get('epsilonStep', 0.01)
-        # LLM Ollama parameters
-        ollama_epsilon = data.get('ollamaepsilon', 0.2)
-        ollama_model_name = data.get('ollamaModelName', 'llama3.2')
-        ollama_system_prompt = data.get('ollamaSystemPrompt', '')
-
-        self.ExperimentConfig.update({
-            'problem_type': data.get('problemType', 'Default'),
-            'number_training_episodes': int(training_episodes),
-            'number_training_repeats': int(training_repeats),
-            'number_training_seeds': int(training_seeds),
-            'number_test_episodes': int(test_episodes),
-            'number_test_repeats': int(test_repeats),
-            'agent_select': selected_agents,
-            'agent_parameters': {}
-        })
-
-        # Dynamically populate agent parameters
-        for agent_id, agent_config in self.AGENT_PARAMETER_DEFINITIONS.items():
-            if agent_id in selected_agents:
-                self.ExperimentConfig['agent_parameters'][agent_id] = {}
-                for param_key, param_config in agent_config['params'].items():
-                    form_field_name = f"{agent_id}_{param_key}" # Matches the ID in the generic template
-                    value = data.get(form_field_name)
-                    if value is not None:
-                        if param_config['type'] == 'number':
-                            # Attempt to convert to float, then int if it's a whole number
-                            try:
-                                float_val = float(value)
-                                if float_val.is_integer():
-                                    self.ExperimentConfig['agent_parameters'][agent_id][param_key] = int(float_val)
-                                else:
-                                    self.ExperimentConfig['agent_parameters'][agent_id][param_key] = float_val
-                            except ValueError:
-                                print(f"Warning: Could not convert {form_field_name} value '{value}' to number for agent {agent_id}. Using default.")
-                                self.ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
-                        else: # string or textarea
-                            self.ExperimentConfig['agent_parameters'][agent_id][param_key] = str(value)
-                    else:
-                         # Use default if not provided (e.g. checkbox for agent was selected but no params sent or param missing)
-                        print(f"Warning: Parameter {form_field_name} not found in request data for agent {agent_id}. Using default.")
-                        self.ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
+        self.active_jobs[job_id] = {'queue': job_queue, 'thread': thread, 'status': 'initializing'}
+        self.job_results.pop(job_id, None)
         
-        # Fallback for Qlearntab if it's selected but not in AGENT_PARAMETER_DEFINITIONS 
-        # (should not happen with current setup but good for robustness)
-        if 'Qlearntab' in selected_agents and 'Qlearntab' not in self.ExperimentConfig['agent_parameters']:
-             self.ExperimentConfig['agent_parameters']['Qlearntab'] = {
-                'alpha': float(data.get('Qlearntab_alpha', 0.1)), # Keep old way of getting if needed
-                'gamma': float(data.get('Qlearntab_gamma', 0.95)),
-                'epsilon': float(data.get('Qlearntab_epsilon', 0.2)),
-                'epsilon_step': float(data.get('Qlearntab_epsilon_step', 0.01))
-            }
+        thread.start()
+        return jsonify({'job_id': job_id})
 
-        self.ExperimentConfig['agent_parameters']['LLM_Ollama'] = {
-            "epsilon": float(ollama_epsilon),
-            'model_name': str(ollama_model_name).lower(),
-            'system_prompt': str(ollama_system_prompt)
-        }
-
-        # TODO Update all adapter inputs to dict if matching to agents
-        # TODO MAKE THIS A GENERIC FUNCTION CALL IN ELSCIRL
-        # --> otherwise will match all adapters to all agents
-        selected_adapters = data.get('selectedAdapters', [])
-        if len(selected_agents) != 0:
-            agent_adapter_dict = {}
-            for n, agent in enumerate(selected_agents):
-                adapter_list = []
-                for adapter in selected_adapters:
-                    adapter_list.append(adapter)
-                            
-                agent_adapter_dict[agent] = adapter_list
-        else:
-            agent_adapter_dict = list(self.pull_app_data[application]['adapters'].keys())
-        self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
-        # --- End of User Input Update ---
-        # Use validated instructions for training
-        if application in self.instruction_results_validated:
-            instruction_results = self.instruction_results_validated[application]
-            print(instruction_results.keys())
-        else:
-            instruction_results = {}
-        
-        if not os.path.exists(self.global_save_dir+'/'+application):
-            os.mkdir(self.global_save_dir+'/'+application)  
-        
-        # Train for all correctly validated instructions
-        figures_to_display = []   
-        # - If no instructions provided, run a standard RL experiment   
-        if len(instruction_results) != 0:
-            for instr_key, instr_results in instruction_results.items():
-                reinforced_experiment = elsciRLOptimize(
-                                Config=self.ExperimentConfig, 
-                                LocalConfig=local_config, 
-                                Engine=engine, Adapters=adapters,
-                                save_dir=self.global_save_dir+'/'+application + '/'+instr_key, 
-                                show_figures = 'No', window_size=0.1,
-                                instruction_path=instr_results, predicted_path=None, 
-                                instruction_episode_ratio=0.1,
-                                instruction_chain=True, instruction_chain_how='exact',
-                                training_render=True, training_render_save_dir=self.uploads_dir)
-                reinforced_experiment.train()
-                reinforced_experiment.test()
-                reinforced_experiment.render_results()
-                # Get render and add to uploads
-                render_results_dir = os.path.join(self.global_save_dir, application, instr_key, 'Instr_Experiment', 'render_results')
-                if os.path.exists(render_results_dir):
-                    for file in os.listdir(render_results_dir):
-                        if file.endswith('.gif'):
-                            file_path = os.path.join(render_results_dir, file)
-                            new_filename = f'{instr_key}_{file}'
-                            shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
-                            figures_to_display.append(f'uploads/{new_filename}')
-
-            # --- RESULTS ---
-            if selected_plot != '':
-                analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
-                for instr_key, instr_results in instruction_results.items():
-                    analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/'+instr_key)
-                    analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
-
-                    for i, func_name in enumerate(analysis_functions):
-                        func = getattr(analysis_instance, func_name)
-                        fig_dict = func()
-                        for figure_names,figure in fig_dict.items():
-                            if figure:
-                                fig_filename = f'{application}_{func_name}_{instr_key}_{figure_names}.png'
-                                fig_path = os.path.join(self.uploads_dir, fig_filename)
-                                figure.savefig(fig_path)
-                                figures_to_display.append(f'uploads/{fig_filename}')
-        
-        # Baseline flat experiment
-        # - only ran first time otherwise copied from prior input
-        standard_experiment = STANDARD_RL(
-                Config=self.ExperimentConfig, 
-                ProblemConfig=local_config, 
-                Engine=engine, Adapters=adapters,
-                save_dir=self.global_save_dir+'/'+application+'/no-instr', 
-                show_figures = 'No', window_size=0.1,
-                training_render=True, training_render_save_dir=self.uploads_dir)
-        standard_experiment.train()
-        standard_experiment.test()
-        standard_experiment.render_results()
-        flat_agent_run = True
-        # Get render and add to uploads
-        render_results_dir = os.path.join(self.global_save_dir, application, 'no-instr', 'Standard_Experiment', 'render_results')
-        if os.path.exists(render_results_dir):
-            for file in os.listdir(render_results_dir):
-                if file.endswith('.gif'):
-                    file_path = os.path.join(render_results_dir, file)
-                    new_filename = f'no-instr_{file}'
-                    shutil.copyfile(file_path, os.path.join(self.uploads_dir, new_filename))
-                    figures_to_display.append(f'uploads/{new_filename}')
-            
-        # --- RESULTS ---
-        if selected_plot != '':
-            analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
-            analysis_instance = analysis_class(save_dir=self.global_save_dir+'/'+application+'/no-instr')
-            analysis_functions = [func for func in dir(analysis_instance) if callable(getattr(analysis_instance, func)) and not func.startswith("__")]
-
-            for i, func_name in enumerate(analysis_functions):
-                func = getattr(analysis_instance, func_name)
-                fig_dict = func()
-                for figure_names,figure in fig_dict.items():
-                    if figure:
-                        fig_filename = f'{application}_{func_name}_no-instr_{figure_names}.png'
-                        fig_path = os.path.join(self.uploads_dir, fig_filename)
-                        figure.savefig(fig_path)
-                        figures_to_display.append(f'uploads/{fig_filename}')
-                        
-        evaluation_types = ['training', 'testing']
-        for evaluation_type in evaluation_types:
-            COMBINED_VARIANCE_ANALYSIS_GRAPH(
-                results_dir=self.global_save_dir+'/'+application, 
-                analysis_type=evaluation_type, 
-                results_to_show='simple'
-            )
-            variance_plot = self.global_save_dir+'/'+application+"/variance_comparison_" + evaluation_type + ".png"
-            variance_filename = f'{application}_variance_analysis_{evaluation_type}.png'
-            shutil.copyfile(variance_plot, os.path.join(self.uploads_dir, variance_filename))
-            figures_to_display.append(f'uploads/{variance_filename}')
-
-        return jsonify({
-            'figures': figures_to_display
-        })
-    
     def upload_file(self):
         if 'file' not in request.files:
             return 'No file part'
@@ -526,7 +538,7 @@ class WebApp:
             return 'No selected file'
         if file:
             filename = file.filename
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config.get('UPLOAD_FOLDER', self.uploads_dir), filename))
             return 'File uploaded successfully'
 
     def new_instruction(self):
@@ -538,29 +550,29 @@ class WebApp:
 
         is_correct = data.get('isCorrect')
         user_input = data.get('userInput')
-
-        if is_correct is None or user_input is None:
-            print("Error: Invalid data provided")
-            print(f"Received data: {data}")
-            return jsonify({'error': 'Invalid data provided'}), 400            
         
-        print(f"Received confirmation: isCorrect={is_correct}, userInput={user_input}")
-        
-        # Filter instruction results if validated correct
         application = data.get('selectedApps', [])[0]
         if application not in self.instruction_results_validated:
             self.instruction_results_validated[application] = {}
 
         if is_correct:
-            self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = self.instruction_results[application]['instr_'+str(self.global_input_count)]
-            self.correct_instructions.append(user_input)
-            message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+            self.global_input_count += 1
+            if application in self.instruction_results and \
+               'instr_'+str(self.global_input_count) in self.instruction_results[application]:
+                self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = \
+                    self.instruction_results[application]['instr_'+str(self.global_input_count)]
+                
+                self.correct_instructions.append(user_input)
+                message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+            else:
+                message = "<br>Error: Original instruction match data not found. Cannot validate."
+                print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
+                return jsonify({'status': 'error', 'message': message}), 500
         else:
             self.incorrect_instructions.append(user_input)
             message = "<br>Thanks for the feedback. The model will use this to improve."
 
-        # Instr count increased on new instr or when correct/incorrect
-        self.global_input_count += 1
+        
         
         return jsonify({
             'status': 'received',
@@ -572,17 +584,19 @@ class WebApp:
             'correctInstructions': self.correct_instructions
         })
 
-    def get_experiment_config(self, application, config):
-        if not application or not config:
+    def get_experiment_config(self, application, config_name):
+        if not application or not config_name:
             return jsonify({'error': 'Missing application or config parameter'}), 400
         
         try:
-            # Get the experiment config from the pull_app_data
-            experiment_config = self.pull_app_data[application]['experiment_configs'][config]
-            # Augment with AGENT_PARAMETER_DEFINITIONS for the client-side JS
-            experiment_config['_agent_definitions_'] = self.AGENT_PARAMETER_DEFINITIONS
-            print(experiment_config)
-            return jsonify({'config': experiment_config})
+            experiment_config = self.pull_app_data[application]['experiment_configs'][config_name]
+            if experiment_config is None: 
+                return jsonify({'error': f'Experiment config "{config_name}" for app "{application}" is null.'}), 404
+            config_to_send = experiment_config.copy()
+            config_to_send['_agent_definitions_'] = self.AGENT_PARAMETER_DEFINITIONS
+            return jsonify({'config': config_to_send})
+        except KeyError:
+            return jsonify({'error': f'Config "{config_name}" not found for app "{application}".'}), 404
         except Exception as e:
             print(f"Error getting experiment config: {str(e)}")
             return jsonify({'error': 'Failed to get experiment config'}), 500
@@ -590,26 +604,26 @@ class WebApp:
 # ----------------------------------------------------------------
 
 # Initialize WebApp
-WebApp = WebApp()
+WebApp_instance = WebApp()
 
 @app.route('/')
 def home_route():
-    WebApp.load_data()
-    app.config['UPLOAD_FOLDER'] = WebApp.uploads_dir
-    return WebApp.home()
+    WebApp_instance.load_data()
+    app.config['UPLOAD_FOLDER'] = WebApp_instance.uploads_dir
+    return WebApp_instance.home()
 
 @app.route('/process_input', methods=['POST'])
 def process_input_route():
-    response = WebApp.process_input()
+    response = WebApp_instance.process_input()
     return response
 
 @app.route('/confirm_result', methods=['POST'])
 def confirm_result_route():
-    return WebApp.confirm_result()
+    return WebApp_instance.confirm_result()
 
 @app.route('/train_model', methods=['POST'])
 def train_model_route():
-    return WebApp.train_model()
+    return WebApp_instance.train_model()
 
 @app.route('/results', methods=['POST'])
 def search_route():
@@ -618,7 +632,7 @@ def search_route():
 
 @app.route('/upload', methods=['POST'])
 def upload_file_route():
-    return WebApp.upload_file()
+    return WebApp_instance.upload_file()
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -631,8 +645,8 @@ def uploaded_file(filename):
             
         print(f"Serving file from: {file_path}")
         directory = os.path.dirname(file_path)
-        filename = os.path.basename(file_path)
-        return send_from_directory(directory, filename, as_attachment=False)
+        base_filename = os.path.basename(file_path)
+        return send_from_directory(directory, base_filename, as_attachment=False)
     except Exception as e:
         print(f"Error serving file {filename}: {str(e)}")
         return f"Error: {str(e)}", 404
@@ -647,13 +661,13 @@ def static_files(filename):
 
 @app.route('/get_applications')
 def get_applications_route():
-    return WebApp.get_applications()
+    return WebApp_instance.get_applications()
 
 @app.route('/get_observed_states', methods=['POST'])
 def get_observed_states_route():
     data = request.get_json()
     selected_applications = data.get('applications', [])
-    observed_states = WebApp.get_observed_states(selected_applications)
+    observed_states = WebApp_instance.get_observed_states(selected_applications)
     return jsonify({
         'observedStates': observed_states
     })
@@ -662,7 +676,7 @@ def get_observed_states_route():
 def get_local_configs_route():
     data = request.get_json()
     selected_application = data.get('application', [])
-    local_configs = WebApp.get_local_configs(selected_application)
+    local_configs = WebApp_instance.get_local_configs(selected_application)
     return jsonify({
         'localConfigs': local_configs
     })
@@ -671,14 +685,14 @@ def get_local_configs_route():
 def get_plot_options_route():
     data = request.get_json()
     selected_application = data.get('application', '')
-    plot_options = WebApp.get_plot_options(selected_application)
+    plot_options = WebApp_instance.get_plot_options(selected_application)
     return jsonify({
         'plotOptions': plot_options
     })
 
 @app.route('/get_all_options')
 def get_all_options_route():
-    return WebApp.get_all_options()
+    return WebApp_instance.get_all_options()
 
 @app.route('/get_prerender_image', methods=['POST'])
 def get_prerender_image_route():
@@ -686,31 +700,31 @@ def get_prerender_image_route():
     application = data.get('application', '')
     if not application:
         return jsonify({'error': 'No application selected'}), 400
-    image_paths = WebApp.get_prerender_image(application)
+    image_paths = WebApp_instance.get_prerender_image(application)
     if image_paths:
         return jsonify({'imagePaths': image_paths})
     return jsonify({'error': 'No prerender images found'}), 404
 
 @app.route('/new_instruction', methods=['POST'])
 def new_instruction_route():
-    response = WebApp.new_instruction()
+    response = WebApp_instance.new_instruction()
     return response
 
 @app.route('/get_correct_instructions')
 def get_correct_instructions_route():
-    return WebApp.get_correct_instructions()
+    return WebApp_instance.get_correct_instructions()
 
 @app.route('/load_data')
 def load_data_route():
-    WebApp.global_save_dir = ''
-    WebApp.load_data()
+    WebApp_instance.global_save_dir = ''
+    WebApp_instance.load_data()
     return jsonify({'status': 'success'})
 
 @app.route('/get_adapters', methods=['POST'])
 def get_adapters_route():
     data = request.get_json()
     selected_application = data.get('application', '')
-    adapters = WebApp.get_adapters(selected_application)
+    adapters = WebApp_instance.get_adapters(selected_application)
     return jsonify({
         'adapters': adapters
     })
@@ -719,22 +733,102 @@ def get_adapters_route():
 def get_experiment_config_route():
     data = request.get_json()
     application = data.get('application', '')
-    config = data.get('config', '')
+    config_name_req = data.get('config', '')
     
-    if not application or not config:
-        return jsonify({'error': 'Missing application or config parameter'}), 400
-        
-    try:
-        # Get the experiment config from the pull_app_data
-        experiment_config = WebApp.pull_app_data[application]['experiment_configs'][config]
-        # Augment with AGENT_PARAMETER_DEFINITIONS for the client-side JS
-        experiment_config['_agent_definitions_'] = WebApp.AGENT_PARAMETER_DEFINITIONS
-        return jsonify({'config': experiment_config})
-    except Exception as e:
-        print(f"Error getting experiment config: {str(e)}")
-        return jsonify({'error': 'Failed to get experiment config'}), 500
+    return WebApp_instance.get_experiment_config(application, config_name_req)
+
+@app.route('/get_latest_real_time_image', methods=['GET'])
+def get_latest_real_time_image_route():
+    real_time_render_path = WebApp_instance.real_time_render_dir
+    if not os.path.exists(real_time_render_path) or not os.path.isdir(real_time_render_path):
+        return jsonify({'image_path': None, 'filename': None, 'error': 'Real-time render directory not found.'}), 404
+
+    image_files = []
+    for f_name in os.listdir(real_time_render_path):
+        if f_name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            full_path = os.path.join(real_time_render_path, f_name)
+            image_files.append({'name': f_name, 'path': full_path, 'time': os.path.getmtime(full_path)})
+    
+    if not image_files:
+        return jsonify({'image_path': None, 'filename': None, 'message': 'No images found in real-time render directory.'})
+
+    image_files.sort(key=lambda x: x['time'], reverse=True)
+    
+    latest_image = image_files[0]
+    relative_image_path = os.path.join('uploads', 'real_time_render', latest_image['name'])
+    
+    return jsonify({'image_path': relative_image_path, 'filename': latest_image['name']})
+
+@app.route('/stream_job_notifications/<job_id>')
+def stream_job_notifications_route(job_id):
+    if job_id not in WebApp_instance.active_jobs:
+        def empty_stream_for_old_job():
+            yield f"data: ERROR: Job ID {job_id} not found or already cleaned up.\n\n"
+            yield f"data: EVENT: JOB_FAILED\n\n"
+        return Response(empty_stream_for_old_job(), mimetype='text/event-stream')
+
+    job_queue_ref = WebApp_instance.active_jobs[job_id]['queue']
+
+    def generate_notifications():
+        keep_alive_count = 0
+        MAX_KEEP_ALIVES_WITHOUT_MESSAGE = 300
+
+        while True:
+            try:
+                message = job_queue_ref.get(timeout=1)
+                yield f"data: {message}\n\n"
+                if "JOB_COMPLETE" in message or "JOB_FAILED" in message:
+                    if job_id in WebApp_instance.active_jobs:
+                         WebApp_instance.active_jobs[job_id]['status'] = 'terminal_notified'
+                    break
+                keep_alive_count = 0
+            except queue.Empty:
+                keep_alive_count += 1
+                yield ": keepalive\n\n"
+                if keep_alive_count > MAX_KEEP_ALIVES_WITHOUT_MESSAGE:
+                    if job_id in WebApp_instance.active_jobs and WebApp_instance.active_jobs[job_id]['status'] not in ['completed', 'failed', 'terminal_notified']:
+                        WebApp_instance.active_jobs[job_id]['status'] = 'orphaned'
+                    break
+            except Exception as e:
+                print(f"Error in SSE generator for job {job_id}: {e}")
+                try:
+                    yield f"data: SSE_ERROR: Stream error encountered: {str(e)}\n\n"
+                except: pass
+                if job_id in WebApp_instance.active_jobs:
+                    WebApp_instance.active_jobs[job_id]['status'] = 'stream_error'
+                break
+
+    return Response(generate_notifications(), mimetype='text/event-stream')
+
+@app.route('/get_job_status/<job_id>')
+def get_job_status_route(job_id):
+    if job_id in WebApp_instance.active_jobs:
+        status = WebApp_instance.active_jobs[job_id].get('status', 'unknown')
+        if job_id in WebApp_instance.job_results and WebApp_instance.job_results[job_id].get('status') in ['completed', 'failed']:
+             status = WebApp_instance.job_results[job_id]['status']
+        return jsonify({'job_id': job_id, 'status': status})
+    elif job_id in WebApp_instance.job_results:
+        return jsonify({'job_id': job_id, 'status': WebApp_instance.job_results[job_id].get('status', 'completed_unknown_state')})
+    else:
+        return jsonify({'job_id': job_id, 'status': 'not_found'}), 404
+
+@app.route('/get_job_results/<job_id>', methods=['GET'])
+def get_job_results_route(job_id):
+    if job_id in WebApp_instance.job_results:
+        return jsonify({'job_id': job_id, 'results': WebApp_instance.job_results[job_id]})
+    elif job_id in WebApp_instance.active_jobs and WebApp_instance.active_jobs[job_id].get('status') == 'running':
+        return jsonify({'job_id': job_id, 'status': 'running', 'message': 'Job is still processing.'}), 202
+    else:
+        return jsonify({'error': 'Job results not found or job may have failed without storing final results.'}), 404
+    
 
 if __name__ == '__main__':
-    if not os.path.exists(os.path.join(WebApp.global_save_dir, 'uploads')):
-        os.makedirs(os.path.join(WebApp.global_save_dir, 'uploads'))
+    if not os.path.exists(os.path.join(WebApp_instance.global_save_dir, 'uploads')):
+        os.makedirs(os.path.join(WebApp_instance.global_save_dir, 'uploads'))
+    
+    uploads_main_dir = os.path.join(WebApp_instance.global_save_dir, 'uploads')
+    real_time_render_main_dir = os.path.join(uploads_main_dir, 'real_time_render')
+    if not os.path.exists(real_time_render_main_dir):
+        os.makedirs(real_time_render_main_dir, exist_ok=True)
+
     app.run(debug=True)

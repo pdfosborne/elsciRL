@@ -155,6 +155,27 @@
             background-color: #f9f9f9;
             margin-bottom: 20px;
         }
+
+        #realTimeRenderDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            text-align: center; /* Center the image and title */
+        }
+
+        #realTimeRenderDisplay img {
+            max-width: 100%;
+            max-height: 400px; /* Adjust as needed */
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        #realTimeRenderDisplay h4 {
+            color: var(--text-color);
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -367,6 +388,17 @@
                     <p style="margin-top: 15px;"><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
                     <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
                 </div>
+                <div id="realTimeRenderDisplay" style="display: none;">
+                    <h2>Real-time Render</h3>
+                    <h3 id="realTimeRenderPhaseTitle" style="color: var(--text-color); margin-bottom: 5px;">Current Phase: N/A</h3>
+                    <h4 id="realTimeRenderTitle"></h4>
+                    <img id="realTimeRenderImage" src="" alt="Latest Real-time Render" />
+                </div>
+                <div id="trainingLogOutputContainer" style="padding: 20px; display: none;"> 
+                    <h2>Training Log</h3>
+                    <div id="trainingLogOutput"></div>
+                </div>
+                
             </div>
 
             <div id="resultsTab" class="tab-content" style="display:none;">
@@ -398,6 +430,10 @@
         let allPlotOptions = {};
         let allExperimentConfigs = {}; // New global variable for experiment configs
         let agentParameterDefinitions = JSON.parse('{{ agent_parameter_definitions | tojson | safe if agent_parameter_definitions else "{}" }}');
+
+        let imagePollingInterval = null;
+        let jobEventSource = null;
+        let currentJobId = null;
 
         fetch('/get_applications')
             .then(response => response.json())
@@ -808,7 +844,25 @@
             .catch(error => console.error('Error processing new instruction:', error));
         }
 
+        function clearPreviousJobState() {
+            if (jobEventSource) {
+                jobEventSource.close();
+                jobEventSource = null;
+            }
+            if (imagePollingInterval) {
+                clearInterval(imagePollingInterval);
+                imagePollingInterval = null;
+            }
+            currentJobId = null;
+            document.getElementById('realTimeRenderPhaseTitle').textContent = 'Current Phase: N/A';
+            // Optionally clear log and image display areas
+            // document.getElementById('trainingLogOutput').innerHTML = '';
+            // document.getElementById('realTimeRenderDisplay').style.display = 'none';
+        }
+
         async function runExperiment() {
+            clearPreviousJobState(); // Clear any state from a previous run
+
             const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
                 .map(cb => cb.value);
             const selectedAdapters = Array.from(document.querySelectorAll('input[name="adapter"]:checked'))
@@ -829,6 +883,17 @@
                 alert('Please select an application');
                 return;
             }
+            
+            // Hide previous real-time render and log, show loading overlay for the initial request
+            const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+            realTimeRenderDisplay.style.display = 'none';
+            const logContainer = document.getElementById('trainingLogOutputContainer');
+            logContainer.style.display = 'block'; 
+            const trainingLogOutput = document.getElementById('trainingLogOutput');
+            trainingLogOutput.innerHTML = '<p>Initializing experiment...</p>'; // Initial message
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            // loadingOverlay.style.display = 'flex'; // Only show for final results processing
 
             const params = {
                 userInput: document.getElementById('userInput').value,
@@ -843,10 +908,9 @@
                 localConfigInput: localConfig,
                 observedStateInput: observedState,
                 selectedPlot: selectedPlot,
-                experimentConfigSelect: document.getElementById('experimentConfigSelect').value // Pass selected experiment config
+                experimentConfigSelect: document.getElementById('experimentConfigSelect').value
             };
 
-            // Dynamically add agent parameters to the params object
             if (agentParameterDefinitions) {
                 selectedAgents.forEach(agentId => {
                     if (agentParameterDefinitions[agentId] && agentParameterDefinitions[agentId].params) {
@@ -859,9 +923,6 @@
                     }
                 });
             }
-            
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.style.display = 'flex';
 
             try {
                 const response = await fetch('/train_model', {
@@ -872,20 +933,152 @@
                     body: JSON.stringify(params)
                 });
 
-                const data = await response.json();
+                // loadingOverlay.style.display = 'none'; // Handled by SSE and polling logic now
+
+                const data = await response.json(); // This is from /train_model, expecting {job_id: ...}
+                if (data.error) {
+                    console.error('Error starting training job:', data.error);
+                    trainingLogOutput.innerHTML = `<p style="color: red;">Error starting job: ${data.error}</p>`;
+                    return;
+                }
+
+                currentJobId = data.job_id;
+                if (!currentJobId) {
+                    trainingLogOutput.innerHTML = '<p style="color: red;">Failed to get Job ID from server.</p>';
+                    return;
+                }
+
+                trainingLogOutput.innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
+                realTimeRenderDisplay.style.display = 'block';
+                document.getElementById('realTimeRenderTitle').textContent = 'Waiting for first render...';
+                document.getElementById('realTimeRenderImage').src = ''; // Clear previous image
+
+                // Start SSE for job notifications
+                jobEventSource = new EventSource(`/stream_job_notifications/${currentJobId}`);
+
+                jobEventSource.onmessage = function(event) {
+                    const message = event.data;
+                    console.log("SSE Message:", message);
+                    if (message.startsWith("EVENT: RENDER_PHASE_TITLE:")) {
+                        const phaseTitle = message.substring("EVENT: RENDER_PHASE_TITLE:".length).trim();
+                        document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
+                        // Also log this change to the main log for visibility
+                        trainingLogOutput.innerHTML += `<p style="color: mediumpurple;"><strong>Display Title Update:</strong> ${phaseTitle}</p>`;
+                    } else if (message.startsWith("EVENT: JOB_COMPLETE")) {
+                        trainingLogOutput.innerHTML += `<p><strong>${message}</strong></p>`;
+                        if (imagePollingInterval) clearInterval(imagePollingInterval);
+                        imagePollingInterval = null;
+                        jobEventSource.close();
+                        jobEventSource = null;
+                        fetchAndDisplayFinalResults(currentJobId);
+                    } else if (message.startsWith("EVENT: JOB_FAILED")) {
+                        trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
+                        if (imagePollingInterval) clearInterval(imagePollingInterval);
+                        imagePollingInterval = null;
+                        jobEventSource.close();
+                        jobEventSource = null;
+                        // Optionally try to fetch partial results or error details if your backend supports it
+                    } else if (message.startsWith("ERROR:")) {
+                        trainingLogOutput.innerHTML += `<p style="color: red;">${message}</p>`;
+                        // Keep listening for JOB_FAILED, but log error
+                    } else if (message.startsWith("WARNING:")) {
+                        trainingLogOutput.innerHTML += `<p style="color: orange;">${message}</p>`;
+                    } else if (message.startsWith("INFO:") || message.startsWith("EVENT:")) {
+                        trainingLogOutput.innerHTML += `<p>${message}</p>`;
+                    } else if (message.startsWith("SSE_ERROR:") || message.includes("Job ID") && message.includes("not found")){
+                        trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
+                        if (imagePollingInterval) clearInterval(imagePollingInterval);
+                        imagePollingInterval = null;
+                        jobEventSource.close(); // Critical SSE error, stop everything for this job
+                        jobEventSource = null;
+                    }
+                    trainingLogOutput.scrollTop = trainingLogOutput.scrollHeight; // Auto-scroll
+                };
+
+                jobEventSource.onerror = function(err) {
+                    trainingLogOutput.innerHTML += "<p style='color: red;'><strong>Job notification stream error. Connection lost. Polling for images will continue if active.</strong></p>";
+                    console.error("Job EventSource failed:", err);
+                    // Don't necessarily stop image polling here, as the job might still be running
+                    // but do close this specific EventSource instance
+                    if (jobEventSource) {
+                        jobEventSource.close();
+                        jobEventSource = null;
+                    }
+                };
+
+                // Start polling for latest image
+                if (imagePollingInterval) clearInterval(imagePollingInterval); // Clear previous if any
+                imagePollingInterval = setInterval(async () => {
+                    if (!currentJobId) { // Stop if job ID is cleared (e.g., job ended)
+                        if (imagePollingInterval) clearInterval(imagePollingInterval);
+                        return;
+                    }
+                    try {
+                        const rtImageResponse = await fetch(`/get_latest_real_time_image`);
+                        const rtImageData = await rtImageResponse.json();
+                        if (rtImageData.image_path) {
+                            const imgElement = document.getElementById('realTimeRenderImage');
+                            // Only update if src is different to avoid flicker/reload of same image
+                            const newSrc = `/${rtImageData.image_path}?t=${new Date().getTime()}`;
+                            if (imgElement.src !== newSrc) {
+                                imgElement.src = newSrc;
+                            }
+                            document.getElementById('realTimeRenderTitle').textContent = rtImageData.filename;
+                            if(realTimeRenderDisplay.style.display === 'none') realTimeRenderDisplay.style.display = 'block';
+                        } else if (rtImageData.message && document.getElementById('realTimeRenderImage').src === '') {
+                            // Show message only if no image has been loaded yet
+                            const filenameOnly = rtImageData.filename ? `File: ${rtImageData.filename}` : (rtImageData.message || 'Polling for image...');
+                            document.getElementById('realTimeRenderTitle').textContent = filenameOnly;
+                        }
+                        // No need to show error from polling if SSE is active and will report job failure
+                    } catch (rtError) {
+                        console.warn('Error polling for latest real-time image:', rtError);
+                        const currentFileTitle = document.getElementById('realTimeRenderTitle').textContent;
+                        if (!currentFileTitle.includes("File:")) { // Avoid overwriting if a filename is already there
+                            document.getElementById('realTimeRenderTitle').textContent = 'Error polling for image file.';
+                        }
+                    }
+                }, 3000); // Poll every 3 seconds
+
+            } catch (error) {
+                console.error('Error initiating experiment run:', error);
+                trainingLogOutput.innerHTML = `<p style="color: red;">Failed to initiate experiment: ${error}</p>`;
+                if (loadingOverlay) loadingOverlay.style.display = 'none'; // Ensure overlay is off on error
+            }
+        }
+
+        async function fetchAndDisplayFinalResults(jobId) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            const trainingLogOutput = document.getElementById('trainingLogOutput');
+            trainingLogOutput.innerHTML += `<p>Fetching final results for job ${jobId}...</p>`;
+
+            try {
+                const resultsResponse = await fetch(`/get_job_results/${jobId}`);
+                const jobResultsData = await resultsResponse.json();
+
+                if (jobResultsData.error) {
+                    trainingLogOutput.innerHTML += `<p style="color: red;">Error fetching final results: ${jobResultsData.error}</p>`;
+                    return;
+                }
+                
+                const data = jobResultsData.results; // Assuming results are nested under a 'results' key
+                if (!data || data.status === 'failed'){
+                    trainingLogOutput.innerHTML += `<p style="color: red;">Job ${jobId} failed or no results available. Error: ${data ? data.error : 'Unknown'}</p>`;
+                    return;
+                }
+
                 const instructionsSummary = document.getElementById('instructionsSummary');
                 const resultsContainer = document.getElementById('resultsContainer');
                 const varianceAnalysisContainer = document.getElementById('varianceAnalysisContainer');
-                instructionsSummary.innerHTML = ''; // Clear existing instructions summary
-                resultsContainer.innerHTML = ''; // Clear existing results
-                varianceAnalysisContainer.innerHTML = ''; // Clear existing variance analysis
+                instructionsSummary.innerHTML = '';
+                resultsContainer.innerHTML = '';
+                varianceAnalysisContainer.innerHTML = '';
 
-                // Fetch all validated correct instructions
                 const correctInstructionsResponse = await fetch('/get_correct_instructions');
                 const correctInstructionsData = await correctInstructionsResponse.json();
                 const correctInstructions = correctInstructionsData.correctInstructions;
 
-                // Populate instructions summary
                 correctInstructions.forEach((instruction, index) => {
                     const instructionDiv = document.createElement('div');
                     const instructions = instruction.split('\n').join(' - ');
@@ -893,7 +1086,6 @@
                     instructionsSummary.appendChild(instructionDiv);
                 });
 
-                // Populate results and variance analysis
                 if (data.figures && data.figures.length > 0) {
                     data.figures.forEach(figPath => {
                         const img = document.createElement('img');
@@ -901,43 +1093,32 @@
                         img.alt = 'Analysis result';
                         img.className = 'shadow-effect';
                         
+                        const plotContainer = document.createElement('div');
+                        plotContainer.className = 'plot-container';
+                        plotContainer.style.marginBottom = '20px';
+                        
+                        const filename = figPath.split('/').pop().split('.')[0];
+                        const title = document.createElement('h3');
+                        title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        title.style.marginBottom = '10px';
+                        title.style.color = 'var(--text-color)';
+                        
+                        plotContainer.appendChild(title);
+                        plotContainer.appendChild(img);
+
                         if (figPath.includes('variance_analysis')) {
-                            // Create a container for the plot with title
-                            const plotContainer = document.createElement('div');
-                            plotContainer.className = 'plot-container';
-                            plotContainer.style.marginBottom = '20px';
-                            
-                            // Extract filename from path and create title
-                            const filename = figPath.split('/').pop().split('.')[0];
-                            const title = document.createElement('h3');
-                            title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            title.style.marginBottom = '10px';
-                            title.style.color = 'var(--text-color)';
-                            
-                            plotContainer.appendChild(title);
-                            plotContainer.appendChild(img);
                             varianceAnalysisContainer.appendChild(plotContainer);
                         } else {
-                            // Create a container for the plot with title
-                            const plotContainer = document.createElement('div');
-                            plotContainer.className = 'plot-container';
-                            plotContainer.style.marginBottom = '20px';
-                            
-                            // Extract filename from path and create title
-                            const filename = figPath.split('/').pop().split('.')[0];
-                            const title = document.createElement('h3');
-                            title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                            title.style.marginBottom = '10px';
-                            title.style.color = 'var(--text-color)';
-                            
-                            plotContainer.appendChild(title);
-                            plotContainer.appendChild(img);
                             resultsContainer.appendChild(plotContainer);
                         }
                     });
+                } else {
+                     resultsContainer.innerHTML = '<p>No figures were generated or found for this experiment.</p>';
                 }
+
             } catch (error) {
-                console.error('Error running experiment:', error);
+                console.error('Error fetching final results:', error);
+                trainingLogOutput.innerHTML += `<p style="color: red;">Error fetching final results: ${error}</p>`;
             } finally {
                 loadingOverlay.style.display = 'none';
             }

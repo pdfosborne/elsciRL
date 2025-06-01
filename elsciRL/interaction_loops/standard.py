@@ -297,8 +297,8 @@ class StandardInteractionLoop:
                 save_all=True,
                 append_images=render_stack[1:],
                 optimize=False,
-                duration=200,
-                loop=0,
+                duration=200
+                #loop=0, # 0 = infinite loop, 1 = loop once
             )
 
         if self.sub_goal:

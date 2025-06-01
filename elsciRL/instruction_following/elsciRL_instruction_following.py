@@ -251,9 +251,9 @@ class elsciRLOptimize:
         env.agent.epsilon = 0 # Remove random actions
         # ---
         # Render results
-        if not os.path.exists(local_save_dir+'/real_time_render'):
-            os.mkdir(local_save_dir+'/real_time_render')
-        env.episode_loop(render=True, render_save_dir=local_save_dir+'/real_time_render') 
+        if not os.path.exists(local_save_dir):
+            os.mkdir(local_save_dir)
+        env.episode_loop(render=True, render_save_dir=local_save_dir) 
    
     def train(self):
         if not os.path.exists(self.save_dir):

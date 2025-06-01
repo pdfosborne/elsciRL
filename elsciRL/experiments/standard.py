@@ -140,9 +140,9 @@ class Experiment:
         env.agent.epsilon = 0 # Remove random actions
         # ---
         # Render results
-        if not os.path.exists(local_save_dir+'/real_time_render'):
-            os.mkdir(local_save_dir+'/real_time_render')
-        env.episode_loop(render=True, render_save_dir=local_save_dir+'/real_time_render') 
+        if not os.path.exists(local_save_dir):
+            os.mkdir(local_save_dir)
+        env.episode_loop(render=True, render_save_dir=local_save_dir) 
 
     def train(self):
         if not os.path.exists(self.save_dir):
@@ -339,7 +339,7 @@ class Experiment:
         return self.training_setups
 
     # TESTING PLAY
-    def test(self):
+    def test(self, training_setups:str=None):
         # Override input training setups with previously saved 
         if training_setups is None:
             training_setups = self.training_setups
