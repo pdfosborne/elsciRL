@@ -55,8 +55,15 @@ class StandardInteractionLoop:
             self.testing_action_cap,
             self.reward_signal,
         ) = Imports.parameter_info()
+
         # Training or testing phase flag
         self.train = Imports.training_flag()
+
+        # Mode selection (already initialized)
+        if self.train:
+            self.number_episodes = self.num_train_episodes
+        else:
+            self.number_episodes = self.num_test_episodes
         # --- elsciRL
         self.live_env, self.observed_states, self.experience_sampling = (
             Imports.live_env_flag()
@@ -81,12 +88,7 @@ class StandardInteractionLoop:
         self.multi_sub_goal: dict = None
 
     def episode_loop(self, render: bool = False, render_save_dir: str = None):
-        # Mode selection (already initialized)
-        if self.train:
-            number_episodes = self.num_train_episodes
-        else:
-            number_episodes = self.num_test_episodes
-
+        
         sub_goal_tracker = (
             {}
         )  # Used to track sub-goal completion -> re-call most common end state for start of next with EXACT chaining
@@ -96,7 +98,7 @@ class StandardInteractionLoop:
         if render:
             render_stack = []
         print("\n Episode Interaction Loop: ")
-        for episode in tqdm(range(0, number_episodes)):
+        for episode in tqdm(range(0, self.number_episodes)):
             action_history = []
             # ---
             # Start observation is used instead of .reset()  fn so that this can be overridden for repeat analysis from the same start pos
@@ -296,7 +298,7 @@ class StandardInteractionLoop:
                 append_images=render_stack[1:],
                 optimize=False,
                 duration=200,
-                loop=1,
+                loop=0,
             )
 
         if self.sub_goal:

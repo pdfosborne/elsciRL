@@ -36,7 +36,8 @@ class Experiment:
     - Repeats (or seeds if environment start position changes) are used for statistical significant testing
     - Experience Sampling stores observed episodes into a sampled MDP model to learn from to improve training efficiency
     """
-    def __init__(self, Config:dict, ProblemConfig:dict, Engine, Adapters:dict, save_dir:str, show_figures:str, window_size:float): 
+    def __init__(self, Config:dict, ProblemConfig:dict, Engine, Adapters:dict, save_dir:str, show_figures:str, window_size:float, 
+                 training_render:bool=False, training_render_save_dir:str=None): 
         # Environment setup
         # - Multiple Engine support
         if isinstance(Engine, dict):
@@ -59,6 +60,10 @@ class Experiment:
         self.show_figures = show_figures
         if (self.show_figures.lower() != 'y')|(self.show_figures.lower() != 'yes'):
             print("Figures will not be shown and only saved.")
+
+        # Run render results during training to show progress
+        self.training_render = training_render
+        self.training_render_save_dir = training_render_save_dir
 
         try:
             self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data'] 
@@ -113,6 +118,31 @@ class Experiment:
             - Parameters must be defined in the config.json file with matching name."""
         self.AGENT_TYPES[agent_name] = agent
         print("\n Agent added to experiment, all available agents: ", self.AGENT_TYPES)
+
+    @staticmethod
+    def render_current_result(training_setup, current_environment, current_agent, local_save_dir):
+        """Apply fixed policy to render current decision making for limited number of episodes."""
+        # Override input training setups with previously saved 
+        
+        test_setup_info = training_setup
+
+        test_setup_info['train'] = False # Testing Phase
+        test_setup_info['training_results'] = False
+        test_setup_info['observed_states'] = False
+        test_setup_info['experience_sampling'] = False
+        print("----------")
+        print("Rendering trained agent's policy:")
+
+        env = current_environment
+        # ---
+        env.number_episodes = 1 # Only render 1 episode
+        env.agent = current_agent
+        env.agent.epsilon = 0 # Remove random actions
+        # ---
+        # Render results
+        if not os.path.exists(local_save_dir+'/real_time_render'):
+            os.mkdir(local_save_dir+'/real_time_render')
+        env.episode_loop(render=True, render_save_dir=local_save_dir+'/real_time_render') 
 
     def train(self):
         if not os.path.exists(self.save_dir):
@@ -274,6 +304,14 @@ class Experiment:
                                 # Save trained agent to logged output
                                 train_setup_info['train_save_dir'] = agent_save_dir
                                 #train_setup_info['trained_agent'] = agent
+                                if self.training_render:
+                                    if self.training_render_save_dir is None:
+                                        current_render_save_dir = agent_save_dir
+                                    else:
+                                        current_render_save_dir = self.training_render_save_dir
+                                    Experiment.render_current_result(training_setup = train_setup_info,
+                                                                current_environment = live_env, current_agent = live_env.agent,
+                                                                local_save_dir = current_render_save_dir)
                             seed_results_connection[goal] = training_results_stored
 
                             # ----- New: 'best' or 'all' agents saved
@@ -301,7 +339,7 @@ class Experiment:
         return self.training_setups
 
     # TESTING PLAY
-    def test(self, training_setups:str=None):
+    def test(self):
         # Override input training setups with previously saved 
         if training_setups is None:
             training_setups = self.training_setups
@@ -393,8 +431,9 @@ class Experiment:
             # if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
             self.analysis.testing_variance_report(self.save_dir, self.show_figures)
 
+        
     def render_results(self, training_setups:str=None):
-        """Apply fixed policy to render current decision making for limited number of episodes."""
+        """Apply fixed policy to render decision making of all trained agents for limited number of episodes."""
         # Override input training setups with previously saved 
         
         if training_setups is None:

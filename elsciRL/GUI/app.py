@@ -431,7 +431,8 @@ class WebApp:
                                 show_figures = 'No', window_size=0.1,
                                 instruction_path=instr_results, predicted_path=None, 
                                 instruction_episode_ratio=0.1,
-                                instruction_chain=True, instruction_chain_how='exact' )
+                                instruction_chain=True, instruction_chain_how='exact',
+                                training_render=True, training_render_save_dir=self.uploads_dir)
                 reinforced_experiment.train()
                 reinforced_experiment.test()
                 reinforced_experiment.render_results()
@@ -469,7 +470,8 @@ class WebApp:
                 ProblemConfig=local_config, 
                 Engine=engine, Adapters=adapters,
                 save_dir=self.global_save_dir+'/'+application+'/no-instr', 
-                show_figures = 'No', window_size=0.1)
+                show_figures = 'No', window_size=0.1,
+                training_render=True, training_render_save_dir=self.uploads_dir)
         standard_experiment.train()
         standard_experiment.test()
         standard_experiment.render_results()

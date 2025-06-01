@@ -64,7 +64,8 @@ class elsciRLOptimize:
                  Engine, Adapters:dict,
                  save_dir:str, show_figures:str, window_size:float,
                  instruction_path: dict=None, predicted_path: dict=None, instruction_episode_ratio:float=0.1,
-                 instruction_chain:bool=False, instruction_chain_how:str='None'):
+                 instruction_chain:bool=False, instruction_chain_how:str='None',
+                 training_render:bool=False, training_render_save_dir:str=None):
         self.ExperimentConfig = Config
         self.LocalConfig = LocalConfig
 
@@ -94,6 +95,9 @@ class elsciRLOptimize:
         if (self.show_figures.lower() != 'y')|(self.show_figures.lower() != 'yes'):
             print("Figures will not be shown and only saved.")  
 
+        # Run render results during training to show progress
+        self.training_render = training_render
+        self.training_render_save_dir = training_render_save_dir
         # New: Flag for if using gym agents to optimize instead
         # - Generates reward signal from instructions that is passed to gym eng translator
         # - init gym experiment if any gym agent selected
@@ -226,6 +230,30 @@ class elsciRLOptimize:
             print("\n \t - ", instr, " -> ", list(self.instruction_path[instr].keys()))
             self.total_num_instructions+=1
         
+    @staticmethod
+    def render_current_result(training_setup, current_environment, current_agent, local_save_dir):
+        """Apply fixed policy to render current decision making for limited number of episodes."""
+        # Override input training setups with previously saved 
+        
+        test_setup_info = training_setup
+
+        test_setup_info['train'] = False # Testing Phase
+        test_setup_info['training_results'] = False
+        test_setup_info['observed_states'] = False
+        test_setup_info['experience_sampling'] = False
+        print("----------")
+        print("Rendering trained agent's policy:")
+
+        env = current_environment
+        # ---
+        env.number_episodes = 1 # Only render 1 episode
+        env.agent = current_agent
+        env.agent.epsilon = 0 # Remove random actions
+        # ---
+        # Render results
+        if not os.path.exists(local_save_dir+'/real_time_render'):
+            os.mkdir(local_save_dir+'/real_time_render')
+        env.episode_loop(render=True, render_save_dir=local_save_dir+'/real_time_render') 
    
     def train(self):
         if not os.path.exists(self.save_dir):
@@ -617,7 +645,18 @@ class elsciRLOptimize:
                                 
                                 training_results = live_env.episode_loop()
                                 training_results['episode'] = training_results.index
-                                
+
+                            # Render current result after all instructions have been trained
+                            if self.training_render:
+                                if self.training_render_save_dir is None:
+                                    current_render_save_dir = agent_save_dir
+                                else:
+                                    current_render_save_dir = self.training_render_save_dir
+                              
+                                elsciRLOptimize.render_current_result(training_setup = train_setup_info,
+                                                            current_environment = live_env, current_agent = live_env.agent,
+                                                            local_save_dir = current_render_save_dir)
+                              
                             # Opponent now defined in local setup.py
                             # ----- Log training setup      
                             training_results.insert(loc=0, column='Repeat', value=setup_num)                    
@@ -775,9 +814,9 @@ class elsciRLOptimize:
             #if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
             self.analysis.testing_variance_report(self.save_dir, self.show_figures)
 
-
+        
     def render_results(self, training_setups:str=None):
-        """Apply fixed policy to render current decision making for limited number of episodes."""
+        """Apply fixed policy to render decision making for all trained agents for limited number of episodes."""
         # Override input training setups with previously saved 
         if training_setups is None:
             training_setups = self.training_setups
