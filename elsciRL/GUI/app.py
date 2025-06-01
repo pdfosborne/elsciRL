@@ -48,6 +48,36 @@ class WebApp:
         with open(os.path.join(app.static_folder, 'app_setup.md'), "r") as f:
             self.app_setup_info = f.read()
 
+        self.AGENT_PARAMETER_DEFINITIONS = {
+            "Qlearntab": {
+                "display_name": "Q-Learning",
+                "params": {
+                    "alpha": {"label": "Learning Rate (Alpha)", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.1},
+                    "gamma": {"label": "Discount Factor (Gamma)", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.95},
+                    "epsilon": {"label": "Exploration Rate (Epsilon)", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.2},
+                    "epsilon_step": {"label": "Epsilon Step", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.01},
+                }
+            },
+            "LLM_Ollama": {
+                "display_name": "LLM Ollama",
+                "params": {
+                    "epsilon": {"label": "Epsilon", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.2},
+                    "model_name": {"label": "Model Name", "type": "text", "default": "Llama3.2"},
+                    "system_prompt": {"label": "System Prompt", "type": "textarea", "rows": 4, "placeholder": "Enter system prompt...", "default": ""},
+                }
+            },
+            # Add other agents like DQN, SB3_DQN, SB3_PPO, SB3_A2C here if they are re-enabled
+            # For example:
+            # "DQN": {
+            #     "display_name": "Deep Q-Network",
+            #     "params": {
+            #         "input_size": {"label": "Input Size", "type": "number", "min": 1, "default": 64},
+            #         "sent_hidden_dim": {"label": "Sentence Hidden Dimension", "type": "number", "min": 1, "default": 32},
+            #         # ... other DQN params
+            #     }
+            # },
+        }
+
     def load_data(self):
         # Init data here so it reset when page is reloaded
         self.global_input_count = 0
@@ -76,7 +106,7 @@ class WebApp:
     def home(self):
         template_path = os.path.join(app.template_folder, 'index.html')
         print(f"Trying to get HTML file from: {template_path}")
-        return render_template('index.html')
+        return render_template('index.html', agent_parameter_definitions=self.AGENT_PARAMETER_DEFINITIONS)
 
     def get_applications(self):
         return jsonify({
@@ -320,13 +350,41 @@ class WebApp:
             'agent_parameters': {}
         })
 
-        # Always include Qlearntab for search agent
-        self.ExperimentConfig['agent_parameters']['Qlearntab'] = {
-            'alpha': float(alpha),
-            'gamma': float(gamma),
-            'epsilon': float(epsilon),
-            'epsilon_step': float(epsilon_step)
-        }
+        # Dynamically populate agent parameters
+        for agent_id, agent_config in self.AGENT_PARAMETER_DEFINITIONS.items():
+            if agent_id in selected_agents:
+                self.ExperimentConfig['agent_parameters'][agent_id] = {}
+                for param_key, param_config in agent_config['params'].items():
+                    form_field_name = f"{agent_id}_{param_key}" # Matches the ID in the generic template
+                    value = data.get(form_field_name)
+                    if value is not None:
+                        if param_config['type'] == 'number':
+                            # Attempt to convert to float, then int if it's a whole number
+                            try:
+                                float_val = float(value)
+                                if float_val.is_integer():
+                                    self.ExperimentConfig['agent_parameters'][agent_id][param_key] = int(float_val)
+                                else:
+                                    self.ExperimentConfig['agent_parameters'][agent_id][param_key] = float_val
+                            except ValueError:
+                                print(f"Warning: Could not convert {form_field_name} value '{value}' to number for agent {agent_id}. Using default.")
+                                self.ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
+                        else: # string or textarea
+                            self.ExperimentConfig['agent_parameters'][agent_id][param_key] = str(value)
+                    else:
+                         # Use default if not provided (e.g. checkbox for agent was selected but no params sent or param missing)
+                        print(f"Warning: Parameter {form_field_name} not found in request data for agent {agent_id}. Using default.")
+                        self.ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
+        
+        # Fallback for Qlearntab if it's selected but not in AGENT_PARAMETER_DEFINITIONS 
+        # (should not happen with current setup but good for robustness)
+        if 'Qlearntab' in selected_agents and 'Qlearntab' not in self.ExperimentConfig['agent_parameters']:
+             self.ExperimentConfig['agent_parameters']['Qlearntab'] = {
+                'alpha': float(data.get('Qlearntab_alpha', 0.1)), # Keep old way of getting if needed
+                'gamma': float(data.get('Qlearntab_gamma', 0.95)),
+                'epsilon': float(data.get('Qlearntab_epsilon', 0.2)),
+                'epsilon_step': float(data.get('Qlearntab_epsilon_step', 0.01))
+            }
 
         self.ExperimentConfig['agent_parameters']['LLM_Ollama'] = {
             "epsilon": float(ollama_epsilon),
@@ -519,6 +577,8 @@ class WebApp:
         try:
             # Get the experiment config from the pull_app_data
             experiment_config = self.pull_app_data[application]['experiment_configs'][config]
+            # Augment with AGENT_PARAMETER_DEFINITIONS for the client-side JS
+            experiment_config['_agent_definitions_'] = self.AGENT_PARAMETER_DEFINITIONS
             print(experiment_config)
             return jsonify({'config': experiment_config})
         except Exception as e:
@@ -665,6 +725,8 @@ def get_experiment_config_route():
     try:
         # Get the experiment config from the pull_app_data
         experiment_config = WebApp.pull_app_data[application]['experiment_configs'][config]
+        # Augment with AGENT_PARAMETER_DEFINITIONS for the client-side JS
+        experiment_config['_agent_definitions_'] = WebApp.AGENT_PARAMETER_DEFINITIONS
         return jsonify({'config': experiment_config})
     except Exception as e:
         print(f"Error getting experiment config: {str(e)}")

@@ -1,0 +1,17 @@
+<div id="{{ agent_id }}-params" class="config-group" style="flex: 1; display: none;">
+    <h3>{{ agent_config.display_name }} Parameters</h3>
+    {% for param_key, param_config in agent_config.params.items() %}
+    <div class="training-params">
+        <label for="{{ agent_id }}_{{ param_key }}">{{ param_config.label }}:</label>
+        {% if param_config.type == 'textarea' %}
+        <textarea id="{{ agent_id }}_{{ param_key }}" name="{{ agent_id }}_{{ param_key }}" rows="{{ param_config.rows | default(4) }}" placeholder="{{ param_config.placeholder | default('') }}">{{ param_config.default }}</textarea>
+        {% else %}
+        <input type="{{ param_config.type }}" id="{{ agent_id }}_{{ param_key }}" name="{{ agent_id }}_{{ param_key }}"
+               {% if param_config.min is defined %}min="{{ param_config.min }}"{% endif %}
+               {% if param_config.max is defined %}max="{{ param_config.max }}"{% endif %}
+               {% if param_config.step is defined %}step="{{ param_config.step }}"{% endif %}
+               value="{{ param_config.default }}">
+        {% endif %}
+    </div>
+    {% endfor %}
+</div> 

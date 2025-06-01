@@ -236,9 +236,10 @@
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
                             <h3>Agent Type</h3>
+                            <!-- TODO: DEFINE AGENTS THAT ARE READY, UNCHECK SO PARAMTERS SHOWS WHEN CHECKED -->
                             <div class="applications-checklist">
                                 <div class="application-item">
-                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab" checked>
+                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab" unchecked>
                                     <label for="agent-Qlearntab">Q-Learning</label>
                                 </div>
                                 <!-- TODO: DISABLED NEURAL AGENTS FOR NOW, UNCOMMENT WHEN READY -->
@@ -259,7 +260,7 @@
                                     <label for="agent-SB3_A2C">Stable Baselines A2C</label>
                                 </div> -->
                                 <div class="application-item">
-                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama" checked>
+                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama" unchecked>
                                     <label for="agent-LLM_Ollama">LLM Ollama Local</label>
                                 </div>
                             </div>
@@ -302,144 +303,12 @@
                         </div>
                     </div>
 
-                    <div id="qlearn-params" class="config-group" style="flex: 1;">
-                        <h3>Q-Learning Parameters</h3>
-                        <div class="training-params">
-                            <label for="alpha">Learning Rate (Alpha):</label>
-                            <input type="number" id="alpha" min="0" max="1" value="0.1" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="gamma">Discount Factor (Gamma):</label>
-                            <input type="number" id="gamma" min="0" max="1" value="0.95" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="epsilon">Exploration Rate (Epsilon):</label>
-                            <input type="number" id="epsilon" min="0" max="1" value="0.2" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="epsilonStep">Epsilon Step:</label>
-                            <input type="number" id="epsilonStep" min="0" max="1" value="0.01" step="0.001">
-                        </div>
-                    </div>
-                    <div id="dqn-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>DQN Parameters</h3>
-                        <div class="training-params">
-                            <label for="input_size">Input Size:</label>
-                            <input type="number" id="input_size" min="1" value="64">
-                        </div>
-                        <div class="training-params">
-                            <label for="sent_hidden_dim">Sentence Hidden Dimension:</label>
-                            <input type="number" id="sent_hidden_dim" min="1" value="32">
-                        </div>
-                        <div class="training-params">
-                            <label for="hidden_dim">Hidden Dimension:</label>
-                            <input type="number" id="hidden_dim" min="1" value="64">
-                        </div>
-                        <div class="training-params">
-                            <label for="num_hidden">Number of Hidden Layers:</label>
-                            <input type="number" id="num_hidden" min="1" value="2">
-                        </div>
-                        <div class="training-params">
-                            <label for="sequence_size">Sequence Size:</label>
-                            <input type="number" id="sequence_size" min="1" value="32">
-                        </div>
-                        <div class="training-params">
-                            <label for="memory_size">Memory Size:</label>
-                            <input type="number" id="memory_size" min="1" value="2000">
-                        </div>
-                        <div class="training-params">
-                            <label for="target_replace_iter">Target Replace Iterations:</label>
-                            <input type="number" id="target_replace_iter" min="1" value="100">
-                        </div>
-                        <div class="training-params">
-                            <label for="learning_rate">Learning Rate:</label>
-                            <input type="number" id="learning_rate" min="0" max="1" value="0.01" step="0.001">
-                        </div>
-                        <div class="training-params">
-                            <label for="batch_size">Batch Size:</label>
-                            <input type="number" id="batch_size" min="1" value="32">
-                        </div>
-                        <div class="training-params">
-                            <label for="output_size">Output Size:</label>
-                            <input type="number" id="output_size" min="1" value="4">
-                        </div>
-                        <div class="training-params">
-                            <label for="learn_step_counter">Learn Step Counter:</label>
-                            <input type="number" id="learn_step_counter" min="0" value="0">
-                        </div>
-                        <div class="training-params">
-                            <label for="dqn_epsilon">Epsilon:</label>
-                            <input type="number" id="dqn_epsilon" min="0" max="1" value="0.9" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="dqn_epsilon_step">Epsilon Step:</label>
-                            <input type="number" id="dqn_epsilon_step" min="0" max="1" value="0.0005" step="0.0001">
-                        </div>
-                    </div>
-                    
-                    <div id="sb3-dqn-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>SB3 DQN Parameters</h3>
-                        <div class="training-params">
-                            <label for="sb3_policy">Policy:</label>
-                            <input type="text" id="sb3_policy" value="MlpPolicy">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_learning_rate">Learning Rate:</label>
-                            <input type="number" id="sb3_learning_rate" min="0" max="1" value="0.0001" step="0.0001">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_buffer_size">Buffer Size:</label>
-                            <input type="number" id="sb3_buffer_size" min="1" value="1000000">
-                        </div>
-                    </div>
-
-                    <div id="sb3-ppo-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>SB3 PPO Parameters</h3>
-                        <div class="training-params">
-                            <label for="sb3_ppo_policy">Policy:</label>
-                            <input type="text" id="sb3_ppo_policy" value="MlpPolicy">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_ppo_learning_rate">Learning Rate:</label>
-                            <input type="number" id="sb3_ppo_learning_rate" min="0" max="1" value="0.0003" step="0.0001">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_ppo_n_steps">N Steps:</label>
-                            <input type="number" id="sb3_ppo_n_steps" min="1" value="2048">
-                        </div>
-                    </div>
-
-                    <div id="sb3-a2c-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>SB3 A2C Parameters</h3>
-                        <div class="training-params">
-                            <label for="sb3_a2c_policy">Policy:</label>
-                            <input type="text" id="sb3_a2c_policy" value="MlpPolicy">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_a2c_learning_rate">Learning Rate:</label>
-                            <input type="number" id="sb3_a2c_learning_rate" min="0" max="1" value="0.0007" step="0.0001">
-                        </div>
-                        <div class="training-params">
-                            <label for="sb3_a2c_n_steps">N Steps:</label>
-                            <input type="number" id="sb3_a2c_n_steps" min="1" value="500">
-                        </div>
-                    </div>
-
-                    <div id="LLM-Ollama-params" class="config-group" style="flex: 1; display: none;">
-                        <h3>LLM Ollama Parameters</h3>
-                        <div class="training-params">
-                            <label for="LLM_Ollama_epsilon">Epsilon:</label>
-                            <input type="number" id="LLM_Ollama_epsilon" min="0" max="1" value="0.2" step="0.01">
-                        </div>
-                        <div class="training-params">
-                            <label for="LLM_Ollama_model_name">Model Name:</label>
-                            <input type="text" id="LLM_Ollama_model_name" value="Llama3.2">
-                        </div>
-                        <div class="training-params">
-                            <label for="LLM_Ollama_system_prompt">System Prompt:</label>
-                            <textarea id="LLM_Ollama_system_prompt" rows="4" placeholder="Enter system prompt..."></textarea>
-                        </div>
-                    </div>
+                    {# Dynamically include agent parameter forms #}
+                    {% if agent_parameter_definitions %}
+                        {% for agent_id, agent_config in agent_parameter_definitions.items() %}
+                            {% include 'agent_params/_generic_agent_param_form.html' %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
 
@@ -520,6 +389,7 @@
         let allObservedStates = {};
         let allPlotOptions = {};
         let allExperimentConfigs = {}; // New global variable for experiment configs
+        let agentParameterDefinitions = JSON.parse('{{ agent_parameter_definitions | tojson | safe if agent_parameter_definitions else "{}" }}');
 
         fetch('/get_applications')
             .then(response => response.json())
@@ -665,45 +535,22 @@
                                     document.getElementById('testEpisodes').value = data.config.number_test_episodes || 200;
                                     document.getElementById('testRepeats').value = data.config.number_test_repeats || 10;
 
-                                    // Update Q-Learning parameters if they exist
-                                    if (data.config.agent_parameters && data.config.agent_parameters.Qlearntab) {
-                                        const qlearnParams = data.config.agent_parameters.Qlearntab;
-                                        document.getElementById('alpha').value = qlearnParams.alpha || 0.1;
-                                        document.getElementById('gamma').value = qlearnParams.gamma || 0.95;
-                                        document.getElementById('epsilon').value = qlearnParams.epsilon || 0.2;
-                                        document.getElementById('epsilonStep').value = qlearnParams.epsilon_step || 0.01;
-                                    }
-
-                                    // Update SB3 DQN parameters if they exist
-                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_DQN) {
-                                        const sb3DqnParams = data.config.agent_parameters.SB3_DQN;
-                                        document.getElementById('sb3_policy').value = sb3DqnParams.policy || 'MlpPolicy';
-                                        document.getElementById('sb3_learning_rate').value = sb3DqnParams.learning_rate || 0.0001;
-                                        document.getElementById('sb3_buffer_size').value = sb3DqnParams.buffer_size || 1000000;
-                                    }
-
-                                    // Update SB3 PPO parameters if they exist
-                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_PPO) {
-                                        const sb3PpoParams = data.config.agent_parameters.SB3_PPO;
-                                        document.getElementById('sb3_ppo_policy').value = sb3PpoParams.policy || 'MlpPolicy';
-                                        document.getElementById('sb3_ppo_learning_rate').value = sb3PpoParams.learning_rate || 0.0003;
-                                        document.getElementById('sb3_ppo_n_steps').value = sb3PpoParams.n_steps || 2048;
-                                    }
-
-                                    // Update SB3 A2C parameters if they exist
-                                    if (data.config.agent_parameters && data.config.agent_parameters.SB3_A2C) {
-                                        const sb3A2cParams = data.config.agent_parameters.SB3_A2C;
-                                        document.getElementById('sb3_a2c_policy').value = sb3A2cParams.policy || 'MlpPolicy';
-                                        document.getElementById('sb3_a2c_learning_rate').value = sb3A2cParams.learning_rate || 0.0007;
-                                        document.getElementById('sb3_a2c_n_steps').value = sb3A2cParams.n_steps || 500;
-                                    }
-
-                                    // Update LLM Ollama parameters if they exist
-                                    if (data.config.agent_parameters && data.config.agent_parameters.LLM_Ollama) {
-                                        const LLMOllamaParams = data.config.agent_parameters.LLM_Ollama;
-                                        document.getElementById('LLM_Ollama_epsilon').value = LLMOllamaParams.epsilon || 'Llama3.2';
-                                        document.getElementById('LLM_Ollama_model_name').value = LLMOllamaParams.model_name || 'Llama3.2';
-                                        document.getElementById('LLM_Ollama_system_prompt').value = LLMOllamaParams.system_prompt || '';
+                                    // Dynamically update agent-specific parameters
+                                    if (data.config.agent_parameters && agentParameterDefinitions) {
+                                        for (const agentId in data.config.agent_parameters) {
+                                            if (agentParameterDefinitions[agentId] && data.config.agent_parameters[agentId]) {
+                                                const agentParamsInConfig = data.config.agent_parameters[agentId];
+                                                const agentParamDefs = agentParameterDefinitions[agentId].params;
+                                                for (const paramKey in agentParamDefs) {
+                                                    const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                                                    if (inputElement && agentParamsInConfig.hasOwnProperty(paramKey)) {
+                                                        inputElement.value = agentParamsInConfig[paramKey];
+                                                    } else if (inputElement) {
+                                                        inputElement.value = agentParamDefs[paramKey].default;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
 
                                     // Update adapter checkboxes
@@ -969,10 +816,6 @@
             const trainingSeeds = parseInt(document.getElementById('trainingSeeds').value);
             const testEpisodes = parseInt(document.getElementById('testEpisodes').value);
             const testRepeats = parseInt(document.getElementById('testRepeats').value);
-            const alpha = parseFloat(document.getElementById('alpha').value);
-            const gamma = parseFloat(document.getElementById('gamma').value);
-            const epsilon = parseFloat(document.getElementById('epsilon').value);
-            const epsilonStep = parseFloat(document.getElementById('epsilonStep').value);
 
             if (!selectedApp) {
                 alert('Please select an application');
@@ -986,62 +829,29 @@
                 trainingSeeds: trainingSeeds,
                 testEpisodes: testEpisodes,
                 testRepeats: testRepeats,
-                alpha: alpha,
-                gamma: gamma,
-                epsilon: epsilon,
-                epsilonStep: epsilonStep,
                 selectedAgents: selectedAgents,
                 selectedAdapters: selectedAdapters,
                 selectedApps: [selectedApp],
                 localConfigInput: localConfig,
                 observedStateInput: observedState,
                 selectedPlot: selectedPlot,
+                experimentConfigSelect: document.getElementById('experimentConfigSelect').value // Pass selected experiment config
             };
 
-            if (selectedAgents.includes('DQN')) {
-                params.dqnParams = {
-                    input_size: parseInt(document.getElementById('input_size').value),
-                    sent_hidden_dim: parseInt(document.getElementById('sent_hidden_dim').value),
-                    hidden_dim: parseInt(document.getElementById('hidden_dim').value),
-                    num_hidden: parseInt(document.getElementById('num_hidden').value),
-                    sequence_size: parseInt(document.getElementById('sequence_size').value),
-                    memory_size: parseInt(document.getElementById('memory_size').value),
-                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value),
-                    learning_rate: parseFloat(document.getElementById('learning_rate').value),
-                    batch_size: parseInt(document.getElementById('batch_size').value),
-                    output_size: parseInt(document.getElementById('output_size').value),
-                    learn_step_counter: parseInt(document.getElementById('learn_step_counter').value),
-                    epsilon: parseFloat(document.getElementById('dqn_epsilon').value),
-                    epsilon_step: parseFloat(document.getElementById('dqn_epsilon_step').value),
-                    // action_space_index: document.getElementById('action_space_index').value,
-                    target_replace_iter: parseInt(document.getElementById('target_replace_iter').value)
-                };
+            // Dynamically add agent parameters to the params object
+            if (agentParameterDefinitions) {
+                selectedAgents.forEach(agentId => {
+                    if (agentParameterDefinitions[agentId] && agentParameterDefinitions[agentId].params) {
+                        for (const paramKey in agentParameterDefinitions[agentId].params) {
+                            const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                            if (inputElement) {
+                                params[`${agentId}_${paramKey}`] = inputElement.value;
+                            }
+                        }
+                    }
+                });
             }
-
-            if (selectedAgents.includes('SB3_DQN')) {
-                params.sbDqnParams = {
-                    policy: document.getElementById('sb3_policy').value,
-                    learning_rate: parseFloat(document.getElementById('sb3_learning_rate').value),
-                    buffer_size: parseInt(document.getElementById('sb3_buffer_size').value)
-                };
-            }
-
-            if (selectedAgents.includes('SB3_PPO')) {
-                params.sb3PpoParams = {
-                    policy: document.getElementById('sb3_ppo_policy').value,
-                    learning_rate: parseFloat(document.getElementById('sb3_ppo_learning_rate').value),
-                    n_steps: parseInt(document.getElementById('sb3_ppo_n_steps').value)
-                };
-            }
-
-            if (selectedAgents.includes('SB3_A2C')) {
-                params.sb3A2cParams = {
-                    policy: document.getElementById('sb3_a2c_policy').value,
-                    learning_rate: parseFloat(document.getElementById('sb3_a2c_learning_rate').value),
-                    n_steps: parseInt(document.getElementById('sb3_a2c_n_steps').value)
-                };
-            }
-
+            
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
 
@@ -1164,17 +974,36 @@
                 const sb3A2cParams = document.getElementById('sb3-a2c-params');
                 const LLMOllamaParams = document.getElementById('LLM-Ollama-params');
                 
-                if (this.value === 'Qlearntab') {
+                // Generic handling for all agent parameter sections
+                if (agentParameterDefinitions) {
+                    for (const agentId in agentParameterDefinitions) {
+                        const agentParamsDiv = document.getElementById(`${agentId}-params`);
+                        if (agentParamsDiv) {
+                            if (this.value === agentId) {
+                                agentParamsDiv.style.display = this.checked ? 'block' : 'none';
+                            } else if (!document.getElementById(`agent-${agentId}`).checked) {
+                                // Hide other non-selected agent param divs if this one is being unchecked.
+                                // This logic might need refinement if multiple agents can be selected and their params shown simultaneously.
+                                // For now, it assumes one agent's params are shown at a time based on its checkbox.
+                                // agentParamsDiv.style.display = 'none'; 
+                            }
+                        }
+                    }
+                }
+
+                // Keep specific handling for old IDs if they exist for some reason (e.g. during transition)
+                // or if new agents are added without using the generic template (not recommended)
+                if (this.value === 'Qlearntab' && qlearnParams) {
                     qlearnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'DQN') {
+                } else if (this.value === 'DQN' && dqnParams) {
                     dqnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_DQN') {
+                } else if (this.value === 'SB3_DQN' && sb3DqnParams) {
                     sb3DqnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_PPO') {
+                } else if (this.value === 'SB3_PPO' && sb3PpoParams) {
                     sb3PpoParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_A2C') {
+                } else if (this.value === 'SB3_A2C' && sb3A2cParams) {
                     sb3A2cParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'LLM_Ollama') {
+                } else if (this.value === 'LLM_Ollama' && LLMOllamaParams) {
                     LLMOllamaParams.style.display = this.checked ? 'block' : 'none';
                 }
             });
