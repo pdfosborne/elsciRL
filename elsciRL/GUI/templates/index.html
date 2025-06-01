@@ -168,6 +168,7 @@
                     <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
                     <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Language Input</button>
+                    <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Train Model</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
                 <div class="tab-text">
@@ -314,7 +315,6 @@
 
             <div id="inputTab" class="tab-content" style="display:block;">
                 <div align="center">   
-                    <button id="runExperimentBtn" onclick="runExperiment()">Run Experiment</button>
                     <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
                 </div>
 
@@ -358,6 +358,14 @@
                         <img id="additionalPrerenderImage" class="shadow-effect" style="display: none;">
                     </div>
                     <div id="instructionMatchPlots" class="image-section shadow-effect"></div>
+                </div>
+            </div>
+
+            <div id="trainModelTab" class="tab-content" style="display:none;">
+                <div align="center" style="padding-top: 20px;">   
+                    <button id="runExperimentBtn" onclick="runExperiment()">Run Experiment</button>
+                    <p style="margin-top: 15px;"><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
+                    <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
                 </div>
             </div>
 
@@ -951,7 +959,10 @@
             if (evt) {
                 evt.currentTarget.className += " active";
             } else {
-                document.querySelector(`[onclick="openTab(event, '${tabName}')"]`).className += " active";
+                const defaultActiveButton = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+                if (defaultActiveButton) {
+                    defaultActiveButton.className += " active";
+                }            
             }
         }
 

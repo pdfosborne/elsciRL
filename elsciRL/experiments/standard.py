@@ -79,7 +79,7 @@ class Experiment:
                 self.is_gym_agent[agent_type] = True 
                 self.gym_exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig=self.LocalConfig, 
                         Engine=self.engine, Adapters=self.adapters,
-                        save_dir=self.save_dir, show_figures = 'No', window_size=0.1)
+                        save_dir=self.save_dir, show_figures = self.show_figures, window_size=0.1)
             else:
                 self.is_gym_agent[agent_type] = False 
         # ---
