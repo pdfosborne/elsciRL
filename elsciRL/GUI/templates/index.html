@@ -188,7 +188,7 @@
                 <div class="tab-buttons">
                     <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
-                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Language Input</button>
+                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Instruction Input</button>
                     <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Train Model</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
@@ -337,6 +337,7 @@
             <div id="inputTab" class="tab-content" style="display:block;">
                 <div align="center">   
                     <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
+                    <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="margin-bottom: 15px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
                 </div>
 
                 <div class="input-console-container" style="display: flex; gap: 20px;">
@@ -1200,6 +1201,41 @@
                 }
             });
         });
+
+        async function resetAllInstructions() {
+            if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset_all_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    document.getElementById('userInput').value = '';
+                    document.getElementById('consoleOutput').innerHTML = '';
+                    document.getElementById('instructionMatchPlots').innerHTML = '';
+                    document.getElementById('confirmationResult').innerHTML = '<p style="color: green;">All instructions have been reset.</p>';
+                    // Call newInstruction to reset any client-side counters or states related to current input if needed
+                    // This will also effectively reset global_input_count on server if new_instruction makes a call that implies it.
+                    // However, /reset_all_instructions already resets global_input_count on server.
+                    // For simple UI reset:
+                    fetch('/new_instruction', { method: 'POST' }) // This ensures any specific UI state tied to new_instruction is also reset
+                        .then(() => console.log("Client-side new instruction state also reset."))
+                        .catch(err => console.error("Error calling /new_instruction during reset:", err));
+                    
+                    alert(data.message);
+                } else {
+                    alert("Failed to reset instructions: " + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error resetting instructions:', error);
+                alert('An error occurred while trying to reset instructions.');
+            }
+        }
 
     </script>
 </body>

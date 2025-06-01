@@ -413,11 +413,20 @@ class WebApp:
             
             if instruction_results_map:
                 job_queue.put("EVENT: Training with instructions...")
+
+                # Instruction keys can skip numbers which miss-aligns lookup of correct instructions from list
+                # TODO: Make self.correct_instructions a dictionary with keys as instr_key and values as instruction text
+                instr_key_lookup = {}
+                idx_fix = 0
+                for instr_key, instr_data_path in instruction_results_map.items():
+                    if 'instr_' in instr_key:
+                        instr_key_lookup[instr_key] = idx_fix
+                        idx_fix+=1
+                # ---
                 for instr_key, instr_data_path in instruction_results_map.items():
                     instr_text = "Instruction (details unavailable)"
                     try:
-                        instr_idx_str = instr_key.split('_')[-1]
-                        instr_idx = int(instr_idx_str)
+                        instr_idx = instr_key_lookup[instr_key]
                         if 0 <= instr_idx < len(self.correct_instructions):
                             instr_text = self.correct_instructions[instr_idx]
                             instr_text = (instr_text[:75] + '...') if len(instr_text) > 75 else instr_text
@@ -542,7 +551,7 @@ class WebApp:
             return 'File uploaded successfully'
 
     def new_instruction(self):
-        self.global_input_count += 1
+        self.global_input_count = len(self.correct_instructions)+1
         return jsonify({'status': 'success'})
 
     def confirm_result(self):
@@ -556,7 +565,6 @@ class WebApp:
             self.instruction_results_validated[application] = {}
 
         if is_correct:
-            self.global_input_count += 1
             if application in self.instruction_results and \
                'instr_'+str(self.global_input_count) in self.instruction_results[application]:
                 self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = \
@@ -568,12 +576,11 @@ class WebApp:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
                 print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                 return jsonify({'status': 'error', 'message': message}), 500
+            self.global_input_count = len(self.correct_instructions)+1
         else:
             self.incorrect_instructions.append(user_input)
             message = "<br>Thanks for the feedback. The model will use this to improve."
 
-        
-        
         return jsonify({
             'status': 'received',
             'message': message
@@ -583,6 +590,24 @@ class WebApp:
         return jsonify({
             'correctInstructions': self.correct_instructions
         })
+
+    def reset_all_instructions_data(self):
+        # Reset the global save directory to a new timestamped directory
+        time_str = datetime.now().strftime("%d-%m-%Y_%H-%M")
+        self.global_save_dir = './elsciRL-App-output/' + str('results') + '_' + time_str
+        if not os.path.exists(self.global_save_dir):                
+            os.mkdir(self.global_save_dir)
+        
+        # Clear the instruction results and validated results
+        self.global_input_count = 0
+        self.instruction_results = {}
+        self.instruction_results_validated = {}
+        self.correct_instructions = []
+        self.incorrect_instructions = []
+        # Also clear any files that might have been generated based on these, if necessary.
+        # For now, just resetting the state variables.
+        print("All instruction-related data has been reset.")
+        return jsonify({'status': 'success', 'message': 'All instruction data reset.'})
 
     def get_experiment_config(self, application, config_name):
         if not application or not config_name:
@@ -623,6 +648,8 @@ def confirm_result_route():
 
 @app.route('/train_model', methods=['POST'])
 def train_model_route():
+    # Set a new instruction call when training is started as default behavior
+    WebApp_instance.new_instruction()
     return WebApp_instance.train_model()
 
 @app.route('/results', methods=['POST'])
@@ -713,6 +740,10 @@ def new_instruction_route():
 @app.route('/get_correct_instructions')
 def get_correct_instructions_route():
     return WebApp_instance.get_correct_instructions()
+
+@app.route('/reset_all_instructions', methods=['POST'])
+def reset_all_instructions_route():
+    return WebApp_instance.reset_all_instructions_data()
 
 @app.route('/load_data')
 def load_data_route():
