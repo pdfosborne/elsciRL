@@ -67,7 +67,7 @@ class Applications:
             "Chess":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Chess",
-                "commit_id": "4bf736f",
+                "commit_id": "b153670",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -75,7 +75,8 @@ class Applications:
                 "local_config_filenames": {"Osborne2024_env":"config_local.json"},
                 "local_adapter_folder": "adapters",
                 "adapter_filenames": {"numeric_piece_counter":"numeric_piece_counter", 
-                                      "active_pieces_language":"language_active_pieces"},
+                                      "active_pieces_language":"language_active_pieces",
+                                      "LLM_Generator":"LLM_adapter"},
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",

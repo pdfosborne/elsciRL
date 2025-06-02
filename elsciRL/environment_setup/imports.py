@@ -1,12 +1,12 @@
 from typing import List
-from elsciRL.agents.agent_abstract import Agent, QLearningAgent
+from elsciRL.agents.agent_abstract import Agent, QLearningAgent, LLMAgentAbstract
 
 class ImportHelper:
     def __init__(self, local_setup_info:dict={}) -> None:
         self.setup_info = local_setup_info
 
     def agent_info(self, STATE_ADAPTER_TYPES:dict={}):
-        agent: Agent | QLearningAgent = self.setup_info['agent']
+        agent: Agent | QLearningAgent | LLMAgentAbstract = self.setup_info['agent']
         agent_type: str = self.setup_info['agent_type']
         agent_name: str = self.setup_info['agent_name']
         if self.setup_info['adapter_select'] in STATE_ADAPTER_TYPES:

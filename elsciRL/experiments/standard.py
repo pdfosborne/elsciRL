@@ -361,7 +361,15 @@ class Experiment:
                                 env.agent = self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
                             else:
                                 print("NO agent available for testing position.")
-                            env.agent.epsilon = 0 # Remove random actions
+                            try:
+                                env.agent.epsilon = 0 # Remove random actions
+                            except:
+                                print(self.trained_agents)
+                                raise KeyError("Trained agents lookup not found for testing position.")
+                            
+                            print("++++++++++++++++++++++++++++++++++++++++")
+                            print(self.trained_agents)
+                            print("++++++++++++++++++++++++++++++++++++++++")
                             # ---
                             # Testing generally is the agents replaying on the testing ENV
                             testing_results = env.episode_loop() 

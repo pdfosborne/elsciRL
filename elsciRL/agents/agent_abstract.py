@@ -20,3 +20,10 @@ class QLearningAgent(Agent):
         pass
 
 
+class LLMAgentAbstract(Agent):
+    def policy(self, state:str, legal_actions:list, **kwargs) -> str:
+        pass
+    
+    def learn(self, state:str, action:str, next_state:str, reward:float, **kwargs) -> str:
+        pass
+

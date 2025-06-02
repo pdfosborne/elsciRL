@@ -110,12 +110,22 @@ class StandardInteractionLoop:
                     img = self.fig2img(self.engine.render())
                     render_stack.append(img)
             legal_moves = self.engine.legal_move_generator(obs)
-            state = self.agent_state_adapter.adapter(
+
+            # LLM agents need to pass the state as a string
+            if self.agent_type.split("_")[0] == "LLM":
+                state = self.agent_state_adapter.adapter(
                 state=obs,
                 legal_moves=legal_moves,
                 episode_action_history=action_history,
-                encode=True,
+                encode=False,
             )
+            else:
+                state = self.agent_state_adapter.adapter(
+                    state=obs,
+                    legal_moves=legal_moves,
+                    episode_action_history=action_history,
+                    encode=True,
+                )
             # ---
             start_time = time.time()
             episode_reward: int = 0
@@ -151,12 +161,21 @@ class StandardInteractionLoop:
                         reward = self.reward_signal[1]
 
                     legal_moves = self.engine.legal_move_generator(next_obs)
-                    next_state = self.agent_state_adapter.adapter(
+                    # LLM agents need to pass the state as a string
+                    if self.agent_type.split("_")[0] == "LLM":
+                        next_state = self.agent_state_adapter.adapter(
                         state=next_obs,
                         legal_moves=legal_moves,
                         episode_action_history=action_history,
-                        encode=True,
+                        encode=False,
                     )
+                    else:
+                        next_state = self.agent_state_adapter.adapter(
+                            state=next_obs,
+                            legal_moves=legal_moves,
+                            episode_action_history=action_history,
+                            encode=True,
+                        )
                     # elsciRL trackers
                     self.elsciRL.observed_state_tracker(
                         engine_observation=next_obs,
