@@ -770,10 +770,32 @@ def get_experiment_config_route():
 
 @app.route('/get_latest_real_time_image', methods=['GET'])
 def get_latest_real_time_image_route():
+    # Assumes WebApp_instance.job_completed_flag_for_image and
+    # WebApp_instance.cached_real_time_image_info are initialized 
+    # in WebApp.__init__ (e.g., to False and None respectively).
+
+    # If a job has not recently completed to trigger a new scan,
+    # AND we have previously cached information, return that.
+    if not WebApp_instance.job_completed_flag_for_image and WebApp_instance.cached_real_time_image_info is not None:
+        cached_info = WebApp_instance.cached_real_time_image_info
+        # Replicate status code logic based on cached content type
+        if 'error' in cached_info: # If the cached item was an error
+            return jsonify(cached_info), 404
+        # For "no image found" message or actual image data, status is 200
+        return jsonify(cached_info), 200
+
+    # If job_completed_flag_for_image is True (a job completed and signaled a potential new image)
+    # OR if cached_real_time_image_info is None (cache is empty, e.g., on first call),
+    # then a scan/check is required.
+
     real_time_render_path = WebApp_instance.real_time_render_dir
     if not os.path.exists(real_time_render_path) or not os.path.isdir(real_time_render_path):
-        return jsonify({'image_path': None, 'filename': None, 'error': 'Real-time render directory not found.'}), 404
-
+        response_payload = {'image_path': None, 'filename': None, 'error': 'Real-time render directory not found.'}
+        # Cache this outcome
+        WebApp_instance.cached_real_time_image_info = response_payload
+        # Reset the flag as an attempt to check for an image has been made (even if directory wasn't found)
+        WebApp_instance.job_completed_flag_for_image = False
+        return jsonify(response_payload), 404
     image_files = []
     for f_name in os.listdir(real_time_render_path):
         if f_name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
