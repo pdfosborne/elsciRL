@@ -11,11 +11,13 @@ from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
 from elsciRL.agents.neural_q_agent import NeuralQLearningAgent
 from elsciRL.agents.agent_abstract import Agent
-# ------ Gym Experiement ----------------------------------------
-from elsciRL.experiments.GymExperiment import GymExperiment
+# Stable Baselines
 from elsciRL.agents.stable_baselines.DQN import SB_DQN
 from elsciRL.agents.stable_baselines.PPO import SB_PPO
 from elsciRL.agents.stable_baselines.A2C import SB_A2C
+# ------ Gym Experiement ----------------------------------------
+from elsciRL.experiments.GymExperiment import GymExperiment
+from elsciRL.experiments.experiment_utils.render_current_results import render_current_result
 # ------ LLM Agents ---------------------------------------------
 from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
 # ---------------------------------------------------------------
@@ -119,30 +121,6 @@ class Experiment:
         self.AGENT_TYPES[agent_name] = agent
         print("\n Agent added to experiment, all available agents: ", self.AGENT_TYPES)
 
-    @staticmethod
-    def render_current_result(training_setup, current_environment, current_agent, local_save_dir):
-        """Apply fixed policy to render current decision making for limited number of episodes."""
-        # Override input training setups with previously saved 
-        
-        test_setup_info = training_setup
-
-        test_setup_info['train'] = False # Testing Phase
-        test_setup_info['training_results'] = False
-        test_setup_info['observed_states'] = False
-        test_setup_info['experience_sampling'] = False
-        print("----------")
-        print("Rendering trained agent's policy:")
-
-        env = current_environment
-        # ---
-        env.number_episodes = 1 # Only render 1 episode
-        env.agent = current_agent
-        env.agent.epsilon = 0 # Remove random actions
-        # ---
-        # Render results
-        if not os.path.exists(local_save_dir):
-            os.mkdir(local_save_dir)
-        env.episode_loop(render=True, render_save_dir=local_save_dir) 
 
     def train(self):
         if not os.path.exists(self.save_dir):
@@ -309,7 +287,7 @@ class Experiment:
                                         current_render_save_dir = agent_save_dir
                                     else:
                                         current_render_save_dir = self.training_render_save_dir
-                                    Experiment.render_current_result(training_setup = train_setup_info,
+                                    render_current_result(training_setup = train_setup_info,
                                                                 current_environment = live_env, current_agent = live_env.agent,
                                                                 local_save_dir = current_render_save_dir)
                             seed_results_connection[goal] = training_results_stored
