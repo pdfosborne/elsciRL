@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 
 
 class LLMAgent(LLMAgentAbstract):
-    def __init__(self, epsilon:float=0.2, model_name: str = "llama2", system_prompt: str = None):
+    def __init__(self, epsilon:float=0.2, model_name: str = "llama3.2", system_prompt: str = None):
         """
         Initialize the Ollama LLM model for policy-based action selection.
         
@@ -25,6 +25,31 @@ class LLMAgent(LLMAgentAbstract):
             model_name (str): Name of the Ollama model to use
             system_prompt (str, optional): System prompt to guide the model's behavior
         """
+        # Check if model exists locally, if not pull it
+        # List available models
+        models = ollama.list()
+        model_exists = any(model['name'] == model_name for model in models['models'])
+        
+        if not model_exists:
+            if input("Model "+model_name+" not found locally. Pull from Ollama? (y/n): ") == 'y':
+                logger.info(f"Model {model_name} not found locally. Pulling from Ollama...")
+                ollama.pull(model_name)
+                logger.info(f"Successfully pulled model {model_name}")
+            else:
+                logger.info(f"Model {model_name} not found locally. Please check your model name and try again.")
+        
+        # Import all modelfiles from modelfiles directory
+        try:
+            # TODO: PULLING FROM GITHUB AS LOCAL REFERENCE WOULD REQUIRE USER TO HAVE MODELFILE DEFINED IN THEIR DIRECTORY
+            # Create llama3.2 model from modelfile
+            model_name_modelfile = model_name.replace('.', '-')
+            ollama.create(model=model_name_modelfile,
+                path='https://raw.githubusercontent.com/pdfosborne/elsciRL/main/elsciRL/agents/LLM_agents/agent_modelfiles/'+model_name_modelfile+'.modelfile')
+            logger.info("Successfully created "+model_name_modelfile+" model from modelfile")
+        except Exception as e:
+            logger.error(f"Error getting model for model from https://github.com/pdfosborne/elsciRL/main/elsciRL/agents/LLM_agents/agent_modelfiles {e}")
+            logger.info("Using default model instead")
+        
         self.model_name = model_name
         self.system_prompt = (
             "You are an AI agent that takes actions based on the current state. "

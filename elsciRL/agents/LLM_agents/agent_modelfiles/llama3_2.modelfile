@@ -1,0 +1,8 @@
+FROM llama3.2
+
+# Set temperature to 0 for deterministic responses
+PARAMETER temperature 0
+
+# Set context length to 4000 tokens
+PARAMETER num_ctx 4000
+

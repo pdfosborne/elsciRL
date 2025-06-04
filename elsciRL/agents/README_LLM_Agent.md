@@ -15,7 +15,7 @@ The LLM Agent is a reinforcement learning agent that uses a local Ollama languag
 ## Prerequisites
 
 1. **Ollama installation**: Install Ollama from [https://ollama.ai/](https://ollama.ai/)
-2. **Model download**: Pull a model, e.g., `ollama pull llama2`
+2. **Model download**: Pull a model, e.g., `ollama pull llama3.2`
 3. **Python dependencies**: The `ollama` package is included in requirements.txt
 
 ## Usage
@@ -44,10 +44,10 @@ print(f"Agent chose: {chosen_action}")
 ## Configuration Options
 
 ### Model Selection
-- `llama2`: General-purpose model, good balance of performance and speed
+- `llama3.2`: General-purpose model, good balance of performance and speed
 - `mistral`: Fast and efficient, good for quick decisions
 - `codellama`: Optimized for code and logic-based reasoning
-- `llama2:13b`: Larger model for better reasoning (requires more resources)
+- `llama3.2:13b`: Larger model for better reasoning (requires more resources)
 
 ### Temperature Settings
 - `0.0`: Deterministic, always chooses the most likely action
