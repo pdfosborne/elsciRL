@@ -51,29 +51,29 @@ class LLMAgent(LLMAgentAbstract):
             You are given a state, action and reward.
             You need to write a summary of the experience based on the state, action and reward that allows the LLM to learn which actions are good and which are bad.
         """
-        self.diary = ""
+        self.diary = ''
         self.diary_model_name = 'llama3.2'
 
         # Add system prompt to the LLM prompts if provided
         if system_prompt:
             self.system_prompt = system_prompt + self.system_prompt
             self.diary_system_prompt = system_prompt + self.diary_system_prompt
+
+        # Initial empty value for trajectory history used by LLM to create diary
+        self.state_action_history_current = ''
         
 
-    def _LLM_prompt_adjustment(self, state: str, action: str, next_state: str, reward: str) -> str:
+    def _LLM_prompt_adjustment(self, state_action_history: str) -> str:
         """
         Adjust the prompt to be more suitable for the LLM based on states, actions and outcomes.
         """
     
         diary = f"""
-                Previous diary: {self.diary}
+                Previous log: {self.diary}
 
-                State: {state}
-                Action: {action}
-                Next state: {next_state}
-                Reward: {reward}
+                State action history with rewards: {state_action_history}
 
-                Please write a diary entry based on the prior diary knowledge, state, action and reward.
+                Please write or update the log entry based on the knowledge obtained from the states, actions and rewards to maximise the reward obtained.
             """
         # Use ollama.chat with the correct message format
         messages = []
@@ -172,5 +172,15 @@ class LLMAgent(LLMAgentAbstract):
     def learn(self, state: str, next_state: str, r_p: float, action_code: str) -> str:
         """Given action is taken, agent learns from outcome (i.e. next state), states and actions must be text strings for LLM input."""
 
-        current_diary = self._LLM_prompt_adjustment(state, action_code, next_state, r_p)
+        # Collect outcomes in current path until a significant reward found, then use trajectory to this reward to update the knowledge
+        # - Much lower costs compared to calling LLM after every step
+        # - TODO: Use reward sampling calculation instead of fixed threshold
+        if abs(r_p)>0.1:
+            current_diary = self._LLM_prompt_adjustment(state_action_history=self.state_action_history_current)
+            self.state_action_history_current = ''
+        else:
+            current_outcome = 'You were positioned at' + state + ', after taking action ' + action_code + ' the outcome position was ' + next_state + ' with reward: ' + str(r_p) +'. '
+            self.state_action_history_current+=current_outcome
+            # Output current knowledge from trajectory until LLM is used
+            current_diary = current_outcome 
         return current_diary
