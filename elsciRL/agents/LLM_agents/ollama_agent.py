@@ -61,7 +61,6 @@ class LLMAgent(LLMAgentAbstract):
 
         # Initial empty value for trajectory history used by LLM to create diary
         self.state_action_history_current = ''
-        
 
     def _LLM_prompt_adjustment(self, state_action_history: str) -> str:
         """
@@ -174,8 +173,28 @@ class LLMAgent(LLMAgentAbstract):
 
         # Collect outcomes in current path until a significant reward found, then use trajectory to this reward to update the knowledge
         # - Much lower costs compared to calling LLM after every step
-        # - TODO: Use reward sampling calculation instead of fixed threshold
-        if abs(r_p)>0.1:
+
+        # Track reward history in a circular buffer
+        if not hasattr(self, '_reward_array'):
+            self._reward_array = np.zeros(1000)  # Pre-allocate fixed size array
+            self._reward_idx = 0
+        self._reward_array[self._reward_idx] = r_p
+        self._reward_idx = (self._reward_idx + 1) % 1000  # Circular buffer
+        self.reward_history = self._reward_array[:self._reward_idx] if self._reward_idx > 0 else self._reward_array  # View into array
+    
+        if len(self.reward_history) > 10:
+            # Calculate reward statistics over recent history
+            reward_mean = np.mean(self.reward_history)
+            reward_std = np.std(self.reward_history)
+            
+            # Define significant rewards as those outside 1 standard deviation from mean
+            reward_threshold = reward_mean + reward_std
+        else:
+            # Dont allow it to learn until we know reward is significant
+            # This will only be for the first 10 actions in the entire experiment
+            reward_threshold = np.max(self.reward_history)
+
+        if abs(r_p)>reward_threshold:
             current_diary = self._LLM_prompt_adjustment(state_action_history=self.state_action_history_current)
             self.state_action_history_current = ''
         else:
