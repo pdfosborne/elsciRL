@@ -8,6 +8,7 @@ import torch
 from torch import Tensor
 
 import ollama
+import urllib.request
 
 import logging
 from elsciRL.agents.agent_abstract import LLMAgentAbstract
@@ -43,11 +44,17 @@ class LLMAgent(LLMAgentAbstract):
             # TODO: PULLING FROM GITHUB AS LOCAL REFERENCE WOULD REQUIRE USER TO HAVE MODELFILE DEFINED IN THEIR DIRECTORY
             # Create llama3.2 model from modelfile
             model_name_modelfile = model_name.replace('.', '-')
-            ollama.create(model=model_name_modelfile,
-                path='https://raw.githubusercontent.com/pdfosborne/elsciRL/main/elsciRL/agents/LLM_agents/agent_modelfiles/'+model_name_modelfile+'.modelfile')
+            # ollama.create() doesn't support remote URLs directly
+            # Need to download the modelfile first
+            try:
+                modelfile_url = 'https://raw.githubusercontent.com/pdfosborne/elsciRL/main/elsciRL/agents/LLM_agents/agent_modelfiles/'+model_name_modelfile+'.modelfile'
+                modelfile_content = urllib.request.urlopen(modelfile_url).read().decode('utf-8')
+                ollama.create(model=model_name_modelfile, modelfile=modelfile_content)
+            except Exception as e:
+                logger.error(f"Error downloading or creating model from modelfile: {e}")
             logger.info("Successfully created "+model_name_modelfile+" model from modelfile")
         except Exception as e:
-            logger.error(f"Error getting model for model from https://github.com/pdfosborne/elsciRL/main/elsciRL/agents/LLM_agents/agent_modelfiles {e}")
+            logger.error(f"Error getting modelfile for model {model_name} from https://github.com/pdfosborne/elsciRL/tree/main/elsciRL/agents/LLM_agents/agent_modelfiles {e}")
             logger.info("Using default model instead")
         
         self.model_name = model_name
