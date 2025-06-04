@@ -40,9 +40,12 @@ class OllamaAdapter(LLMAdapter):
     """Adapter for local Ollama LLM models."""
     
     def __init__(self, base_prompt:str=None, model_name:str="llama3.2", 
-                 action_history_length:int=10, encoder:str='MiniLM_L6v2'):
+                 context_length:int = 1000,
+                 action_history_length:int=10, encoder:str='MiniLM_L6v2', ):
         super().__init__(base_prompt)
         self.model_name = model_name
+        self.manual_context_length = context_length
+
         if ollama is None:
             raise ImportError("ollama library is required. Install it with: pip install ollama")
         
@@ -53,6 +56,7 @@ class OllamaAdapter(LLMAdapter):
         self.action_history_length = action_history_length
         self.state_history = []
         self.prior_action_count = -1  # Track the number of actions taken in the current episode
+        
     
     def _read(self, raw_state) -> list:
         """Read the data and fill in the feature fields."""
@@ -72,7 +76,7 @@ class OllamaAdapter(LLMAdapter):
                     },
                     {
                         'role': 'user',
-                        'content': prompt
+                        'content': prompt[:self.manual_context_length]
                     }
                 ]
             )

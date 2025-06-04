@@ -66,7 +66,8 @@ class WebApp:
                 "display_name": "LLM Ollama",
                 "params": {
                     "epsilon": {"label": "Epsilon", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.2},
-                    "model_name": {"label": "Model Name", "type": "text", "default": "Llama3.2"},
+                    "model_name": {"label": "Model Name", "type": "text", "default": "llama3.2"},
+                    "context_length":{"label": "Context Length", "type": "text", "default":"1000"},
                     "system_prompt": {"label": "System Prompt", "type": "textarea", "rows": 4, "placeholder": "Enter system prompt...", "default": ""},
                 }
             },
@@ -394,6 +395,7 @@ class WebApp:
                 ExperimentConfig['agent_parameters']['LLM_Ollama'].update({
                     "epsilon": float(data.get('LLM_Ollama_epsilon', 0.2)),
                     'model_name': str(data.get('LLM_Ollama_model_name', 'llama3.2')).lower(),
+                    'context_length': int(data.get('LLM_Ollama_context_length', '1000')),
                     'system_prompt': str(data.get('LLM_Ollama_system_prompt', ''))
                 })
 
@@ -768,34 +770,14 @@ def get_experiment_config_route():
     
     return WebApp_instance.get_experiment_config(application, config_name_req)
 
+# TODO REDUCE GET REQUESTS FROM THIS FUNCTION
 @app.route('/get_latest_real_time_image', methods=['GET'])
 def get_latest_real_time_image_route():
-    # Assumes WebApp_instance.job_completed_flag_for_image and
-    # WebApp_instance.cached_real_time_image_info are initialized 
-    # in WebApp.__init__ (e.g., to False and None respectively).
-
-    # If a job has not recently completed to trigger a new scan,
-    # AND we have previously cached information, return that.
-    if not WebApp_instance.job_completed_flag_for_image and WebApp_instance.cached_real_time_image_info is not None:
-        cached_info = WebApp_instance.cached_real_time_image_info
-        # Replicate status code logic based on cached content type
-        if 'error' in cached_info: # If the cached item was an error
-            return jsonify(cached_info), 404
-        # For "no image found" message or actual image data, status is 200
-        return jsonify(cached_info), 200
-
-    # If job_completed_flag_for_image is True (a job completed and signaled a potential new image)
-    # OR if cached_real_time_image_info is None (cache is empty, e.g., on first call),
-    # then a scan/check is required.
-
     real_time_render_path = WebApp_instance.real_time_render_dir
     if not os.path.exists(real_time_render_path) or not os.path.isdir(real_time_render_path):
         response_payload = {'image_path': None, 'filename': None, 'error': 'Real-time render directory not found.'}
-        # Cache this outcome
-        WebApp_instance.cached_real_time_image_info = response_payload
-        # Reset the flag as an attempt to check for an image has been made (even if directory wasn't found)
-        WebApp_instance.job_completed_flag_for_image = False
         return jsonify(response_payload), 404
+    
     image_files = []
     for f_name in os.listdir(real_time_render_path):
         if f_name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
@@ -815,6 +797,7 @@ def get_latest_real_time_image_route():
 @app.route('/stream_job_notifications/<job_id>')
 def stream_job_notifications_route(job_id):
     if job_id not in WebApp_instance.active_jobs:
+        WebApp_instance.job_completed_flag_for_image = True
         def empty_stream_for_old_job():
             yield f"data: ERROR: Job ID {job_id} not found or already cleaned up.\n\n"
             yield f"data: EVENT: JOB_FAILED\n\n"
