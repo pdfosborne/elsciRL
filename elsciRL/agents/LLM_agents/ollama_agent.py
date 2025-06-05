@@ -191,7 +191,7 @@ class LLMAgent(LLMAgentAbstract):
 
             if 'explanation' in content_action:
                 content_action = content_action.split('explanation')[0]
-                content_action = content_action.replace('action','').strip()
+                content_action = content_action.replace('action','').replace('json','').strip()
 
             action = content_action
             if (action in legal_actions) and (action is not None):
