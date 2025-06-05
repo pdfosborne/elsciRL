@@ -13,7 +13,7 @@ import urllib.request
 
 import logging
 from elsciRL.agents.agent_abstract import LLMAgentAbstract
-from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as encode_text
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -32,6 +32,9 @@ class LLMAgent(LLMAgentAbstract):
         # List available models
         models = ollama.list()
         model_exists = any(model['model'] == model_name for model in models['models'])
+
+        self.encoder = LanguageEncoder()
+        self.cos = torch.nn.CosineSimilarity(dim=0) 
         
         if not model_exists:
             logger.info(f"Model {model_name} not found locally. Please check your model name and try again.")
@@ -149,70 +152,87 @@ class LLMAgent(LLMAgentAbstract):
             action = random.choice(legal_actions)
             logger.info(f"Epsilon-greedy: Random action selected: {action}")            
         else:
+            prompt = f"""Current state: {state}
+
+                        You must select an action from the following list: {', '.join(legal_actions)}
+
+                        Please select the most appropriate action and explain your reasoning.
+
+                        You have access to a diary of previous states, actions and rewards. Use the diary to help you make the best decision: {self.diary}
+
+                        Respond in JSON format with the following structure:
+                        {{
+                            "action": "selected_action",
+                            "explanation": "brief explanation of why this action was chosen"
+                        }}"""
+
+            # Use ollama.chat with the correct message format
+            messages = []
+            if self.system_prompt:
+                messages.append({'role': 'system', 'content': self.system_prompt})
+            messages.append({'role': 'user', 'content': prompt})
+
+            response = ollama.chat(
+                model=self.model_name,
+                messages=messages[:self.manual_context_length]  # Limit context length
+            )
+            
+            # Result not always ending content with brackets
+            content = response['message']['content'].strip().replace('\n', '').replace('```', '').translate(str.maketrans('', '', string.punctuation))
+            # Try to parse as JSON object
             try:
-                prompt = f"""Current state: {state}
-
-                            You must select an action from the following list: {', '.join(legal_actions)}
-
-                            Please select the most appropriate action and explain your reasoning.
-
-                            You have access to a diary of previous states, actions and rewards. Use the diary to help you make the best decision: {self.diary}
-
-                            Respond in JSON format with the following structure:
-                            {{
-                                "action": "selected_action",
-                                "explanation": "brief explanation of why this action was chosen"
-                            }}"""
-
-                # Use ollama.chat with the correct message format
-                messages = []
-                if self.system_prompt:
-                    messages.append({'role': 'system', 'content': self.system_prompt})
-                messages.append({'role': 'user', 'content': prompt})
-
-                response = ollama.chat(
-                    model=self.model_name,
-                    messages=messages[:self.manual_context_length]  # Limit context length
-                )
-                
-                # Result not always ending content with brackets
-                content = response['message']['content'].strip().replace('\n', '').replace('```', '').translate(str.maketrans('', '', string.punctuation))
-                # Try to parse as JSON object
                 content_split = content.split(',')
                 for i in range(len(content_split)):
                     if 'action' in content_split[i]:
                         content_action = (content_split[i])
                         break
-                action = content_action.split(':')[1].strip().replace('"', '')
-                if (action in legal_actions) and (action is not None):
-                    action = action
-                else:
+            except:
+                print('Action result not standard format.')
+
+            if 'explanation' in content_action:
+                content_action = content_action.split('explanation')[0]
+                content_action = content_action.replace('action','').strip()
+
+            action = content_action
+            if (action in legal_actions) and (action is not None):
+                action = action
+
+            else:
+                # 1. CHECK IF LEGAL ACTION IN ACTION TEXT
+                action_match_found = False
+                for legal_a in legal_actions:
+                    if legal_a in action:
+                        print(f"Action {action} found in legal moves as {legal_a}.")
+                        action = legal_a
+                        action_match_found = True
+                        break
+
+                # 2. IF NOT, FIND BEST MATCH OVER THRESHOLD
+                if not action_match_found:
                     # Encode the proposed action and legal actions using miniLMv6
-                    action_embedding = encode_text(action)
-                    legal_action_embeddings = [encode_text(a) for a in legal_actions]
+                    action_embedding = self.encoder.encode(action)[0]
+                    legal_action_embeddings = [self.encoder.encode(a)[0] for a in legal_actions]
                     
                     # Calculate cosine similarity between proposed action and legal actions
-                    similarities = [
-                        torch.nn.functional.cosine_similarity(
-                            action_embedding, legal_emb, dim=0
-                        ) for legal_emb in legal_action_embeddings
-                    ]
-                    
-                    # Find best matching legal action
-                    best_match_idx = np.argmax(similarities)
-                    best_match_sim = similarities[best_match_idx]
-                    
-                    if best_match_sim > 0.9:
+                    best_match_sim = 0
+                    for idx, legal_emb in enumerate(legal_action_embeddings):
+                        sim = self.cos(action_embedding,legal_emb).item()
+                        if sim > best_match_sim:
+                            best_match_idx = idx
+                            best_match_sim = sim
+                                        
+                    if best_match_sim > 0.6:
                         # Accept the closest matching legal action
                         action = legal_actions[best_match_idx]
                         logger.info(f"Found similar legal action: {action} with similarity {best_match_sim}")
                     else:
+                        print(f"Best match {legal_actions[best_match_idx]} not similar enough to action {action} with sim score {best_match_sim}.")
                         # No close match found, use random action
                         action = random.choice(legal_actions)
                         logger.warning(f"No similar legal actions found, using random choice: {action}")
-            except Exception as e:
-                action = random.choice(legal_actions)
-                logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
+            # except Exception as e:
+            #     action = random.choice(legal_actions)
+            #     logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
         return action
 
     # We now break agent into a policy choice, action is taken in game_env then next state is used in learning function

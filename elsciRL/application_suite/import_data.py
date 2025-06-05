@@ -67,7 +67,7 @@ class Applications:
             "Chess":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Chess",
-                "commit_id": "b153670",
+                "commit_id": "b76aac1",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
