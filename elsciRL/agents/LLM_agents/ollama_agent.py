@@ -159,7 +159,7 @@ class LLMAgent(LLMAgentAbstract):
         else:
             prompt = f"""Current state: {state}
 
-                        You must select an action from the following list: {', '.join(legal_actions)}
+                        You must select an action from the following list: {', '.join(str(legal_actions))}
 
                         Please select the most appropriate action and explain your reasoning.
 
@@ -255,7 +255,10 @@ class LLMAgent(LLMAgentAbstract):
         self._reward_idx = (self._reward_idx + 1) % 1000  # Circular buffer
         self.reward_history = self._reward_array[:self._reward_idx] if self._reward_idx > 0 else self._reward_array  # View into array
     
-        if len(self.reward_history) > 100:
+        # Set fixed threshold for reward importance
+        if abs(r_p)<=0.1:
+            reward_threshold = np.max(self.reward_history)+100
+        elif len(self.reward_history) > 100:
             # Calculate reward statistics over recent history
             reward_mean = np.mean(self.reward_history)
             reward_std = np.std(self.reward_history)
@@ -265,14 +268,14 @@ class LLMAgent(LLMAgentAbstract):
         else:
             # Dont allow it to learn until we know reward is significant
             # This will only be for the first 10 actions in the entire experiment
-            reward_threshold = np.max(self.reward_history)
+            reward_threshold = np.max(self.reward_history)+100
 
         if abs(r_p)>reward_threshold:
             print("\n SIGNIFICANT REWARD OBTAINED", r_p)
             current_diary = self._LLM_prompt_adjustment(state_action_history=self.state_action_history_current)
             self.state_action_history_current = ''
         else:
-            current_outcome = 'You were positioned at' + state + ', after taking action ' + action_code + ' the outcome position was ' + next_state + ' with reward: ' + str(r_p) +'. '
+            current_outcome = 'You were positioned at' + str(state) + ', after taking action ' + str(action_code) + ' the outcome position was ' + str(next_state) + ' with reward: ' + str(r_p) +'. '
             self.state_action_history_current+=current_outcome
             # Output current knowledge from trajectory until LLM is used
             current_diary = current_outcome 
