@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 
 
 class LLMAgent(LLMAgentAbstract):
-    def __init__(self, epsilon:float=0.2, model_name: str = "llama3.2", system_prompt: str = None, context_length: int = 1000):
+    def __init__(self, epsilon:float=0.2, epsilon_step:float=0.01, model_name: str = "llama3.2", system_prompt: str = None, context_length: int = 1000):
         """
         Initialize the Ollama LLM model for policy-based action selection.
         
@@ -78,6 +78,7 @@ class LLMAgent(LLMAgentAbstract):
         }
         # Epsilon-greedy exploration parameter
         self.epsilon = epsilon
+        self.epsilon_step = epsilon_step
         self.epsilon_reset = epsilon
 
         # Diary is used to improve the LLM's decision making based on previous states, actions and rewards
@@ -150,7 +151,11 @@ class LLMAgent(LLMAgentAbstract):
         # Epsilon-greedy action selection to encourage exploration
         if random.random() < self.epsilon:
             action = random.choice(legal_actions)
-            logger.info(f"Epsilon-greedy: Random action selected: {action}")            
+            logger.info(f"Epsilon-greedy: Random action selected: {action}")   
+            if self.epsilon > 0:
+                self.epsilon = self.epsilon - (self.epsilon*self.epsilon_step) # Added epsilon step reduction to smooth exploration to greedy
+                if self.epsilon < 0:
+                    self.epsilon = 0         
         else:
             prompt = f"""Current state: {state}
 
