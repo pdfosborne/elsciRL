@@ -1,4 +1,3 @@
-# TODO: REMOVE EXPERIENCE SAMPLING
 import os
 import json
 
@@ -38,7 +37,6 @@ class Experiment:
     - The agent is trained for a fixed number of episodes
     - Then learning is fixed to be applied during testing phase
     - Repeats (or seeds if environment start position changes) are used for statistical significant testing
-    - Experience Sampling stores observed episodes into a sampled MDP model to learn from to improve training efficiency
     """
     def __init__(self, Config:dict, LocalConfig:dict, Environment, save_dir:str, show_figures:str, window_size:float):
         self.ExperimentConfig = Config
@@ -70,10 +68,6 @@ class Experiment:
         for n, agent_type in enumerate(self.setup_info['agent_select']):
             # We are adding then overriding some inputs from general configs for experimental setups
             train_setup_info = self.setup_info.copy()
-            # TODO: fix experience sampling
-            if train_setup_info['experience_sample_batch_ratio']>0:
-                print("NOTE - Experience Sampling feature not currently implemented and will not be used")
-                train_setup_info['experience_sample_batch_ratio'] = 0
             # ----- State Adapter Choice
             adapter = train_setup_info["adapter_select"][n]
             # ----- Agent parameters
@@ -103,11 +97,9 @@ class Experiment:
                 if seed_num==0:
                     train_setup_info['training_results'] = False
                     train_setup_info['observed_states'] = False
-                    train_setup_info['experience_sampling'] = False
                 else:
                     train_setup_info['training_results'] = False
                     train_setup_info['observed_states'] = observed_states_stored.copy()
-                    train_setup_info['experience_sampling'] = experience_sampling_stored.copy()
                 # ---
                 setup_num:int = 0
                 temp_agent_store:dict = {}
@@ -146,46 +138,12 @@ class Experiment:
                     if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
                         live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
 
-                    if train_setup_info['experience_sample_batch_ratio']>0:
-                        live_sample_batch_size = int(number_training_episodes*train_setup_info['experience_sample_batch_ratio'])
-                        live_sample_batch_count = int(1/train_setup_info['experience_sample_batch_ratio'])
-                        # Train on Live system for limited number of total episodes
-                        live_env.num_train_episodes = live_sample_batch_size
-                        print("-- Training with Simulated Batches, ", live_sample_batch_count, " total...")
-                        # init simulated environment
-                        train_setup_info['live_env'] = False
-                        simulated_env = self.env(train_setup_info)
-                        simulated_env.start_obs = env_start
-                        # Connect live agent -> This should be linked so continues learning
-                        simulated_env.agent = live_env.agent
-
-                        for live_sample_batch in range(0, live_sample_batch_count-1):
-                            print("--- Live Interaction Batch Num", live_sample_batch+1)                            
-                            training_results = live_env.episode_loop()
-
-                            # Train based on simulated exp  
-                            simulated_env.num_train_episodes = number_training_episodes
-                            simulated_env.episode_loop()
-                        # Final batch doesn't require simulated exp after and we need result output
-                        print("--- Final batch")
-                        train_setup_info['live_env'] = True
-                        train_setup_info['number_training_episodes'] = live_sample_batch_size
-                        training_results = live_env.episode_loop()
-                        # Have to 'fix' output
-                        training_results['episode'] = training_results.index
-                        cumulative_r = 0
-                        cumulative_r_lst = []
-                        for r in training_results['episode_reward']:
-                            cumulative_r+=r
-                            cumulative_r_lst.append(cumulative_r)
-                        training_results['cumulative_reward'] = cumulative_r_lst
-                    else:
-                        # ---
-                        if goal in seed_results_connection:
-                            live_env.results.load(seed_results_connection[goal])
-                        #live_env.agent.exploration_parameter_reset()
-                        training_results = live_env.episode_loop()
-                        training_results['episode'] = training_results.index
+                    # ---
+                    if goal in seed_results_connection:
+                        live_env.results.load(seed_results_connection[goal])
+                    #live_env.agent.exploration_parameter_reset()
+                    training_results = live_env.episode_loop()
+                    training_results['episode'] = training_results.index
                     # Opponent now defined in local setup.py
                     # ----- Log training results      
                     training_results.insert(loc=0, column='Repeat', value=setup_num)
@@ -201,13 +159,11 @@ class Experiment:
                         best_agent = live_env.agent
                         training_results_stored =  live_env.results.copy()
                         observed_states_stored = live_env.elsciRL.observed_states
-                        experience_sampling_stored = live_env.elsciRL.experience_sampling
                     if Return > max_Return:
                         max_Return = Return
                         best_agent = live_env.agent
                         training_results_stored =  live_env.results.copy()
                         observed_states_stored = live_env.elsciRL.observed_states
-                        experience_sampling_stored = live_env.elsciRL.experience_sampling
                     seed_recall[goal] = seed_recall[goal] + 1
                     # Save trained agent to logged output
                     train_setup_info['train_save_dir'] = agent_save_dir
@@ -251,7 +207,6 @@ class Experiment:
             test_setup_info['train'] = False # Testing Phase
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
-            test_setup_info['experience_sampling'] = False
             print("----------")
             print("Testing results for trained agents in saved setup configuration:")
             print(test_setup_info['train_save_dir'])

@@ -187,10 +187,11 @@ class StandardInteractionLoop:
                         ),
                     )
 
+                    # TODO: REMOVED EXPERIENCE BUFFER FOR NOW TO SAVE RUNTIME
                     # MUST COME BEFORE SUB-GOAL CHECK OR 'TERMINAL STATES' WILL BE FALSE
-                    self.elsciRL.experience_sampling_add(
-                        state, agent_action, next_state, reward, terminated
-                    )
+                    # self.elsciRL.experience_sampling_add(
+                    #     state, agent_action, next_state, reward, terminated
+                    # )
                     # Trigger end on sub-goal if defined
                     if self.sub_goal:
                         if (type(self.sub_goal) == type("")) | (
@@ -264,17 +265,19 @@ class StandardInteractionLoop:
                                         reward,
                                     )
                                 break  # Assume state is unique to completing one sub-step (first used)
-                else:
-                    # Experience Sampling
-                    legal_moves = self.elsciRL.experience_sampling_legal_actions(state)
-                    # Unknown state, have no experience to sample from so force break episode
-                    if legal_moves == None:
-                        break
+                
+                # TODO: REMOVED EXPERIENCE BUFFER FOR NOW TO SAVE RUNTIME
+                # else:
+                #     # Experience Sampling
+                #     legal_moves = self.elsciRL.experience_sampling_legal_actions(state)
+                #     # Unknown state, have no experience to sample from so force break episode
+                #     if legal_moves == None:
+                #         break
 
-                    agent_action = self.agent.policy(state, legal_moves)
-                    next_state, reward, terminated = (
-                        self.elsciRL.experience_sampling_step(state, agent_action)
-                    )
+                #     agent_action = self.agent.policy(state, legal_moves)
+                #     next_state, reward, terminated = (
+                #         self.elsciRL.experience_sampling_step(state, agent_action)
+                #     )
 
                 if self.train:
                     self.agent.learn(state, next_state, reward, agent_action)

@@ -1,4 +1,3 @@
-# TODO: SIMPLIFY TO JUST BASE TRAIN/TEST PROTOCOL WITHOUT EXPERIENCE SAMPLING
 import os
 import json
 # ------ Interaction Protocol -----------------------------------
@@ -36,7 +35,6 @@ class Experiment:
     - The agent is trained for a fixed number of episodes
     - Then learning is fixed to be applied during testing phase
     - Repeats (or seeds if environment start position changes) are used for statistical significant testing
-    - Experience Sampling stores observed episodes into a sampled MDP model to learn from to improve training efficiency
     """
     def __init__(self, Config:dict, ProblemConfig:dict, Engine, Adapters:dict, save_dir:str, show_figures:str, window_size:float, 
                  training_render:bool=False, training_render_save_dir:str=None): 
@@ -140,10 +138,6 @@ class Experiment:
                 else:
                     # We are adding then overriding some inputs from general configs for experimental setups
                     train_setup_info = self.setup_info.copy()
-                    # TODO: REMOVE experience sampling from standard and move to separate experiment
-                    if train_setup_info['experience_sample_batch_ratio']>0:
-                        print("NOTE - Experience Sampling feature not currently implemented and will not be used")
-                        train_setup_info['experience_sample_batch_ratio'] = 0
                     # ----- State Adapter Choice
                     for adapter in train_setup_info["adapter_input_dict"][agent_type]:
                         # ----- Agent parameters
@@ -173,11 +167,9 @@ class Experiment:
                             if seed_num==0:
                                 train_setup_info['training_results'] = False
                                 train_setup_info['observed_states'] = False
-                                train_setup_info['experience_sampling'] = False
                             else:
                                 train_setup_info['training_results'] = False
                                 train_setup_info['observed_states'] = observed_states_stored.copy()
-                                train_setup_info['experience_sampling'] = experience_sampling_stored.copy()
                             # ---
                             setup_num:int = 0
                             temp_agent_store:dict = {}
@@ -271,13 +263,11 @@ class Experiment:
                                     best_agent = live_env.agent
                                     training_results_stored =  live_env.results.copy()
                                     observed_states_stored = live_env.elsciRL.observed_states
-                                    experience_sampling_stored = live_env.elsciRL.experience_sampling
                                 if Return > max_Return:
                                     max_Return = Return
                                     best_agent = live_env.agent
                                     training_results_stored =  live_env.results.copy()
                                     observed_states_stored = live_env.elsciRL.observed_states
-                                    experience_sampling_stored = live_env.elsciRL.experience_sampling
                                 seed_recall[goal] = seed_recall[goal] + 1
                                 # Save trained agent to logged output
                                 train_setup_info['train_save_dir'] = agent_save_dir
@@ -329,7 +319,6 @@ class Experiment:
             test_setup_info['train'] = False # Testing Phase
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
-            test_setup_info['experience_sampling'] = False
             agent_type = test_setup_info['agent_type']
             print("----------")
             print(training_key) 
@@ -432,7 +421,6 @@ class Experiment:
             test_setup_info['train'] = False # Testing Phase
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
-            test_setup_info['experience_sampling'] = False
             print("----------")
             print("Rendering trained agent's policy:")
             agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']

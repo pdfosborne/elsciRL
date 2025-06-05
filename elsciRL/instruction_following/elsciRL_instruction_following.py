@@ -23,7 +23,7 @@ from elsciRL.experiments.experiment_utils.render_current_results import render_c
 # ------ LLM Agents ---------------------------------------------
 from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
 # ---------------------------------------------------------------
-# TODO: COMPLETELY REWRITE THIS FILE TO USE THE NEW EXPERIMENT FRAMEWORK AND REMOVE EXPERIENCE SAMPLING
+# TODO: COMPLETELY REWRITE THIS FILE TO USE THE NEW EXPERIMENT FRAMEWORK
 
 
 # TODO: Enable any number of the same agent types with varying parameters
@@ -131,7 +131,6 @@ class elsciRLOptimize:
                 train_setup_info['live_env'] = True
                 train_setup_info['training_results'] = False
                 train_setup_info['observed_states'] = False
-                train_setup_info['experience_sampling'] = False
                 live_env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=train_setup_info)
                 self.start_obs = live_env.start_obs
             else:
@@ -283,10 +282,6 @@ class elsciRLOptimize:
             else:
                 # We are adding then overriding some inputs from general configs for experimental setups
                 train_setup_info = self.setup_info.copy()
-                # TODO: fix experience sampling
-                if train_setup_info['experience_sample_batch_ratio']>0:
-                    print("NOTE - Experience Sampling feature not currently implemented and will not be used")
-                    train_setup_info['experience_sample_batch_ratio'] = 0
                 # ----- State Adapter Choice
                 for adapter in train_setup_info["adapter_input_dict"][agent_type]:
                     # ----- Agent parameters
@@ -320,15 +315,13 @@ class elsciRLOptimize:
                         # -------------------------------------------------------------------------------
                         # Initialise Environment
                         # Environment now init here and called directly in experimental setup loop
-                        # - Observed states, experience sampling passed over seeds but not training repeats
+                        # - Observed states passed over seeds but not training repeats
                         if seed_num==0:
                             train_setup_info['training_results'] = False
                             train_setup_info['observed_states'] = False
-                            train_setup_info['experience_sampling'] = False
                         else:
                             train_setup_info['training_results'] = False
                             train_setup_info['observed_states'] = observed_states_stored.copy()
-                            train_setup_info['experience_sampling'] = experience_sampling_stored.copy()
                         # --- 
                         setup_num:int = 0
                         temp_agent_store = {}
@@ -369,240 +362,119 @@ class elsciRLOptimize:
                             if not os.path.exists(agent_save_dir):
                                 os.mkdir(agent_save_dir)
                             
-                            if train_setup_info['experience_sample_batch_ratio']>0:
-                                live_sample_batch_size = int(number_training_episodes*train_setup_info['experience_sample_batch_ratio'])
-                                live_sample_batch_count = int(1/train_setup_info['experience_sample_batch_ratio'])
-                                # Train on Live system for limited number of total episodes   
-                                live_env.number_episodes = live_sample_batch_size
-                                print("-- Training with Simulated Batches, ", live_sample_batch_count, " total...")
-                                # init simulated environment
-                                train_setup_info['live_env'] = False
-                                simulated_env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=train_setup_info)
-                                simulated_env.start_obs = env_start
-
-                                sample_batch_agent_store = {} # Need to continue learning across batches
-                                sample_batch_results_store = {} # Pass over results table to next batch for the same instr TODO not working
-                                for live_sample_batch in range(0, live_sample_batch_count-1):
-                                    print("--- Live Interaction Batch Num", live_sample_batch+1)
-                                    # ---- 
-                                    # Train for sub instr plan
-                                    start = str(env_start).split(".")[0]
-                                    i=0
-                                    while True:
-                                        # Only allow insutrction up until total limi
-                                        # - Prevents it being given more episodes than flat
-                                        # - Prevents cyclic instruction paths
-                                        if int(number_training_episodes*self.instruction_episode_ratio)<=(number_training_episodes-total_instr_episodes):
-                                            # Override with trained agent if goal seen previously
-                                            if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
-                                                live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
-                                                # Reset exploration parameter between seeds so to not get 'trapped'
-                                                live_env.agent.exploration_parameter_reset()
-                                            break
-                                        
-                                        elif start in self.known_instructions_dict[(agent_type+'_'+adapter)]:
-                                            i+=1
-                                            max_count = 0
-                                            for end in self.known_instructions_dict[(agent_type+'_'+adapter)][start]:
-                                                if self.known_instructions_dict[(agent_type+'_'+adapter)][start][end] > max_count:
-                                                    max_count = self.known_instructions_dict[(agent_type+'_'+adapter)][start][end]
-                                                    instr = start + "---" + end
-                                                    print("Sub-instr: ", instr)
-                                            # ---
-                                            # Override trained agent with known instruction agent 
-                                            if instr in sample_batch_agent_store:
-                                                live_env.agent = sample_batch_agent_store[instr]
-                                            elif instr in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
-                                                live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][instr].clone()
-                                            if instr in sample_batch_results_store:
-                                                live_env.results.load(sample_batch_results_store[instr])
+                            # ---- 
+                            # Train for sub instr plan
+                            # Set start position of env for next -> pick first sub-goal env label
+                            start = str(env_start).split(".")[0]
+                            i=0
+                            total_instr_episodes = 0
+                            instr_results = None
+                            prior_instr = None
+                            multi_sub_goal = {} # New multi-goal option -> needs to be defined in env
+                            while True:
+                                i+=1
+                                if i > self.total_num_instructions:
+                                    break
+                                max_count = 0
+                                # Only allow instruction up until total limit
+                                # - Prevents it being given more episodes than flat
+                                # - Prevents cyclic instruction paths
+                                if int(number_training_episodes*self.instruction_episode_ratio)>=(number_training_episodes-total_instr_episodes):
+                                    # Override with trained agent if goal seen previously
+                                    if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
+                                        live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
+                                        # Reset exploration parameter between seeds so to not get 'trapped'
+                                        live_env.agent.exploration_parameter_reset()
+                                    break
+                                
+                                elif start in self.known_instructions_dict[(agent_type+'_'+adapter)]:
+                                    for end in self.known_instructions_dict[(agent_type+'_'+adapter)][start]:
+                                        if self.known_instructions_dict[(agent_type+'_'+adapter)][start][end] > max_count:
+                                            max_count = self.known_instructions_dict[(agent_type+'_'+adapter)][start][end]
+                                            instr = start + "---" + end
+                                            print("Sub-instr: ", instr)
                                             
-                                            # elif prior_instr:
-                                            #     live_env.agent = live_env.agent.clone() # Start from agent from previous task
-                                            # TODO: ADOPT AGENT OF MOST SIMILAR POLICY
-                                            # ---
-                                            sub_goal = self.instruction_path[instr][agent_type+'_'+adapter]['sub_goal']
-                                            live_env.sub_goal = sub_goal
-                                            live_env.agent.exploration_parameter_reset()
-                                            training_results = live_env.episode_loop()
-                                            sample_batch_agent_store[instr] = live_env.agent.clone()
-                                            # Override episode numbers and store for next batch
-                                            training_results['episode'] = training_results.index
-                                            sample_batch_results_store[instr] = live_env.results.copy()
-                                            # ---
-                                            # Store instruction results
-                                            instr_save_dir = agent_save_dir+'/'+str(i)+"-"+instr.replace(" ","").replace("/","_")
-                                            if not os.path.exists(instr_save_dir):
-                                                os.mkdir(instr_save_dir)
-
-                                            # Produce training report with Analysis.py
-                                            Return = self.analysis.train_report(training_results, instr_save_dir, self.show_figures)
-                                            if instr not in temp_agent_store:
-                                                temp_agent_store[instr] = {}
-                                            temp_agent_store[instr][setup_num] = {'Return':Return,'agent':live_env.agent.clone()}
-                                            # ---
-                                            start = end
-                                            live_env.results.reset() # Force reset so we don't get overlapping outputs
-                                            #live_env.start_obs = sub_goal[0] # Set start position of env for next -> pick first sub-goal
-                                        else:
-                                            # if at least one sub-instr start with that for goal agent
-                                            # if i > 1:
-                                            #     live_env.agent = live_env.agent.clone() # Start from agent from previous task
-
-                                            # if no instructions and first batch then adopt known agent
-                                            # - Will then use this for next batches
-                                            if i == 0 :
-                                                if live_sample_batch == 0:
-                                                    # Override with trained agent if goal seen previously
-                                                    if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
-                                                        live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
-                                            break
-                                    
-                                    # train for entire path 
-                                    #live_env.start_obs = env_start
-                                    live_env.sub_goal = None 
-                                    print("Goal: ", goal)
-                                    if goal in sample_batch_results_store:
-                                        live_env.results.load(sample_batch_results_store[goal])
+                                    # Instructions use fewer episodes, lower bound to 10
+                                    number_instr_episodes = int(number_training_episodes*self.instruction_episode_ratio)
+                                    if number_instr_episodes<10:
+                                        number_instr_episodes=10
+                                    total_instr_episodes+=number_instr_episodes
+                                    live_env.number_episodes = number_instr_episodes
+                                    # ---
+                                    # Override trained agent with known instruction agent
+                                    if instr in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
+                                        live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][instr].clone()
+                                    # TODO: ADOPT AGENT OF MOST SIMILAR POLICY
+                                    # ---
+                                    # New: Allow env to start from prior instr end
+                                    if self.instruction_chain:
+                                        if prior_instr:
+                                            # Select first env position from known sub-goal list
+                                            if self.instruction_chain_how.lower() == 'first':
+                                                env_sg_start = self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'][0]
+                                            elif self.instruction_chain_how.lower() == 'random':
+                                                env_sg_start = random.choice(self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'])
+                                            elif self.instruction_chain_how.lower() == 'exact':
+                                                try:
+                                                    if live_env.sub_goal_end:
+                                                        env_sg_start = live_env.sub_goal_end
+                                                    else:
+                                                        env_sg_start = random.choice(self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'])
+                                                except:
+                                                    print("ERROR: To use the EXACT instruction chain, the environment must include the '.sub_goal_end' attribute.")
+                                            elif (self.instruction_chain_how.lower() == 'continuous')|(self.instruction_chain_how.lower() == 'cont'):
+                                                # Env start position is default (i.e. reset)
+                                                env_sg_start = None
+                                                # Define multi-sub-goals
+                                                # - Scale prior instruction down based on current path by r = 1/x
+                                                # - Reward override if same instr seen later to prevent cyclic loops that don't complete episode 
+                                                if prior_instr not in multi_sub_goal:
+                                                    multi_sub_goal[prior_instr] = {}
+                                                    multi_sub_goal[prior_instr]['sub_goal'] = self.instruction_path[instr][agent_type+'_'+adapter]['sub_goal']
+                                                multi_sub_goal[prior_instr]['reward_scale'] = np.round(1/i, 4) # e.g. r=1 --> 1/2, 1/3, 1/4, ...
+                                                    
+                                                try:
+                                                    # This doesn't supercede .sub_goal so need both defined
+                                                    live_env.multi_sub_goal = multi_sub_goal
+                                                except:
+                                                    print("ERROR: To use CONTINUOUS instruction chain, the environment must include the '.multi_sub_gial' attribute.")
+                                            
+                                            if env_sg_start:
+                                                live_env.start_obs = env_sg_start
+                                        
+                                    sub_goal = self.instruction_path[instr][agent_type+'_'+adapter]['sub_goal']
+                                    live_env.sub_goal = sub_goal
                                     live_env.agent.exploration_parameter_reset()
+                                    if type(instr_results)==type(pd.DataFrame()):
+                                        live_env.results.load(instr_results)
                                     training_results = live_env.episode_loop()
                                     training_results['episode'] = training_results.index
-                                    sample_batch_results_store[goal] = live_env.results.copy()
+                                    # ---
+                                    # Store instruction results
+                                    instr_save_dir = agent_save_dir+'/'+str(i)+"-"+instr.replace(" ","").replace("/","_")
+                                    if not os.path.exists(instr_save_dir):
+                                        os.mkdir(instr_save_dir)
 
-                                    # Train based on simulated exp             
-                                    simulated_env.num_train_episodes = number_training_episodes
-                                    # Connect live agent -> This should be linked so continues learning
-                                    simulated_env.agent = live_env.agent
-                                    simulated_env.episode_loop()
-                                # Final batch doesn't require simulated exp after and we need result output
-                                print("--- Final batch")
-                                train_setup_info['live_env'] = True
-                                train_setup_info['number_training_episodes'] = live_sample_batch_size
-                                live_env.agent.exploration_parameter_reset()
-                                training_results = live_env.episode_loop()
-
-                                # Have to 'fix' output
-                                training_results['episode'] = training_results.index
-                                cumulative_r = 0
-                                cumulative_r_lst = []
-                                for r in training_results['episode_reward']:
-                                    cumulative_r+=r
-                                    cumulative_r_lst.append(cumulative_r)
-                                training_results['cumulative_reward'] = cumulative_r_lst
-                            else:
-                                # ---- 
-                                # Train for sub instr plan
-                                # Set start position of env for next -> pick first sub-goal env label
-                                start = str(env_start).split(".")[0]
-                                i=0
-                                total_instr_episodes = 0
-                                instr_results = None
-                                prior_instr = None
-                                multi_sub_goal = {} # New multi-goal option -> needs to be defined in env
-                                while True:
-                                    i+=1
-                                    if i > self.total_num_instructions:
-                                        break
-                                    max_count = 0
-                                    # Only allow instruction up until total limit
-                                    # - Prevents it being given more episodes than flat
-                                    # - Prevents cyclic instruction paths
-                                    if int(number_training_episodes*self.instruction_episode_ratio)>=(number_training_episodes-total_instr_episodes):
+                                    # Produce training report with Analysis.py
+                                    Return = self.analysis.train_report(training_results, instr_save_dir, self.show_figures)
+                                    if instr not in temp_agent_store:
+                                        temp_agent_store[instr] = {}
+                                    temp_agent_store[instr][setup_num] = {'Return':Return,'agent':live_env.agent.clone()}
+                                    # ---
+                                    start = end
+                                    prior_instr = instr
+                                    # New: Dont reset results for each sub-instr so we show the training results with this included
+                                    #live_env.results.reset() # Force reset so we don't get overlapping outputs
+                                    instr_results =  live_env.results.copy()
+                                else:
+                                    # If no instructions then train for full goal
+                                    if i == 1:
                                         # Override with trained agent if goal seen previously
                                         if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
                                             live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
                                             # Reset exploration parameter between seeds so to not get 'trapped'
                                             live_env.agent.exploration_parameter_reset()
-                                        break
-                                    
-                                    elif start in self.known_instructions_dict[(agent_type+'_'+adapter)]:
-                                        for end in self.known_instructions_dict[(agent_type+'_'+adapter)][start]:
-                                            if self.known_instructions_dict[(agent_type+'_'+adapter)][start][end] > max_count:
-                                                max_count = self.known_instructions_dict[(agent_type+'_'+adapter)][start][end]
-                                                instr = start + "---" + end
-                                                print("Sub-instr: ", instr)
-                                                
-                                        # Instructions use fewer episodes, lower bound to 10
-                                        number_instr_episodes = int(number_training_episodes*self.instruction_episode_ratio)
-                                        if number_instr_episodes<10:
-                                            number_instr_episodes=10
-                                        total_instr_episodes+=number_instr_episodes
-                                        live_env.number_episodes = number_instr_episodes
-                                        # ---
-                                        # Override trained agent with known instruction agent
-                                        if instr in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
-                                            live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][instr].clone()
-                                        # TODO: ADOPT AGENT OF MOST SIMILAR POLICY
-                                        # ---
-                                        # New: Allow env to start from prior instr end
-                                        if self.instruction_chain:
-                                            if prior_instr:
-                                                # Select first env position from known sub-goal list
-                                                if self.instruction_chain_how.lower() == 'first':
-                                                    env_sg_start = self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'][0]
-                                                elif self.instruction_chain_how.lower() == 'random':
-                                                    env_sg_start = random.choice(self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'])
-                                                elif self.instruction_chain_how.lower() == 'exact':
-                                                    try:
-                                                        if live_env.sub_goal_end:
-                                                            env_sg_start = live_env.sub_goal_end
-                                                        else:
-                                                            env_sg_start = random.choice(self.instruction_path[prior_instr][agent_type+'_'+adapter]['sub_goal'])
-                                                    except:
-                                                        print("ERROR: To use the EXACT instruction chain, the environment must include the '.sub_goal_end' attribute.")
-                                                elif (self.instruction_chain_how.lower() == 'continuous')|(self.instruction_chain_how.lower() == 'cont'):
-                                                    # Env start position is default (i.e. reset)
-                                                    env_sg_start = None
-                                                    # Define multi-sub-goals
-                                                    # - Scale prior instruction down based on current path by r = 1/x
-                                                    # - Reward override if same instr seen later to prevent cyclic loops that don't complete episode 
-                                                    if prior_instr not in multi_sub_goal:
-                                                        multi_sub_goal[prior_instr] = {}
-                                                        multi_sub_goal[prior_instr]['sub_goal'] = self.instruction_path[instr][agent_type+'_'+adapter]['sub_goal']
-                                                    multi_sub_goal[prior_instr]['reward_scale'] = np.round(1/i, 4) # e.g. r=1 --> 1/2, 1/3, 1/4, ...
-                                                        
-                                                    try:
-                                                        # This doesn't supercede .sub_goal so need both defined
-                                                        live_env.multi_sub_goal = multi_sub_goal
-                                                    except:
-                                                        print("ERROR: To use CONTINUOUS instruction chain, the environment must include the '.multi_sub_gial' attribute.")
-                                                
-                                                if env_sg_start:
-                                                    live_env.start_obs = env_sg_start
-                                            
-                                        sub_goal = self.instruction_path[instr][agent_type+'_'+adapter]['sub_goal']
-                                        live_env.sub_goal = sub_goal
-                                        live_env.agent.exploration_parameter_reset()
-                                        if type(instr_results)==type(pd.DataFrame()):
-                                            live_env.results.load(instr_results)
-                                        training_results = live_env.episode_loop()
-                                        training_results['episode'] = training_results.index
-                                        # ---
-                                        # Store instruction results
-                                        instr_save_dir = agent_save_dir+'/'+str(i)+"-"+instr.replace(" ","").replace("/","_")
-                                        if not os.path.exists(instr_save_dir):
-                                            os.mkdir(instr_save_dir)
-
-                                        # Produce training report with Analysis.py
-                                        Return = self.analysis.train_report(training_results, instr_save_dir, self.show_figures)
-                                        if instr not in temp_agent_store:
-                                            temp_agent_store[instr] = {}
-                                        temp_agent_store[instr][setup_num] = {'Return':Return,'agent':live_env.agent.clone()}
-                                        # ---
-                                        start = end
-                                        prior_instr = instr
-                                        # New: Dont reset results for each sub-instr so we show the training results with this included
-                                        #live_env.results.reset() # Force reset so we don't get overlapping outputs
-                                        instr_results =  live_env.results.copy()
-                                    else:
-                                        # If no instructions then train for full goal
-                                        if i == 1:
-                                            # Override with trained agent if goal seen previously
-                                            if goal in self.trained_agents[str(agent_type) + '_' + str(adapter)]:
-                                                live_env.agent = self.trained_agents[str(agent_type) + '_' + str(adapter)][goal].clone()
-                                                # Reset exploration parameter between seeds so to not get 'trapped'
-                                                live_env.agent.exploration_parameter_reset()
-                                        break
+                                    break
                                 # train for entire path 
                                 if self.instruction_chain:
                                     live_env.start_obs = env_start
@@ -645,17 +517,15 @@ class elsciRLOptimize:
                             temp_agent_store[goal][setup_num] = {'Return':Return,'agent':live_env.agent.clone()}
                                                                     
                             # Extract trained agent from env and stored for re-call
-                            # - Observed states and experience sampling from best repeat stored for next seed
+                            # - Observed states from best repeat stored for next seed
                             if training_repeat == 1:
                                 max_Return = Return
                                 training_results_stored =  live_env.results.copy()
                                 observed_states_stored = live_env.elsciRL.observed_states
-                                experience_sampling_stored = live_env.elsciRL.experience_sampling
                             if Return > max_Return:
                                 max_Return = Return
                                 training_results_stored =  live_env.results.copy()
                                 observed_states_stored = live_env.elsciRL.observed_states
-                                experience_sampling_stored = live_env.elsciRL.experience_sampling
                             
                             seed_recall[goal] = seed_recall[goal] + 1
                         seed_results_connection[goal] = training_results_stored
@@ -690,7 +560,7 @@ class elsciRLOptimize:
                                 self.trained_agents[str(agent_type) + '_' + str(adapter)][instr] = all_agents
 
                                                 
-                    # Store last train_setup_info as collection of observed states and experience sampling
+                    # Store last train_setup_info as collection of observed states
                     self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info.copy()
                 #if (number_training_repeats>1)|(self.num_training_seeds):
                 self.analysis.training_variance_report(self.save_dir, self.show_figures)
