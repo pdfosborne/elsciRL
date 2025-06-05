@@ -11,7 +11,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # ------ Evaluation Metrics -----------------------------------------
 from elsciRL.analysis.convergence_measure import Convergence_Measure
 # ------ Instruction Inputs -----------------------------------------
-from elsciRL.instruction_following.elsciRL_instr_input import elsciRLInput
+from elsciRL.instruction_following.instr_utils.elsciRL_instr_input import elsciRLInput
 # ------ Agent Imports -----------------------------------------
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent

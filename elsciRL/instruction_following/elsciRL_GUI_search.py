@@ -10,13 +10,9 @@ from elsciRL.agents.random_agent import RandomAgent
 # TODO use encoder defined by config not manual import
 from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
 
-# TODO: Enable any number of the same agent types with varying parameters
+# Only use Qlearntab for for search agent for speeeeeed and randomn exploration
 AGENT_TYPES = {
-    "Qlearntab": TableQLearningAgent,
-    "Neural_Q": NeuralQLearningAgent,
-    "Neural_Q_2": NeuralQLearningAgent,
-    "Neural_Q_language": NeuralQLearningAgent,
-    "Random": RandomAgent
+    "Qlearntab": TableQLearningAgent
 }
 
 

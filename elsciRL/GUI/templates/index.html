@@ -338,6 +338,10 @@
                 <div align="center">   
                     <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
                     <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="margin-bottom: 15px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
+                    <div style="margin-bottom: 15px;">
+                        <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner" unchecked>
+                        <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;">Enable LLM Instruction Planner</label>
+                    </div>
                 </div>
 
                 <div class="input-console-container" style="display: flex; gap: 20px;">
@@ -723,6 +727,7 @@
             const localConfig = document.getElementById('localConfigSelect').value;
             const observedState = document.getElementById('observedStateSelect').value;
             const selectedPlot = document.getElementById('plotSelect').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
 
             const trainingEpisodes = document.getElementById('trainingEpisodes').value;
 
@@ -750,7 +755,8 @@
                         observedStateInput: observedState,
                         localConfigInput: localConfig,
                         selectedPlot: selectedPlot,
-                        trainingEpisodes: document.getElementById('trainingEpisodes').value
+                        trainingEpisodes: document.getElementById('trainingEpisodes').value,
+                        enableLLMPlanner: enableLLMPlanner
                     })
                 });
 
@@ -770,6 +776,33 @@
                         img.className = 'shadow-effect';
                         instructionMatchPlots.appendChild(img);
                     });
+                }
+
+                // Handle LLM validation if enabled
+                const confirmationBlock = document.getElementById('confirmationBlock');
+                if (enableLLMPlanner) {
+                    // Hide manual confirmation buttons when LLM planner is enabled
+                    confirmationBlock.style.display = 'none';
+                    
+                    // Automatically confirm result using LLM validation
+                    if (data.llm_validation_result !== undefined) {
+                        const confirmationResult = document.getElementById('confirmationResult');
+                        if (data.llm_validation_result) {
+                            confirmationResult.innerHTML = '<br>✓ LLM validation: Instructions are complete and correct.';
+                            confirmationResult.style.color = 'green';
+                        } else {
+                            confirmationResult.innerHTML = '<br>⚠ LLM validation: Instructions may be incomplete or need refinement.';
+                            confirmationResult.style.color = 'orange';
+                        }
+                        
+                        // Automatically call confirm result with LLM validation
+                        setTimeout(() => {
+                            confirmResultLLM(data.llm_validation_result);
+                        }, 1000);
+                    }
+                } else {
+                    // Show manual confirmation buttons when LLM planner is disabled
+                    confirmationBlock.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error processing input:', error);
@@ -822,6 +855,44 @@
                 confirmationResult.style.color = 'red';
                 loadingCircleConfirm.style.display = 'none';
                 document.getElementById('loadingOverlay').style.display = 'none';
+            });
+        }
+
+        function confirmResultLLM(isCorrect) {
+            const user_input = document.getElementById('userInput').value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+
+            console.log(`Sending LLM confirmation: isCorrect=${isCorrect}, userInput=${user_input}`);
+
+            fetch('/confirm_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    isCorrect: isCorrect, 
+                    userInput: user_input,
+                    selectedApps: [selectedApp],
+                    isLLMValidation: true
+                })    
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Error response from server:', response);
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('LLM Server response:', data);
+                const confirmationResult = document.getElementById('confirmationResult');
+                confirmationResult.innerHTML += '<br>' + data.message;
+            })
+            .catch(error => {
+                console.error('Error sending LLM confirmation:', error);
+                const confirmationResult = document.getElementById('confirmationResult');
+                confirmationResult.innerHTML += '<br>Error sending LLM confirmation';
+                confirmationResult.style.color = 'red';
             });
         }
 

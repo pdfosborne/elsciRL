@@ -12,12 +12,17 @@ from flask import Response # Added Response for SSE
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
 # elsci methods
-from elsciRL.GUI.elsciRL_demo_search import elsciRLSearch as elsci_search
+from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
 from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
 from elsciRL.experiments.standard import Experiment as STANDARD_RL
 # Get application data
 from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.import_tool import PullApplications
+
+# elsciRL LLM Instruction Following
+from elsciRL.instruction_following.instr_utils.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
+from elsciRL.instruction_following.instr_utils.LLM_instr_validator import LLMInstructionValidator
+
 # Analysis
 import matplotlib
 matplotlib.use('Agg')
@@ -40,7 +45,6 @@ class WebApp:
         possible_applications = list(imports.keys())
         self.available_applications = possible_applications
         
-
         # Currently pulls all the available applications
         # - TODO: Make it so it pulls all the file names but not the data
         #    ---> Then once problem is selected it then pulls data
@@ -51,6 +55,10 @@ class WebApp:
         # Data used for LLM prompt
         with open(os.path.join(app.static_folder, 'app_setup.md'), "r") as f:
             self.app_setup_info = f.read()
+
+        # Initialize LLM Instruction Planner
+        self.LLM_INSTUCTION_PLANNER = False
+        self.LLM_validation = None
 
         self.AGENT_PARAMETER_DEFINITIONS = {
             "Qlearntab": {
@@ -202,12 +210,39 @@ class WebApp:
         application = data.get('selectedApps', [])[0]
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
+        enable_llm_planner = data.get('enableLLMPlanner', False)
+
+        # Set LLM Instruction Planner state
+        self.LLM_INSTUCTION_PLANNER = enable_llm_planner
+        if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is None:
+            try:
+                self.LLM_plan_generator = LLMTaskBreakdown()
+                self.LLM_validation = LLMInstructionValidator()
+            except Exception as e:
+                print(f"Error initializing LLM validator: {e}")
+                self.LLM_INSTUCTION_PLANNER = False
+        
 
         if not application:
             return jsonify({'error': 'No application selected'}), 400
 
         instruction_descriptions = user_input.split('\n')
         instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+
+        # Use LLM plan generator if enabled
+        if self.LLM_INSTUCTION_PLANNER and self.LLM_plan_generator is not None:
+            try:
+                # Use LLM to breakdown the user input into structured instructions
+                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input)
+                if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
+                    instruction_descriptions = llm_breakdown
+                    instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+                    print(f"LLM breakdown generated {len(instruction_descriptions)} instructions")
+                else:
+                    print("LLM breakdown failed or returned empty, using original input")
+            except Exception as e:
+                print(f"Error using LLM plan generator: {e}")
+                print("Falling back to original input splitting")
 
         results = {}
         console_output = ''
@@ -262,6 +297,7 @@ class WebApp:
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
+            self.validated_instructions = True            
             for n, instr in enumerate(list(results[application].keys())):
                 if results[application][instr] is None:
                     console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
@@ -282,17 +318,41 @@ class WebApp:
                     else:
                         print(f"Error: Current state plot not created at {instr_match_plot_path}")
 
+                # LLM Validation checks all instructions to confirm they are complete
+                if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is not None and results[application][instr] is not None:
+                    try:
+                        instr_complete = self.LLM_validation.validate_instruction_completion(
+                            instruction_descriptions[n], 
+                            results[application][instr]['sub_goal']
+                        )['is_complete']
+                        if not instr_complete:
+                            self.validated_instructions = False
+                        
+                    except Exception as e:
+                        print(f"Error in LLM validation: {e}")
+                        self.validated_instructions = False
+                   
+                else:
+                    self.validated_instructions = False
+
+
         except Exception as e:
             print(f"Error in process_input: {str(e)}")
             raise
 
         prerender_image = self.get_prerender_image(application)
 
-        return jsonify({
+        response_data = {
             'console_output': console_output,
             'matchPlots': match_plots,
             'prerenderImage': prerender_image
-        })
+        }
+        
+        # Include LLM validation result if LLM planner is enabled
+        if self.LLM_INSTUCTION_PLANNER:
+            response_data['llm_validation_result'] = self.validated_instructions
+
+        return jsonify(response_data)
 
     def get_prerender_image(self, application):
         image_data = self.pull_app_data[application]['prerender_images']
@@ -559,7 +619,17 @@ class WebApp:
     def confirm_result(self):
         data = request.json
 
-        is_correct = data.get('isCorrect')
+        # Check if this is an LLM validation (automatic)
+        is_llm_validation = data.get('isLLMValidation', False)
+        
+        # Use LLM validation if available, otherwise use user input
+        if is_llm_validation:
+            # Automatic LLM validation
+            is_correct = data.get('llm_validation_result')
+        else:
+            # Standard manual validation
+            is_correct = data.get('isCorrect')
+            
         user_input = data.get('userInput')
         
         application = data.get('selectedApps', [])[0]
@@ -573,7 +643,10 @@ class WebApp:
                     self.instruction_results[application]['instr_'+str(self.global_input_count)]
                 
                 self.correct_instructions.append(user_input)
-                message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+                if is_llm_validation:
+                    message = "<br>LLM validation confirmed: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
+                else:
+                    message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
                 print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
@@ -581,7 +654,10 @@ class WebApp:
             self.global_input_count = len(self.correct_instructions)+1
         else:
             self.incorrect_instructions.append(user_input)
-            message = "<br>Thanks for the feedback. The model will use this to improve."
+            if is_llm_validation:
+                message = "<br>LLM validation indicates instructions may need refinement. The model will use this feedback to improve."
+            else:
+                message = "<br>Thanks for the feedback. The model will use this to improve."
 
         return jsonify({
             'status': 'received',

@@ -45,5 +45,5 @@ class ImportHelper:
     def live_env_flag(self):
         live_env: bool = self.setup_info['live_env']
         observed_states: bool = self.setup_info['observed_states']
-        experience_sampling: bool = self.setup_info['experience_sampling']
-        return live_env, observed_states, experience_sampling
+        #experience_sampling: bool = self.setup_info['experience_sampling']
+        return live_env, observed_states

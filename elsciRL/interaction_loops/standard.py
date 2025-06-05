@@ -65,14 +65,14 @@ class StandardInteractionLoop:
         else:
             self.number_episodes = self.num_test_episodes
         # --- elsciRL
-        self.live_env, self.observed_states, self.experience_sampling = (
+        self.live_env, self.observed_states = (
             Imports.live_env_flag()
         )
         # Results formatting
         self.results = ResultsTable(local_setup_info)
         # elsciRL input function
         # - We only want to init trackers on first batch otherwise it resets knowledge
-        self.elsciRL = elsciRLInfo(self.observed_states, self.experience_sampling)
+        self.elsciRL = elsciRLInfo(self.observed_states)
         # Env start position for instr input
         # Enable sub-goals
         if (

@@ -12,7 +12,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # ------ Evaluation Metrics -----------------------------------------
 from elsciRL.analysis.convergence_measure import Convergence_Measure
 # ------ Instruction Inputs -----------------------------------------
-from elsciRL.instruction_following.elsciRL_instr_input import elsciRLInput as TerminalInput
+from elsciRL.instruction_following.instr_utils.elsciRL_instr_input import elsciRLInput as TerminalInput
 # ------ Agent Imports -----------------------------------------
 # Universal Agents
 from elsciRL.agents.table_q_agent import TableQLearningAgent
