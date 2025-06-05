@@ -13,6 +13,7 @@ import urllib.request
 
 import logging
 from elsciRL.agents.agent_abstract import LLMAgentAbstract
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as encode_text
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -186,14 +187,29 @@ class LLMAgent(LLMAgentAbstract):
                 if (action in legal_actions) and (action is not None):
                     action = action
                 else:
-                    print("++++++++++++++++++++++++++++++++++++++++")
-                    print("INVALID ACTION")
-                    print("State:", state)
-                    print("Action:", action)
-                    print("Legal actions:", legal_actions)
-                    print("++++++++++++++++++++++++++++++++++++++++")
-                    logger.error(f"Action {action} not in legal actions: {legal_actions}")
-                    action = random.choice(legal_actions)
+                    # Encode the proposed action and legal actions using miniLMv6
+                    action_embedding = encode_text(action)
+                    legal_action_embeddings = [encode_text(a) for a in legal_actions]
+                    
+                    # Calculate cosine similarity between proposed action and legal actions
+                    similarities = [
+                        torch.nn.functional.cosine_similarity(
+                            action_embedding, legal_emb, dim=0
+                        ) for legal_emb in legal_action_embeddings
+                    ]
+                    
+                    # Find best matching legal action
+                    best_match_idx = np.argmax(similarities)
+                    best_match_sim = similarities[best_match_idx]
+                    
+                    if best_match_sim > 0.9:
+                        # Accept the closest matching legal action
+                        action = legal_actions[best_match_idx]
+                        logger.info(f"Found similar legal action: {action} with similarity {best_match_sim}")
+                    else:
+                        # No close match found, use random action
+                        action = random.choice(legal_actions)
+                        logger.warning(f"No similar legal actions found, using random choice: {action}")
             except Exception as e:
                 action = random.choice(legal_actions)
                 logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
