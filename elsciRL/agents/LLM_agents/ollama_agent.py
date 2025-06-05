@@ -206,7 +206,7 @@ class LLMAgent(LLMAgentAbstract):
                 # 1. CHECK IF LEGAL ACTION IN ACTION TEXT
                 action_match_found = False
                 for legal_a in legal_actions:
-                    if legal_a in action:
+                    if str(legal_a) in action:
                         print(f"Action {action} found in legal moves as {legal_a}.")
                         action = legal_a
                         action_match_found = True
