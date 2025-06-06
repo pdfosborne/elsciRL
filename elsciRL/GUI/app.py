@@ -119,12 +119,6 @@ class WebApp:
             os.makedirs(self.uploads_dir, exist_ok=True)
         print(f"Uploads directory (absolute path): {self.uploads_dir}")
 
-        # Ensure real_time_render subdirectory exists
-        self.real_time_render_dir = os.path.join(self.uploads_dir, 'real_time_render')
-        if not os.path.exists(self.real_time_render_dir):
-            os.makedirs(self.real_time_render_dir, exist_ok=True)
-        print(f"Real-time render directory: {self.real_time_render_dir}")
-
     def home(self):
         template_path = os.path.join(app.template_folder, 'index.html')
         print(f"Trying to get HTML file from: {template_path}")
@@ -506,8 +500,7 @@ class WebApp:
                         Config=ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=adapters,
                         save_dir=instr_save_dir, show_figures='No', window_size=0.1,
                         instruction_path=instr_data_path, predicted_path=None, instruction_episode_ratio=0.1,
-                        instruction_chain=True, instruction_chain_how='exact',
-                        training_render=True, training_render_save_dir=self.real_time_render_dir)
+                        instruction_chain=True, instruction_chain_how='exact')
                     job_queue.put(f"EVENT: Starting train for {instr_key} ({instr_text})")
                     reinforced_experiment.train()
                     job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
@@ -539,8 +532,7 @@ class WebApp:
             no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
             standard_experiment = STANDARD_RL(
                 Config=ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
-                save_dir=no_instr_save_dir, show_figures='No', window_size=0.1,
-                training_render=True, training_render_save_dir=self.real_time_render_dir)
+                save_dir=no_instr_save_dir, show_figures='No', window_size=0.1)
             job_queue.put("EVENT: Starting standard train.")
             standard_experiment.train()
             job_queue.put("EVENT: Standard train complete. Starting test.")
@@ -852,31 +844,6 @@ def get_experiment_config_route():
     
     return WebApp_instance.get_experiment_config(application, config_name_req)
 
-# TODO REDUCE GET REQUESTS FROM THIS FUNCTION
-# ---> IDEALLY GET FIGURE DIRECTLY FROM ENGINE RENDER CALL TO DISPLAY
-@app.route('/get_latest_real_time_image', methods=['GET'])
-def get_latest_real_time_image_route():
-    real_time_render_path = WebApp_instance.real_time_render_dir
-    if not os.path.exists(real_time_render_path) or not os.path.isdir(real_time_render_path):
-        response_payload = {'image_path': None, 'filename': None, 'error': 'Real-time render directory not found.'}
-        return jsonify(response_payload), 404
-    
-    image_files = []
-    for f_name in os.listdir(real_time_render_path):
-        if f_name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-            full_path = os.path.join(real_time_render_path, f_name)
-            image_files.append({'name': f_name, 'path': full_path, 'time': os.path.getmtime(full_path)})
-    
-    if not image_files:
-        return jsonify({'image_path': None, 'filename': None, 'message': 'No images found in real-time render directory.'})
-
-    image_files.sort(key=lambda x: x['time'], reverse=True)
-    
-    latest_image = image_files[0]
-    relative_image_path = os.path.join('uploads', 'real_time_render', latest_image['name'])
-    
-    return jsonify({'image_path': relative_image_path, 'filename': latest_image['name']})
-
 @app.route('/stream_job_notifications/<job_id>')
 def stream_job_notifications_route(job_id):
     if job_id not in WebApp_instance.active_jobs:
@@ -945,9 +912,4 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp_instance.global_save_dir, 'uploads')):
         os.makedirs(os.path.join(WebApp_instance.global_save_dir, 'uploads'))
     
-    uploads_main_dir = os.path.join(WebApp_instance.global_save_dir, 'uploads')
-    real_time_render_main_dir = os.path.join(uploads_main_dir, 'real_time_render')
-    if not os.path.exists(real_time_render_main_dir):
-        os.makedirs(real_time_render_main_dir, exist_ok=True)
-
     app.run(debug=True)

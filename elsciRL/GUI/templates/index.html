@@ -156,18 +156,19 @@
             margin-bottom: 20px;
         }
 
+        /*
         #realTimeRenderDisplay {
             margin-top: 20px;
             padding: 15px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background-color: #f9f9f9;
-            text-align: center; /* Center the image and title */
+            text-align: center;
         }
 
         #realTimeRenderDisplay img {
             max-width: 100%;
-            max-height: 400px; /* Adjust as needed */
+            max-height: 400px;
             border: 1px solid var(--border-color);
             margin-bottom: 10px;
         }
@@ -176,6 +177,7 @@
             color: var(--text-color);
             margin-top: 0;
         }
+        */
     </style>
 </head>
 <body>
@@ -393,13 +395,6 @@
                     <p style="margin-top: 15px;"><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
                     <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
                 </div>
-                <div id="realTimeRenderDisplay" style="display: none;">
-                    <h2>Real-time Render</h3>
-                    <h3 id="realTimeRenderPhaseTitle" style="color: var(--text-color); margin-bottom: 5px;">Current Phase: N/A</h3>
-                    <h4 id="realTimeRenderTitle"></h4>
-                    <img id="realTimeRenderImage" src="" alt="Latest Real-time Render" />
-                    <p><i>Note: The real-time render shows the fixed decision making of the most recent agent, if training is fast then this will be replaced before the animtion finishes.</i></p>
-                </div>
                 <div id="trainingLogOutputContainer" style="padding: 20px; display: none;"> 
                     <h2>Training Log</h3>
                     <div id="trainingLogOutput"></div>
@@ -437,7 +432,6 @@
         let allExperimentConfigs = {}; // New global variable for experiment configs
         let agentParameterDefinitions = JSON.parse('{{ agent_parameter_definitions | tojson | safe if agent_parameter_definitions else "{}" }}');
 
-        let imagePollingInterval = null;
         let jobEventSource = null;
         let currentJobId = null;
 
@@ -922,15 +916,10 @@
                 jobEventSource.close();
                 jobEventSource = null;
             }
-            if (imagePollingInterval) {
-                clearInterval(imagePollingInterval);
-                imagePollingInterval = null;
-            }
             currentJobId = null;
-            document.getElementById('realTimeRenderPhaseTitle').textContent = 'Current Phase: N/A';
-            // Optionally clear log and image display areas
+            // Removed real-time render references
+            // Optionally clear log display areas
             // document.getElementById('trainingLogOutput').innerHTML = '';
-            // document.getElementById('realTimeRenderDisplay').style.display = 'none';
         }
 
         async function runExperiment() {
@@ -957,9 +946,9 @@
                 return;
             }
             
-            // Hide previous real-time render and log, show loading overlay for the initial request
-            const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
-            realTimeRenderDisplay.style.display = 'none';
+            // Remove real-time render display setup
+            // const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+            // realTimeRenderDisplay.style.display = 'none';
             const logContainer = document.getElementById('trainingLogOutputContainer');
             logContainer.style.display = 'block'; 
             const trainingLogOutput = document.getElementById('trainingLogOutput');
@@ -1022,9 +1011,10 @@
                 }
 
                 trainingLogOutput.innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
-                realTimeRenderDisplay.style.display = 'block';
-                document.getElementById('realTimeRenderTitle').textContent = 'Waiting for first render...';
-                document.getElementById('realTimeRenderImage').src = ''; // Clear previous image
+                // Removed real-time render display elements
+                // realTimeRenderDisplay.style.display = 'block';
+                // document.getElementById('realTimeRenderTitle').textContent = 'Waiting for first render...';
+                // document.getElementById('realTimeRenderImage').src = ''; // Clear previous image
 
                 // Start SSE for job notifications
                 jobEventSource = new EventSource(`/stream_job_notifications/${currentJobId}`);
@@ -1034,22 +1024,23 @@
                     console.log("SSE Message:", message);
                     if (message.startsWith("EVENT: RENDER_PHASE_TITLE:")) {
                         const phaseTitle = message.substring("EVENT: RENDER_PHASE_TITLE:".length).trim();
-                        document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
-                        // Also log this change to the main log for visibility
-                        trainingLogOutput.innerHTML += `<p style="color: mediumpurple;"><strong>Display Title Update:</strong> ${phaseTitle}</p>`;
+                        // Removed real-time render phase title display
+                        // document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
+                        // Log this change to the main log for visibility
+                        trainingLogOutput.innerHTML += `<p style="color: mediumpurple;"><strong>Phase:</strong> ${phaseTitle}</p>`;
                     } else if (message.startsWith("EVENT: JOB_COMPLETE")) {
                         trainingLogOutput.innerHTML += `<p><strong>${message}</strong></p>`;
-                        if (imagePollingInterval) clearInterval(imagePollingInterval);
-                        imagePollingInterval = null;
-                        jobEventSource.close();
-                        jobEventSource = null;
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
                         fetchAndDisplayFinalResults(currentJobId);
                     } else if (message.startsWith("EVENT: JOB_FAILED")) {
                         trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
-                        if (imagePollingInterval) clearInterval(imagePollingInterval);
-                        imagePollingInterval = null;
-                        jobEventSource.close();
-                        jobEventSource = null;
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
                         // Optionally try to fetch partial results or error details if your backend supports it
                     } else if (message.startsWith("ERROR:")) {
                         trainingLogOutput.innerHTML += `<p style="color: red;">${message}</p>`;
@@ -1060,58 +1051,24 @@
                         trainingLogOutput.innerHTML += `<p>${message}</p>`;
                     } else if (message.startsWith("SSE_ERROR:") || message.includes("Job ID") && message.includes("not found")){
                         trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
-                        if (imagePollingInterval) clearInterval(imagePollingInterval);
-                        imagePollingInterval = null;
-                        jobEventSource.close(); // Critical SSE error, stop everything for this job
-                        jobEventSource = null;
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
+                        // Critical SSE error, stop everything for this job
                     }
                     trainingLogOutput.scrollTop = trainingLogOutput.scrollHeight; // Auto-scroll
                 };
 
                 jobEventSource.onerror = function(err) {
-                    trainingLogOutput.innerHTML += "<p style='color: red;'><strong>Job notification stream error. Connection lost. Polling for images will continue if active.</strong></p>";
+                    trainingLogOutput.innerHTML += "<p style='color: red;'><strong>Job notification stream error. Connection lost.</strong></p>";
                     console.error("Job EventSource failed:", err);
-                    // Don't necessarily stop image polling here, as the job might still be running
-                    // but do close this specific EventSource instance
+                    // Close this specific EventSource instance
                     if (jobEventSource) {
                         jobEventSource.close();
                         jobEventSource = null;
                     }
                 };
-
-                // Start polling for latest image
-                if (imagePollingInterval) clearInterval(imagePollingInterval); // Clear previous if any
-                imagePollingInterval = setInterval(async () => {
-                    if (!currentJobId) { // Stop if job ID is cleared (e.g., job ended)
-                        if (imagePollingInterval) clearInterval(imagePollingInterval);
-                        return;
-                    }
-                    try {
-                        const rtImageResponse = await fetch(`/get_latest_real_time_image`);
-                        const rtImageData = await rtImageResponse.json();
-                        if (rtImageData.image_path) {
-                            const imgElement = document.getElementById('realTimeRenderImage');
-                            // Only update if src is different to avoid flicker/reload of same image
-                            const newSrc = `/${rtImageData.image_path}?t=${new Date().getTime()}`;
-                            if (imgElement.src !== newSrc) {
-                                imgElement.src = newSrc;
-                            }
-                            document.getElementById('realTimeRenderTitle').textContent = rtImageData.filename;
-                            if(realTimeRenderDisplay.style.display === 'none') realTimeRenderDisplay.style.display = 'block';
-                        } else if (rtImageData.message && document.getElementById('realTimeRenderImage').src === '') {
-                            // Show message only if no image has been loaded yet
-                            const filenameOnly = rtImageData.filename ? `File: ${rtImageData.filename}` : (rtImageData.message || 'Polling for image...');
-                            document.getElementById('realTimeRenderTitle').textContent = filenameOnly;
-                        }
-                        // No need to show error from polling if SSE is active and will report job failure
-                    } catch (rtError) {
-                        console.warn('Error polling for latest real-time image:', rtError);
-                        const currentFileTitle = document.getElementById('realTimeRenderTitle').textContent;
-                        if (!currentFileTitle.includes("File:")) { // Avoid overwriting if a filename is already there
-                            document.getElementById('realTimeRenderTitle').textContent = 'Error polling for image file.';
-                        }
-                    }
-                }, 3000); // Poll every 3 seconds
 
             } catch (error) {
                 console.error('Error initiating experiment run:', error);
