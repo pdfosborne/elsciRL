@@ -359,9 +359,6 @@ class Experiment:
                                 print(self.trained_agents)
                                 raise KeyError("Trained agents lookup not found for testing position.")
                             
-                            print("++++++++++++++++++++++++++++++++++++++++")
-                            print(self.trained_agents)
-                            print("++++++++++++++++++++++++++++++++++++++++")
                             # ---
                             # Testing generally is the agents replaying on the testing ENV
                             testing_results = env.episode_loop() 
