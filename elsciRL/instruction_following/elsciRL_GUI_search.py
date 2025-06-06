@@ -24,7 +24,7 @@ class elsciRLSearch:
                  save_dir:str, 
                  number_exploration_episodes:int = 10000,
                  match_sim_threshold:float=0.9,
-                 observed_states:dict = {}, context_length:int=250):
+                 observed_states:dict = {}, context_length:int=100):
         
         # ----- Configs
         self.observed_states = observed_states

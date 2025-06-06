@@ -36,6 +36,9 @@ class LLMAgent(LLMAgentAbstract):
         self.encoder = LanguageEncoder()
         self.cos = torch.nn.CosineSimilarity(dim=0) 
         
+        # Set of actions that result in null outcome and so random is taken instead (all lowercase)
+        self.null_actions = ['none', 'non', 'null', 'no', 'n', 'na', 'n/a']
+
         if not model_exists:
             logger.info(f"Model {model_name} not found locally. Please check your model name and try again.")
             print(f"\n ---- \n Available models: {[model['model'] for model in models['models']]}")
@@ -215,26 +218,30 @@ class LLMAgent(LLMAgentAbstract):
                 # 2. IF NOT, FIND BEST MATCH OVER THRESHOLD
                 if not action_match_found:
                     # Encode the proposed action and legal actions using miniLMv6
-                    action_embedding = self.encoder.encode(action)[0]
-                    legal_action_embeddings = [self.encoder.encode(a)[0] for a in legal_actions]
-                    
-                    # Calculate cosine similarity between proposed action and legal actions
-                    best_match_sim = 0
-                    for idx, legal_emb in enumerate(legal_action_embeddings):
-                        sim = self.cos(action_embedding,legal_emb).item()
-                        if sim > best_match_sim:
-                            best_match_idx = idx
-                            best_match_sim = sim
-                                        
-                    if best_match_sim > 0.6:
-                        # Accept the closest matching legal action
-                        action = legal_actions[best_match_idx]
-                        logger.info(f"Found similar legal action: {action} with similarity {best_match_sim}")
+                    if (len(action)>0) and (action.lower() not in self.null_actions):
+                        action_embedding = self.encoder.encode(action)[0]
+                        legal_action_embeddings = [self.encoder.encode(a)[0] for a in legal_actions]
+                        
+                        # Calculate cosine similarity between proposed action and legal actions
+                        best_match_sim = 0
+                        for idx, legal_emb in enumerate(legal_action_embeddings):
+                            sim = self.cos(action_embedding,legal_emb).item()
+                            if sim > best_match_sim:
+                                best_match_idx = idx
+                                best_match_sim = sim
+                                            
+                        if best_match_sim > 0.6:
+                            # Accept the closest matching legal action
+                            action = legal_actions[best_match_idx]
+                            logger.info(f"Found similar legal action: {action} with similarity {best_match_sim}")
+                        else:
+                            print(f"Best match {legal_actions[best_match_idx]} not similar enough to action {action} with sim score {best_match_sim}.")
+                            # No close match found, use random action
+                            action = random.choice(legal_actions)
+                            logger.warning(f"No similar legal actions found, using random choice: {action}")
                     else:
-                        print(f"Best match {legal_actions[best_match_idx]} not similar enough to action {action} with sim score {best_match_sim}.")
-                        # No close match found, use random action
+                        print(f"Null action taken: {action} - using random instead.")
                         action = random.choice(legal_actions)
-                        logger.warning(f"No similar legal actions found, using random choice: {action}")
             # except Exception as e:
             #     action = random.choice(legal_actions)
             #     logger.error(f"Error getting LLM action: {e}, using random choice: {action}")

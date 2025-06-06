@@ -102,7 +102,7 @@ class OllamaTaskBreakdown:
             logger.error(f"Error in chat: {e}")
             raise
     
-    def break_down_task(self, task_prompt: str, max_subgoals: int = 10) -> List[str]:
+    def break_down_task(self, task_prompt: str, max_subgoals: int = 5) -> List[str]:
         """
         Break down a complex task into sub-goals using the LLM.
         
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         print("-" * 50)
         
         # Break down the task
-        sub_goals = task_breaker.break_down_task(example_task, max_subgoals=8)
+        sub_goals = task_breaker.break_down_task(example_task, max_subgoals=5)
         
         # Display the sub-goals
         print("Sub-goals:")

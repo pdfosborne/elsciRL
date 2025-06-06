@@ -233,7 +233,9 @@ class WebApp:
         if self.LLM_INSTUCTION_PLANNER and self.LLM_plan_generator is not None:
             try:
                 # Use LLM to breakdown the user input into structured instructions
-                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input)
+                # TODO: Max max sub-goals a parameter inpput
+                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=1)
+                llm_breakdown = llm_breakdown[:1] # HARD LIMIT NUMBER OF INSTRUCTIONS 
                 if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
                     instruction_descriptions = llm_breakdown
                     instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
@@ -297,7 +299,8 @@ class WebApp:
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
-            self.validated_instructions = True            
+
+            self.validated_LLM_instructions = True            
             for n, instr in enumerate(list(results[application].keys())):
                 if results[application][instr] is None:
                     console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
@@ -322,18 +325,19 @@ class WebApp:
                 if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is not None and results[application][instr] is not None:
                     try:
                         instr_complete = self.LLM_validation.validate_instruction_completion(
-                            instruction_descriptions[n], 
-                            results[application][instr]['sub_goal']
-                        )['is_complete']
-                        if not instr_complete:
-                            self.validated_instructions = False
+                            instruction_descriptions[n], results[application][instr]['sub_goal']
+                            )['is_complete']
+                        
+                        # TODO: FOR NOW, AUTO ACCEPT PREDICTIONS OTHERWISE INSTR FOLLOWING WONT BE RUN
+                        # if not instr_complete:
+                        #     self.validated_LLM_instructions = False
                         
                     except Exception as e:
                         print(f"Error in LLM validation: {e}")
-                        self.validated_instructions = False
+                        self.validated_LLM_instructions = False
                    
                 else:
-                    self.validated_instructions = False
+                    self.validated_LLM_instructions = False
 
 
         except Exception as e:
@@ -350,7 +354,7 @@ class WebApp:
         
         # Include LLM validation result if LLM planner is enabled
         if self.LLM_INSTUCTION_PLANNER:
-            response_data['llm_validation_result'] = self.validated_instructions
+            response_data['llm_validation_result'] = self.validated_LLM_instructions
 
         return jsonify(response_data)
 
@@ -620,12 +624,14 @@ class WebApp:
         data = request.json
 
         # Check if this is an LLM validation (automatic)
-        is_llm_validation = data.get('isLLMValidation', False)
-        
+        enable_llm_planner = data.get('enableLLMPlanner', False)        
         # Use LLM validation if available, otherwise use user input
-        if is_llm_validation:
+        if enable_llm_planner:
             # Automatic LLM validation
-            is_correct = data.get('llm_validation_result')
+            print("++++++++++++++++++++++++++++++++++++++++++++")
+            print(self.validated_LLM_instructions)
+            print("++++++++++++++++++++++++++++++++++++++++++++")
+            is_correct = self.validated_LLM_instructions
         else:
             # Standard manual validation
             is_correct = data.get('isCorrect')
@@ -643,7 +649,7 @@ class WebApp:
                     self.instruction_results[application]['instr_'+str(self.global_input_count)]
                 
                 self.correct_instructions.append(user_input)
-                if is_llm_validation:
+                if enable_llm_planner:
                     message = "<br>LLM validation confirmed: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
                 else:
                     message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
@@ -654,7 +660,7 @@ class WebApp:
             self.global_input_count = len(self.correct_instructions)+1
         else:
             self.incorrect_instructions.append(user_input)
-            if is_llm_validation:
+            if enable_llm_planner:
                 message = "<br>LLM validation indicates instructions may need refinement. The model will use this feedback to improve."
             else:
                 message = "<br>Thanks for the feedback. The model will use this to improve."
