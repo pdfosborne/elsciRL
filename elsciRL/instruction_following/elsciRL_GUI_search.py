@@ -1,5 +1,6 @@
 import os
 import torch
+from tqdm import tqdm
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
 # ------ Agent Imports -----------------------------------------
@@ -23,7 +24,7 @@ class elsciRLSearch:
                  save_dir:str, 
                  number_exploration_episodes:int = 10000,
                  match_sim_threshold:float=0.9,
-                 observed_states:dict = {}):
+                 observed_states:dict = {}, context_length:int=250):
         
         # ----- Configs
         self.observed_states = observed_states
@@ -53,6 +54,7 @@ class elsciRLSearch:
         self.number_exploration_episodes: int = number_exploration_episodes
 
         # Unsupervised search parameters
+        self.context_length = context_length # Limit length of observed states
         self.enc = LanguageEncoder()
         self.sim_threshold: float = match_sim_threshold
         self.cos = torch.nn.CosineSimilarity(dim=0)  
@@ -165,6 +167,7 @@ class elsciRLSearch:
             else:
                 instruction = str(int(instructions[i-1])+1) + "---" + str(int(instr)+1)
             instr_description = instr_descriptions[i]
+            print(f"\nFinding match for instruction: {instruction}")
             
             if type(instr_description) == type(''):
                 instr_description = instr_description.split('.')
@@ -206,8 +209,8 @@ class elsciRLSearch:
                     max_sim = -1
                     # all states that are above threshold 
                     sub_goal_list = []
-                    for obs_state in self.observed_states:
-                        str_state = self.observed_states[obs_state]
+                    for obs_state in tqdm(self.observed_states):
+                        str_state = self.observed_states[obs_state][:self.context_length]
                         t_state = self.enc.encode(str_state)
                         # ---
                         total_sim = 0
@@ -230,12 +233,14 @@ class elsciRLSearch:
                             sub_goal_list.append(sub_goal)
     
                     # OR if none above threshold matching max sim
+                    # TODO: IMPROVE RUNTIME HERE BY NOT RUNNING SEARCH TWICE
                     if max_sim < self.sim_threshold:
+                        print(" --- Best match not above threshold, finding highest sim instead...")
                         sub_goal = sub_goal_max
                         #sub_goal_t = sub_goal_max_t                                    
                         # Find all states that have same sim as max
-                        for obs_state in self.observed_states:
-                            str_state = self.observed_states[obs_state]
+                        for obs_state in tqdm(self.observed_states):
+                            str_state = self.observed_states[obs_state][:self.context_length]
                             t_state = self.enc.encode(str_state)
                             # ---
                             total_sim = 0

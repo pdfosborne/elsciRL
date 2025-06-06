@@ -74,7 +74,10 @@ class Experiment:
         self.trained_agents: dict = {}
         self.num_training_seeds = self.setup_info['number_training_seeds']
         # new - config input defines the re-use of trained agents for testing: 'best' or 'all'
-        self.test_agent_type = self.setup_info['test_agent_type']
+        if self.setup_info['test_agent_type']:
+            self.test_agent_type = self.setup_info['test_agent_type']
+        else:
+            self.test_agent_type = 'all'
         self.analysis = Evaluation(window_size=window_size)
         # ---
         # Gym setup
