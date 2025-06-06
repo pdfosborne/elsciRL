@@ -21,6 +21,10 @@ class Evaluation:
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
         
+        # Close and clear all figures to ensure no overlap with prior results
+        plt.close()
+        plt.clf()
+
         VisualAnalysis = VisualOutput(training_results, save_dir, show_figures, self.window_size)
         VisualAnalysis.episode_reward_graph()
         VisualAnalysis.cumulative_reward_graph()
@@ -200,6 +204,11 @@ class Evaluation:
     # Compare the performance of trained agent vs trained agent
     def test_report(self, test_results:pd.DataFrame, save_dir:str, show_figures:str):
         """Produces visual and tabular analysis of testing results."""
+        
+        # Close and clear all figures to ensure no overlap with prior results
+        plt.close()
+        plt.clf()
+
         VisualAnalysis = VisualOutput(test_results, save_dir, show_figures, self.window_size)
         VisualAnalysis.episode_reward_graph()
         VisualAnalysis.cumulative_reward_graph()

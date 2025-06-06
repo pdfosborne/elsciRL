@@ -853,6 +853,7 @@ def get_experiment_config_route():
     return WebApp_instance.get_experiment_config(application, config_name_req)
 
 # TODO REDUCE GET REQUESTS FROM THIS FUNCTION
+# ---> IDEALLY GET FIGURE DIRECTLY FROM ENGINE RENDER CALL TO DISPLAY
 @app.route('/get_latest_real_time_image', methods=['GET'])
 def get_latest_real_time_image_route():
     real_time_render_path = WebApp_instance.real_time_render_dir

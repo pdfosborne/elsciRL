@@ -220,7 +220,7 @@ class LLMAgent(LLMAgentAbstract):
                     # Encode the proposed action and legal actions using miniLMv6
                     if (len(action)>0) and (action.lower() not in self.null_actions):
                         action_embedding = self.encoder.encode(action)[0]
-                        legal_action_embeddings = [self.encoder.encode(a)[0] for a in legal_actions]
+                        legal_action_embeddings = [self.encoder.encode(str(a))[0] for a in legal_actions]
                         
                         # Calculate cosine similarity between proposed action and legal actions
                         best_match_sim = 0
