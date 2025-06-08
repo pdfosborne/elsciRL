@@ -15,7 +15,7 @@ class Applications:
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
-                "commit_id": "8dc068f",
+                "commit_id": "d7f8c52",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -27,13 +27,13 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {"sailing_graphs":"sailing_graphs"},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states": "observed_states_Sailing_easy_LLM_1000epi.txt"},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"}
                 },
             "Classroom":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Classroom",
-                "commit_id": "12a7007",
+                "commit_id": "12f15dc",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -44,13 +44,13 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Classroom_classroom_A_LLM_100epi.txt"},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"}
                 },
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-GymFrozenLake",
-                "commit_id": "3c68e6d",
+                "commit_id": "7c120da",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -61,7 +61,7 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt"},
+                "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_100epi.txt"},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
                 },
             "Chess":{
