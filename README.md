@@ -1,5 +1,5 @@
 # elsciRL
-## Enabling Language Solutions for Numeric Interaction Environments with Long-term Rewards
+## A Framework for LLMs to learn from Numeric Interaction Environments with Rewards
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_owl_cropped.png" align="left" height="250" width="250" ></a>
 
