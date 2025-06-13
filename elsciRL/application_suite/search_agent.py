@@ -3,9 +3,7 @@ class DefaultAgentConfig:
         self.data ={   
             "name": "Default",
             "problem_type": "Default",
-            
-            "experience_sample_batch_ratio": 0,
-             
+                         
             "number_training_episodes": 1000,
             "number_training_repeats": 5,
             "number_training_seeds": 1,

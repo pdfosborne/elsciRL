@@ -4,7 +4,7 @@ def render_current_result(training_setup, current_environment, current_agent, lo
     """Apply fixed policy to render current decision making for limited number of episodes."""
     # Override input training setups with previously saved 
     
-    test_setup_info = training_setup
+    test_setup_info = training_setup.copy()
 
     test_setup_info['train'] = False # Testing Phase
     test_setup_info['training_results'] = False
