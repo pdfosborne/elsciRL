@@ -69,6 +69,17 @@ class Experiment:
             self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data'] 
         except:
             self.setup_info = self.ExperimentConfig | self.LocalConfig 
+
+        # Transforms adapter input to complete matching, i.e. all agents trained on all adapters
+        if 'adapter_input_dict' in self.ExperimentConfig:
+            self.setup_info['adapter_input_dict'] = self.ExperimentConfig['adapter_input_dict']
+        else:
+            selected_adapters = list(Adapters.keys())
+            selected_agents = self.ExperimentConfig['agent_select']
+            agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
+            self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+            self.setup_info['adapter_input_dict'] = agent_adapter_dict
+
         self.training_setups: dict = {}
         # new - store agents cross training repeats for completing the same start-end goal
         self.trained_agents: dict = {}
