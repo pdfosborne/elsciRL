@@ -79,6 +79,13 @@ class elsciRLOptimize:
         # If in experiment config make sure it pulls from this and not local config
         if 'adapter_input_dict' in self.ExperimentConfig:
             self.setup_info['adapter_input_dict'] = self.ExperimentConfig['adapter_input_dict']
+        else:
+            selected_adapters = list(Adapters.keys())
+            selected_agents = self.ExperimentConfig['agent_select']
+            agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
+            self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+            self.setup_info['adapter_input_dict'] = agent_adapter_dict
+            
         self.engine = Engine
         self.adapters = Adapters
         self.env = StandardInteractionLoop

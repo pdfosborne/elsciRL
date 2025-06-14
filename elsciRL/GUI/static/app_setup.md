@@ -70,7 +70,6 @@ Environment configurations can be varied and saved as separate inputs to change 
 // agent config (agent_config.json)
 name = "Gym-FrozenLake"
 problem_type = "Gymnasium-ToyText"
-experience_sample_batch_ratio = 0
 number_training_episodes = 1000
 number_training_repeats = 20
 agent_select = ["Qlearntab"]

@@ -69,6 +69,17 @@ class Experiment:
             self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data'] 
         except:
             self.setup_info = self.ExperimentConfig | self.LocalConfig 
+
+        # Transforms adapter input to complete matching, i.e. all agents trained on all adapters
+        if 'adapter_input_dict' in self.ExperimentConfig:
+            self.setup_info['adapter_input_dict'] = self.ExperimentConfig['adapter_input_dict']
+        else:
+            selected_adapters = list(Adapters.keys())
+            selected_agents = self.ExperimentConfig['agent_select']
+            agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
+            self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+            self.setup_info['adapter_input_dict'] = agent_adapter_dict
+
         self.training_setups: dict = {}
         # new - store agents cross training repeats for completing the same start-end goal
         self.trained_agents: dict = {}
@@ -151,7 +162,6 @@ class Experiment:
                         # -----
                         # Repeat training
                         train_setup_info['train'] = True
-                        number_training_episodes = train_setup_info['number_training_episodes']
                         number_training_repeats = self.ExperimentConfig["number_training_repeats"]
                         print("Training Agent " + str(agent_type) + " for " + str(number_training_repeats) + " repeats on " + str(engine_name) + " engine")
                         if str(engine_name) + '_' + str(agent_type) + '_' + str(adapter) not in self.trained_agents:
@@ -207,50 +217,17 @@ class Experiment:
                                 if not os.path.exists(agent_save_dir):
                                     os.mkdir(agent_save_dir)
 
+                                # TODO: UPDATE THIS TO HANDLE REPEAT TESTING BETTER
                                 # Override with trained agent if goal seen previously
                                 if goal in self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)]:
                                     live_env.agent = self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal].clone()
 
-                                if train_setup_info['experience_sample_batch_ratio']>0:
-                                    live_sample_batch_size = int(number_training_episodes*train_setup_info['experience_sample_batch_ratio'])
-                                    live_sample_batch_count = int(1/train_setup_info['experience_sample_batch_ratio'])
-                                    # Train on Live system for limited number of total episodes
-                                    live_env.number_episodes = live_sample_batch_size
-                                    print("-- Training with Simulated Batches, ", live_sample_batch_count, " total...")
-                                    # init simulated environment
-                                    train_setup_info['live_env'] = False
-                                    simulated_env = self.env(Engine=engine, Adapters=self.adapters, local_setup_info=train_setup_info)
-                                    simulated_env.start_obs = env_start
-                                    # Connect live agent -> This should be linked so continues learning
-                                    simulated_env.agent = live_env.agent
-
-                                    for live_sample_batch in range(0, live_sample_batch_count-1):
-                                        print("--- Live Interaction Batch Num", live_sample_batch+1)                            
-                                        training_results = live_env.episode_loop()
-
-                                        # Train based on simulated exp  
-                                        simulated_env.num_train_episodes = number_training_episodes
-                                        simulated_env.episode_loop()
-                                    # Final batch doesn't require simulated exp after and we need result output
-                                    print("--- Final batch")
-                                    train_setup_info['live_env'] = True
-                                    train_setup_info['number_training_episodes'] = live_sample_batch_size
-                                    training_results = live_env.episode_loop()
-                                    # Have to 'fix' output
-                                    training_results['episode'] = training_results.index
-                                    cumulative_r = 0
-                                    cumulative_r_lst = []
-                                    for r in training_results['episode_reward']:
-                                        cumulative_r+=r
-                                        cumulative_r_lst.append(cumulative_r)
-                                    training_results['cumulative_reward'] = cumulative_r_lst
-                                else:
-                                    # ---
-                                    if goal in seed_results_connection:
-                                        live_env.results.load(seed_results_connection[goal])
-                                    #live_env.agent.exploration_parameter_reset()
-                                    training_results = live_env.episode_loop()
-                                    training_results['episode'] = training_results.index
+                                # ---
+                                if goal in seed_results_connection:
+                                    live_env.results.load(seed_results_connection[goal])
+                                #live_env.agent.exploration_parameter_reset()
+                                training_results = live_env.episode_loop()
+                                training_results['episode'] = training_results.index
                                 # Opponent now defined in local setup.py
                                 # ----- Log training results      
                                 training_results.insert(loc=0, column='Repeat', value=setup_num)
@@ -280,9 +257,10 @@ class Experiment:
                                         current_render_save_dir = agent_save_dir
                                     else:
                                         current_render_save_dir = self.training_render_save_dir
+                                    # We override inheretied variables so need new env spec to not mess with training
                                     render_current_result(training_setup = train_setup_info,
-                                                                current_environment = live_env, current_agent = live_env.agent,
-                                                                local_save_dir = current_render_save_dir)
+                                                        current_environment = live_env, current_agent = live_env.agent,
+                                                        local_save_dir = current_render_save_dir)
                             seed_results_connection[goal] = training_results_stored
 
                             # ----- New: 'best' or 'all' agents saved

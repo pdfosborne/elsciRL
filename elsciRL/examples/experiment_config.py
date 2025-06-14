@@ -1,9 +1,7 @@
 ExperimentConfigData = {
     "name": "Example Experiment",
     "problem_type": "Examples",
-    
-    "experience_sample_batch_ratio": 0,
-    
+        
     "number_training_episodes": 100,
     "number_training_repeats": 5,
     "number_training_seeds": 1,
