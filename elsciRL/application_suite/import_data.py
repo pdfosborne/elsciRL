@@ -112,5 +112,27 @@ class Applications:
                     "cookingworld-easy_observed_states":
                         "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
                 "prerender_image_filenames": {}
+                },
+            "Maze":{
+                "github_user": "pdfosborne",
+                "repository": "elsciRL-App-Maze",
+                "commit_id": "2560565",
+                "engine_folder": "environment",
+                "engine_filename": "engine",
+                "config_folder": "configs",
+                "experiment_config_filenames": {"default_agent":"config.json"},
+                "local_config_filenames": {"default":"config_local.json",
+                                           "umaze":"umaze.json",
+                                           "double_t_maze":"double_t_maze.json",
+                                           "medium":"medium.json",
+                                           "large":"large.json",
+                                           "random":"random.json"},
+                "local_adapter_folder": "adapters",
+                "adapter_filenames": {"language_default":"language", "LLM":"LLM_adapter"},
+                "local_analysis_folder": "analysis",
+                "local_analysis_filenames": {},
+                "prerender_data_folder": "prerender",
+                "prerender_data_filenames": {},
+                "prerender_image_filenames": {}
                 }
         }
