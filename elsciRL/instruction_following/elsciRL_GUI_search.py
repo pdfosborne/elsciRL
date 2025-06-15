@@ -9,7 +9,7 @@ from elsciRL.agents.neural_q_agent import NeuralQLearningAgent
 from elsciRL.agents.random_agent import RandomAgent
 # --------------------------------------------------------------
 # TODO use encoder defined by config not manual import
-from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder
 
 # Only use Qlearntab for for search agent for speeeeeed and randomn exploration
 AGENT_TYPES = {

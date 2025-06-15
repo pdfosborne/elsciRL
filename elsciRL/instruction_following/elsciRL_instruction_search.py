@@ -30,7 +30,7 @@ AGENT_PARAMS = {
 }
 
 # TODO use encoder defined by config not manual import
-from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder
 
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used

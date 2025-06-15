@@ -20,7 +20,7 @@ AGENT_PARAMS = {
     "Neural_Q_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"]
 }
 
-from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder
 
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used

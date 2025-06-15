@@ -6,7 +6,7 @@ from torch import Tensor
 
 from elsciRL.adapters.LLM_state_generators.base_prompt import elsciRL_base_prompt
 
-from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
 
 
 try:

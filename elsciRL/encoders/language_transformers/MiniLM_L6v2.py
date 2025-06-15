@@ -23,6 +23,10 @@ class LanguageEncoder(StateEncoder):
         low_array = [-1 for i in range(384)]
         high_array = [1 for i in range(384)]
         self.observation_space = Box(low=np.array(low_array), high=np.array(high_array), dtype=np.float32)
+        self.name = "MiniLM_L6v2"
+        self.input_type = "text"
+        self.output_type = "tensor"
+        self.output_dim = 384
 
     def encode(self, state: List[str], legal_actions:list = None, episode_action_history:list = None, 
                indexed: bool = False) -> Tensor:

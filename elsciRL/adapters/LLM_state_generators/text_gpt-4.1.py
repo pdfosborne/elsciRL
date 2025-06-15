@@ -6,7 +6,7 @@ from openai import OpenAI
 
 try:
     from torch import Tensor
-    from elsciRL.encoders.sentence_transformer_MiniLM_L6v2 import LanguageEncoder
+    from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder
 except ImportError:
     print("Warning: torch or LanguageEncoder not found. Please ensure elsciRL is properly installed.")
     Tensor = None

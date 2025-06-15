@@ -10,6 +10,10 @@ class ObjectEncoder():
         self.local_objects = {obj: i for i, obj in enumerate(local_objects)}
         device = "cuda" if torch.cuda.is_available() else "cpu" # Make this optional choice with parameter
         self.vectors: Tensor = torch.cat([torch.eye(len(self.local_objects)), torch.zeros(1, len(self.local_objects))]).to(device)         # tensor needs to be defined to len(local_object)
+        self.name = "ObjectEncoder"
+        self.input_type = "list"
+        self.output_type = "tensor"
+        self.output_dim = len(self.local_objects)    
     
     def encode(self, state:list = None, legal_actions:list = None, episode_action_history:list = None,
                indexed: bool = False) -> Tensor:

@@ -14,6 +14,11 @@ class PriorActionsEncoder():
         for action in self.all_possible_actions:
             self.all_possible_actions_dict_init[action] = int(0)
 
+        self.name = "PriorActionsEncoder"
+        self.input_type = "list"
+        self.output_type = "tensor"
+        self.output_dim = len(self.all_possible_actions)
+
     def encode(self, state: List[str] = None, legal_actions:list = None, episode_action_history:list = None, 
                indexed: bool = False) -> Tensor:
         """Vector of prio actions in game so far, similar to blindfold chess."""
