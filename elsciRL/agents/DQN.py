@@ -54,6 +54,7 @@ class DQNAgent(QLearningAgent):
         # Create main and target networks
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.policy_net = DQN(input_size, output_size, hidden_size).to(self.device)
+        print(self.policy_net)
         self.target_net = DQN(input_size, output_size, hidden_size).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         

@@ -17,7 +17,7 @@ class PossibleActionsEncoder():
         self.name = "PossibleActionsEncoder"
         self.input_type = "list"
         self.output_type = "tensor"
-        self.output_dim = len(self.all_possible_actions)
+        self.output_dim = len(self.all_possible_actions)**2
 
     def encode(self, state: List[str] = None, legal_actions:list = None, episode_action_history:list = None,
                indexed: bool = False) -> Tensor:

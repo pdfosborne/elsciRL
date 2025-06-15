@@ -13,7 +13,7 @@ class ObjectEncoder():
         self.name = "ObjectEncoder"
         self.input_type = "list"
         self.output_type = "tensor"
-        self.output_dim = len(self.local_objects)    
+        self.output_dim = len(self.local_objects)**2
     
     def encode(self, state:list = None, legal_actions:list = None, episode_action_history:list = None,
                indexed: bool = False) -> Tensor:
