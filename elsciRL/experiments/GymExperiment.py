@@ -8,7 +8,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import NeuralQLearningAgent
+from elsciRL.agents.DQN import DQNAgent
 from elsciRL.agents.agent_abstract import Agent
 # Gym based agents
 from elsciRL.environment_setup.gym_translator import GymRegistration
@@ -108,10 +108,10 @@ class GymExperiment:
                     # Get the input dim from the adapter or the encoder's output dim
                     if agent_type == "DQN":
                         try:
-                            train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].input_dim
+                            agent_parameters['input_size'] = self.adapters[adapter].input_dim
                         except:
                             try:
-                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim
+                                agent_parameters['input_size'] = self.adapters[adapter].encoder.output_dim
                             except:
                                 print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
                                 raise ValueError(f"No output dim size found in adapter: {adapter}")

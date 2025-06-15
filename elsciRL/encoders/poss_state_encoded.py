@@ -23,8 +23,8 @@ class StateEncoder():
 
     def encode(self, state:Any = None, legal_actions:list = None, episode_action_history:list = None,
                indexed: bool = False) -> Tensor:
-        """ NO CHANGE - Board itself is used as state as is and simply converted to a vector"""
-        # Goes through every possible state and labels if occurance of state matches
+        """ Set of all possible states are simply converted to a vector"""
+        # Goes through every possible state and labels if occurrence of state matches
         # Binary vector
         # NOT RECOMMENDED FOR LARGE STATE SPACES
         state_encoded = self.enc[state]

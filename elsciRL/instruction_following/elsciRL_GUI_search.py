@@ -5,7 +5,7 @@ from tqdm import tqdm
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
 # ------ Agent Imports -----------------------------------------
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import NeuralQLearningAgent
+from elsciRL.agents.DQN import DQNAgent
 from elsciRL.agents.random_agent import RandomAgent
 # --------------------------------------------------------------
 # TODO use encoder defined by config not manual import

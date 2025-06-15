@@ -8,7 +8,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import NeuralQLearningAgent
+from elsciRL.agents.DQN import DQNAgent
 from elsciRL.agents.agent_abstract import Agent
 # Stable Baselines
 from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
@@ -105,7 +105,7 @@ class Experiment:
         # Agent setup
         self.AGENT_TYPES = {
             "Qlearntab": TableQLearningAgent,
-            "DQN": NeuralQLearningAgent,
+            "DQN": DQNAgent,
             "LLM_Ollama": OllamaAgent,
         }
         
@@ -144,12 +144,13 @@ class Experiment:
                         train_setup_info['adapter_select'] = adapter
                         # ----- Neural Agent Setup
                         # Get the input dim from the adapter or the encoder's output dim
+                        # TODO: Currently has to initalize adapter to get this info and should be improved
                         if agent_type == "DQN":
                             try:
-                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].input_dim
+                                agent_parameters['input_size'] = self.adapters[adapter](train_setup_info).input_dim
                             except:
                                 try:
-                                    train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim
+                                    agent_parameters['input_size'] = self.adapters[adapter](train_setup_info).encoder.output_dim
                                 except:
                                     print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
                                     raise ValueError(f"No output dim size found in adapter: {adapter}")

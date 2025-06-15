@@ -12,7 +12,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import NeuralQLearningAgent
+from elsciRL.agents.DQN import DQNAgent
 # Stable Baselines
 from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
 from elsciRL.agents.stable_baselines.SB3_PPO import SB_PPO
@@ -29,9 +29,7 @@ from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
 # TODO: Enable any number of the same agent types with varying parameters
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
-    "DQN": NeuralQLearningAgent,
-    "DQN_2": NeuralQLearningAgent,
-    "DQN_language": NeuralQLearningAgent,
+    "DQN": DQNAgent,
     "Random": random,
     "SB3_DQN": SB_DQN,
     "SB3_PPO": SB_PPO,
@@ -288,10 +286,10 @@ class elsciRLOptimize:
                     # Get the input dim from the adapter or the encoder's output dim
                     if agent_type == "DQN":
                         try:
-                            train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].output_dim
+                            agent_parameters['input_size'] = self.adapters[adapter].output_dim
                         except:
                             try:
-                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim
+                                agent_parameters['input_size'] = self.adapters[adapter].encoder.output_dim
                             except:
                                 print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
                                 raise ValueError(f"No output dim size found in adapter: {adapter}")

@@ -8,20 +8,11 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import NeuralQLearningAgent
+from elsciRL.agents.DQN import DQNAgent
 
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,
-    "Neural_Q": NeuralQLearningAgent,
-    "Neural_Q_2": NeuralQLearningAgent,
-    "Neural_Q_language": NeuralQLearningAgent
-}
-
-PLAYER_PARAMS = {
-    "Qlearntab": ["alpha", "gamma", "epsilon"],
-    "Neural_Q": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Neural_Q_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"]
+    "DQN": DQNAgent,
 }
 
 # This is the main run functions for elsciRL to be imported
