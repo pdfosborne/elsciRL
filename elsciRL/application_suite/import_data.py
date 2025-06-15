@@ -15,7 +15,7 @@ class Applications:
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
-                "commit_id": "d7f8c52",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -33,7 +33,7 @@ class Applications:
             "Classroom":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Classroom",
-                "commit_id": "12f15dc",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -50,7 +50,7 @@ class Applications:
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-GymFrozenLake",
-                "commit_id": "7c120da",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -67,7 +67,7 @@ class Applications:
             "Chess":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Chess",
-                "commit_id": "4aaaa3b",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -88,7 +88,7 @@ class Applications:
             "TextWorldExpress":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-TextWorldExpress",
-                "commit_id": "c19e9a0",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",
@@ -116,7 +116,7 @@ class Applications:
             "Maze":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Maze",
-                "commit_id": "2560565",
+                "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine",
                 "config_folder": "configs",

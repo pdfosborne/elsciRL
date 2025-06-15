@@ -34,13 +34,23 @@ class PullApplications:
         
         # Extract data from imports
         for problem in list(self.problem_selection):
+            print("-----------------------------------------------")
+            print(problem)
             engine = self.imports[problem]['engine_filename']
             if problem not in self.imports:
                 raise ValueError(f"Problem {problem} not found in the setup tests.")
             else:
                 self.current_test[problem] = {}
+                # Store engine filename
+                self.current_test[problem]['engine_filename'] = engine
+                # If commit ID is '*' or empty, use main branch
+                if self.imports[problem]['commit_id'] in ['*', '']:
+                    # Update commit_id to use main branch
+                    self.imports[problem]['commit_id'] = 'main'
+                    print('Pulling data from current version of main branch.')
                 # current_test = {'problem1': {'engine':engine.py, 'local_configs': {'config1':config.json, 'config2':config.json}, 'adapters': {'adapter1':adapter.py, 'adapter2':adapter.py}}}
                 root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + self.imports[problem]['commit_id']
+                print("Source: ", root)
                 # NOTE - This requires repo to match structure with engine inside environment folder
                 engine_module = httpimport.load(engine, root+'/'+self.imports[problem]['engine_folder']) 
                 # TODO: Pull class name directly from engine file to be called
@@ -50,7 +60,7 @@ class PullApplications:
             self.current_test[problem]['adapters'] = {}
             for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
                 adapter_module = httpimport.load(adapter, root+'/'+self.imports[problem]['local_adapter_folder'])   
-                # TODO: Pull class name directly from adapter file to be called
+                # TODO: Pull class name directly from adapter file to be 
                 self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
             # ---
             self.current_test[problem]['experiment_configs'] = {}
@@ -75,9 +85,6 @@ class PullApplications:
             
             # ------------------------------------------------
             # Pull prerender data
-            print("-----------------------------------------------")
-            print(problem)
-            print("Source: ", root)
             self.current_test[problem]['prerender_data'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
                 try:
