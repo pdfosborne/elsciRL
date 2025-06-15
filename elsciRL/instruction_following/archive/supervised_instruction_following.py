@@ -8,7 +8,7 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.neural_q_agent import NeuralQLearningAgent
+from elsciRL.agents.DQN import NeuralQLearningAgent
 
 AGENT_TYPES = {
     "Qlearntab": TableQLearningAgent,

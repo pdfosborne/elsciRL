@@ -12,11 +12,11 @@ from elsciRL.evaluation.standard_report import Evaluation
 # Universal Agents
 from elsciRL.agents.agent_abstract import Agent, QLearningAgent
 from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.neural_q_agent import NeuralQLearningAgent
+from elsciRL.agents.DQN import NeuralQLearningAgent
 # Stable Baselines
-from elsciRL.agents.stable_baselines.DQN import SB_DQN
-from elsciRL.agents.stable_baselines.PPO import SB_PPO
-from elsciRL.agents.stable_baselines.A2C import SB_A2C
+from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
+from elsciRL.agents.stable_baselines.SB3_PPO import SB_PPO
+from elsciRL.agents.stable_baselines.SB3_A2C import SB_A2C
 # ------ Gym Experiement ----------------------------------------
 from elsciRL.experiments.GymExperiment import GymExperiment
 from elsciRL.experiments.experiment_utils.render_current_results import render_current_result

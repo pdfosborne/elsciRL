@@ -70,6 +70,23 @@ class WebApp:
                     "epsilon_step": {"label": "Epsilon Step", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.01},
                 }
             },
+            "DQN": {
+                "display_name": "Deep Q-Network",
+                "params": {
+                    "sequence_size": {"label": "Sequence Size", "type": "number", "min": 1, "default": 1},
+                    # "input_size": {"label": "Input Size", "type": "number", "min": 1, "default": 64},
+                    "output_size": {"label": "Output Size", "type": "number", "min": 1, "default": 32},
+                    "seq_hidden_dim": {"label": "Sequence Hidden Dimension", "type": "number", "min": 1, "default": 10},
+                    "hidden_dim": {"label": "Hidden Dimension", "type": "number", "min": 1, "default": 128},
+                    "num_hidden": {"label": "Number of Hidden Layers", "type": "number", "min": 1, "default": 1},
+                    "memory_size": {"label": "Memory Size", "type": "number", "min": 1, "default": 2000},
+                    "epsilon": {"label": "Exploration Rate (Epsilon)", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.2},
+                    "epsilon_step": {"label": "Epsilon Step", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.01},
+                    "target_replace_iter": {"label": "Target Network Update Frequency", "type": "number", "min": 1, "default": 100},
+                    "learning_rate": {"label": "Learning Rate", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.001},
+                    "batch_size": {"label": "Batch Size", "type": "number", "min": 1, "default": 1}
+                }
+            },
             "LLM_Ollama": {
                 "display_name": "LLM Ollama",
                 "params": {
