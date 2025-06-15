@@ -20,7 +20,7 @@ from elsciRL.agents.stable_baselines.SB3_A2C import SB_A2C
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used
 # The local main.py file defines the [adapters, configs, environment] to be input
 
-# This should be where the environment is initialised and then episode_loop (or train/test) is run
+# This should be where the environment is initialized and then episode_loop (or train/test) is run
 # -> results then passed down to experiment to produce visual reporting (staticmethod)
 # -> instruction following approach then becomes alternative form of this file to be called instead
 # -> DONE: This means we have multiple main.py types (e.g. with/without convergence measure) so should create a directory and finalize naming for this
@@ -86,7 +86,7 @@ class GymExperiment:
 
     def add_agent(self, agent_name:str, agent):
         """Add a custom agent to the experiment using the agent name as a key.
-            - Paramters must be defined in the config.json file with matching name."""
+            - Parameters must be defined in the config.json file with matching name."""
         self.AGENT_TYPES[agent_name] = agent
         print("\n Agent added to experiment, all available agents: ", self.AGENT_TYPES)
 
@@ -108,7 +108,7 @@ class GymExperiment:
                     # Get the input dim from the adapter or the encoder's output dim
                     if agent_type == "DQN":
                         try:
-                            train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].output_dim
+                            train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].input_dim
                         except:
                             try:
                                 train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim

@@ -40,18 +40,6 @@ AGENT_TYPES = {
 
 }
 
-AGENT_PARAMS = {
-    "Qlearntab": ["alpha", "gamma", "epsilon"],
-    "DQN": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "DQN_2": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "DQN_language": ["input_type", "input_size", "sent_hidden_dim", "hidden_dim", "num_hidden", "sequence_size", "memory_size"],
-    "Random": [],
-    "SB3_DQN": ["policy"],
-    "SB3_PPO": ["policy"],
-    "SB3_A2C": ["policy"],
-    "LLM_Ollama": ["epsilon","model_name", "system_prompt"]
-}
-
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used
 # The local main.py file defines the [adapters, configs, environment] to be input
@@ -296,8 +284,17 @@ class elsciRLOptimize:
                     train_setup_info['agent_type'] = agent_type
                     train_setup_info['agent_name'] = str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
                     train_setup_info['adapter_select'] = str(adapter)
-                    print("+++++++++++++++++++")
-                    print(agent_type,adapter)
+                    # ----- Neural Agent Setup
+                    # Get the input dim from the adapter or the encoder's output dim
+                    if agent_type == "DQN":
+                        try:
+                            train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].output_dim
+                        except:
+                            try:
+                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim
+                            except:
+                                print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
+                                raise ValueError(f"No output dim size found in adapter: {adapter}")
                     # ----- Sub-Goal
                     # - If we have setup dict to include agent_adapter specific location of sub-goals
                     #   i.e. {instr:{env_code:{agent_adapter:{sub_goal:'ENV_CODE', sim_score:0.8}}, action_cap:5}}

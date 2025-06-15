@@ -14,7 +14,7 @@ from elsciRL.agents.agent_abstract import Agent
 from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
 from elsciRL.agents.stable_baselines.SB3_PPO import SB_PPO
 from elsciRL.agents.stable_baselines.SB3_A2C import SB_A2C
-# ------ Gym Experiement ----------------------------------------
+# ------ Gym Experiment ----------------------------------------
 from elsciRL.experiments.GymExperiment import GymExperiment
 from elsciRL.experiments.experiment_utils.render_current_results import render_current_result
 # ------ LLM Agents ---------------------------------------------
@@ -106,13 +106,7 @@ class Experiment:
         self.AGENT_TYPES = {
             "Qlearntab": TableQLearningAgent,
             "DQN": NeuralQLearningAgent,
-            "DQN_2": NeuralQLearningAgent,
-            "DQN_language": NeuralQLearningAgent,
-            "SB3_DQN": SB_DQN,
-            "SB3_PPO": SB_PPO,
-            "SB3_A2C": SB_A2C,
             "LLM_Ollama": OllamaAgent,
-
         }
         
 
@@ -146,20 +140,19 @@ class Experiment:
                         # ----- Agent parameters
                         agent_parameters = train_setup_info["agent_parameters"][agent_type]
                         train_setup_info['agent_type'] = agent_type
+                        train_setup_info['agent_name'] = str(engine_name) + str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
+                        train_setup_info['adapter_select'] = adapter
                         # ----- Neural Agent Setup
                         # Get the input dim from the adapter or the encoder's output dim
                         if agent_type == "DQN":
                             try:
-                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].output_dim
+                                train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].input_dim
                             except:
                                 try:
                                     train_setup_info['agent_parameters']['input_dim'] = self.adapters[adapter].encoder.output_dim
                                 except:
                                     print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
                                     raise ValueError(f"No output dim size found in adapter: {adapter}")
-                        
-                        train_setup_info['agent_name'] = str(engine_name) + str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
-                        train_setup_info['adapter_select'] = adapter
                         # -----
                         # Repeat training
                         train_setup_info['train'] = True
