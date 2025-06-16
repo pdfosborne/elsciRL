@@ -291,7 +291,7 @@ class elsciRLOptimize:
                             try:
                                 agent_parameters['input_size'] = self.adapters[adapter].encoder.output_dim
                             except:
-                                print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
+                                print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.input_dim in the adapter class.")
                                 raise ValueError(f"No output dim size found in adapter: {adapter}")
                     # ----- Sub-Goal
                     # - If we have setup dict to include agent_adapter specific location of sub-goals

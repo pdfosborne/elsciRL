@@ -77,7 +77,7 @@ class Experiment:
                         save_dir=self.save_dir, show_figures = self.show_figures, window_size=0.1)
             else:
                 self.is_gym_agent[agent_type] = False 
-        self.agent_factory = AgentFactory(self.adapters)
+        self.agent_factory = AgentFactory(self.adapters, self.setup_info)
 
     def add_agent(self, agent_name:str, agent):
         self.agent_factory.register_agent(agent_name, agent)

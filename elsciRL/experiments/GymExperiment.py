@@ -67,7 +67,7 @@ class GymExperiment:
         self.test_agent_type = self.setup_info['test_agent_type']
         self.analysis = Evaluation(window_size=window_size)
         self.result_manager = ResultManager(self.analysis)
-        self.agent_factory = AgentFactory(self.adapters)
+        self.agent_factory = AgentFactory(self.adapters, self.setup_info)
         self.reward_signal = None
 
     def add_agent(self, agent_name:str, agent):
