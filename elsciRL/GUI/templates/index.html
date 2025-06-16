@@ -193,26 +193,26 @@
                         <div class="config-group" style="flex: 1;">
                             <h3>Applications</h3>
                             <div class="select-container">
-                                <label for="applicationSelect">Select Application:</label>
+                                <label for="applicationSelect" title="Select the environment or problem you want to work with.">Select Application:</label>
                                 <select id="applicationSelect" class="form-select" required>
                                     <!-- Remove the initial option here -->
                                 </select>
                             </div>
                             <div id="configSelections" style="display: none;">
                                 <div class="training-params">
-                                    <label for="localConfigSelect">Local Config:</label>
+                                    <label for="localConfigSelect" title="Choose a preset problem configuration.">Local Config:</label>
                                     <select id="localConfigSelect" class="form-select">
                                         <option value="" disabled selected>Choose config...</option>
                                     </select>
                                 </div>
                                 <div class="training-params">
-                                    <label for="observedStateSelect">Observed State Input:</label>
+                                    <label for="observedStateSelect" title="Choose a pre-rendered observed state data used by instruction following methods.">Observed State Input:</label>
                                     <select id="observedStateSelect" class="form-select">
                                         <!-- Options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="training-params">
-                                    <label for="plotSelect">Select Analysis File:</label>
+                                    <label for="plotSelect" title="Choose a preset, problem specific analysis script.">Select Analysis File:</label>
                                     <select id="plotSelect" class="form-select">
                                         <option value="" disabled selected>Choose plot...</option>
                                     </select>
@@ -221,7 +221,7 @@
                         </div>
                         <div id="prerenderImageContainer" class="image-section shadow-effect" style="flex: 1;">
                             <div class="select-container">
-                                <label for="prerenderImageSelect">Select Preview Image:</label>
+                                <label for="prerenderImageSelect" title="Preview images for the selected application.">Select Preview Image:</label>
                                 <select id="prerenderImageSelect" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
@@ -237,7 +237,7 @@
                     <div class="config-group" style="margin-bottom: 20px;">
                         <h3>Experiment Configuration</h3>
                         <div class="select-container">
-                            <label for="experimentConfigSelect">Select Experiment Config:</label>
+                            <label for="experimentConfigSelect" title="Choose a preset experiment configuration.">Select Experiment Config:</label>
                             <select id="experimentConfigSelect" class="form-select">
                                 <option value="" disabled selected>Choose experiment config...</option>
                             </select>
@@ -288,15 +288,15 @@
                         <div class="config-group" style="flex: 1;">
                             <h3>Training Configuration</h3>
                             <div class="training-params">
-                                <label for="trainingEpisodes">Training Episodes:</label>
+                                <label for="trainingEpisodes" title="Number of episodes for training the agent.">Training Episodes:</label>
                                 <input type="number" id="trainingEpisodes" min="10" max="10000" value="1000" step="500">
                             </div>
                             <div class="training-params">
-                                <label for="trainingRepeats">Training Repeats (fixed starting position):</label>
+                                <label for="trainingRepeats" title="Number of times to repeat training with the same starting position.">Training Repeats (fixed starting position):</label>
                                 <input type="number" id="trainingRepeats" min="1" max="100" value="5">
                             </div>
                             <div class="training-params">
-                                <label for="trainingSeeds">Training Seeds (random starting position):</label>
+                                <label for="trainingSeeds" title="Number of random seeds for training (random starting positions).">Training Seeds (random starting position):</label>
                                 <input type="number" id="trainingSeeds" min="1" max="100" value="1">
                             </div>
                         </div>
@@ -304,11 +304,11 @@
                         <div class="config-group" style="flex: 1;">
                             <h3>Testing Configuration</h3>
                             <div class="training-params">
-                                <label for="testEpisodes">Test Episodes:</label>
+                                <label for="testEpisodes" title="Number of episodes for testing the agent.">Test Episodes:</label>
                                 <input type="number" id="testEpisodes" min="1" max="1000" value="200">
                             </div>
                             <div class="training-params">
-                                <label for="testRepeats">Test Repeats:</label>
+                                <label for="testRepeats" title="Number of times to repeat testing.">Test Repeats:</label>
                                 <input type="number" id="testRepeats" min="1" max="100" value="10">
                             </div>
                         </div>
@@ -329,14 +329,15 @@
                     <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="margin-bottom: 15px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
                     <div style="margin-bottom: 15px;">
                         <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner" unchecked>
-                        <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;">Enable LLM Instruction Planner</label>
+                        <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;" title="Enable the LLM-based instruction planner for automatic instruction validation.">Enable LLM Instruction Planner</label>
                     </div>
                 </div>
 
                 <div class="input-console-container" style="display: flex; gap: 20px;">
                     <div class="input-section shadow-effect" style="flex: 1;">
                         <p>User Input</p>
-                        <textarea id="userInput" placeholder="Enter your commands here..."></textarea>
+                        <label for="userInput"></label>
+                        <textarea id="userInput" placeholder="Enter your instructions for the agent here. Leave blank to run without instructions."></textarea>
                         <div class="button-group">
                             <div style="display: flex; align-items: center;">
                                 <button id="submitBtn" class="submit-btn" onclick="processInput()">Submit</button>
@@ -361,7 +362,7 @@
                 <div class="image-container" style="display: flex; gap: 20px;">
                     <div id="additionalPrerenderImageContainer" class="image-section shadow-effect">
                         <div class="select-container">
-                            <label for="additionalPrerenderImageSelect">Select Preview Image:</label>
+                            <label for="additionalPrerenderImageSelect" title="Additional preview images for the selected application.">Select Preview Image:</label>
                             <select id="additionalPrerenderImageSelect" class="form-select">
                                 <!-- Options will be populated dynamically -->
                             </select>
