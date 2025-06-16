@@ -675,6 +675,9 @@ class elsciRLOptimize:
         for training_key in list(training_setups.keys()):    
             test_setup_info = training_setups[training_key]
             test_setup_info['train'] = False # Testing Phase
+            test_setup_info['training_results'] = False
+            test_setup_info['observed_states'] = False
+            test_setup_info['num_test_episodes'] = 10 # limit to 10 episodes for render
             print("----------")
             print("Rendering trained agent's policy:")
             agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']

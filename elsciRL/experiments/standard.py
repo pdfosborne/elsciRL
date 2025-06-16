@@ -392,6 +392,7 @@ class Experiment:
             test_setup_info['train'] = False # Testing Phase
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
+            test_setup_info['num_test_episodes'] = 10 # limit to 10 episodes for render
             print("----------")
             print("Rendering trained agent's policy:")
             agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
@@ -435,10 +436,13 @@ class Experiment:
                     else:
                         print("NO agent available for testing position.")
                     #Only render first even if all selected
-                    for ag,agent in enumerate(all_agents[:1]):
+                    for ag,agent in enumerate(all_agents):
                         env.results.reset() # Reset results table for each agent
                         env.start_obs = start_obs
                         env.agent = agent
+                        # only run once
+                        env.num_train_repeat = 1
+                        env.num_test_repeat = 1
                         env.agent.epsilon = 0 # Remove random actions
                         agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
                         # ---
