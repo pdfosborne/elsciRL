@@ -178,7 +178,7 @@ class Evaluation:
         axs[1,0].set_title("Cumulative R with Std. Err.")
         
         axs[1,1].set_ylabel("Occurence")
-        axs[1,1].set_xlabel("Time")
+        axs[1,1].set_xlabel("Time (seconds)")
         axs[1,1].set_title("Dist of Time per Episode")
 
         #ax1.legend(loc=2, bbox_to_anchor=(-0.05, 0), fancybox=True, shadow=True, framealpha=1)
@@ -338,12 +338,12 @@ class Evaluation:
             # Save results to csv per agent type
             final_results.to_csv(save_dir+'/testing_variance_results_'+str(agent_type)+'.csv')
 
-        axs[0,0].plot(x,avg_R, color=c, linestyle=l, label=agent_type)
-        axs[0,0].fill_between(x,avg_R-avg_R_SE, avg_R+avg_R_SE, color=c, alpha = 0.2)
-        axs[0,1].plot(avg_r_mean_sorted,cdf_mean, color=c, linestyle=l)
-        axs[1,0].plot(x,cum_R, color=c, linestyle=l)
-        axs[1,0].fill_between(x,cum_R-cum_R_SE, cum_R+cum_R_SE, color=c, alpha = 0.2)
-        axs[1,1].hist(time_mean, color=c, alpha=0.25)
+            axs[0,0].plot(x,avg_R, color=c, linestyle=l, label=agent_type)
+            axs[0,0].fill_between(x,avg_R-avg_R_SE, avg_R+avg_R_SE, color=c, alpha = 0.2)
+            axs[0,1].plot(avg_r_mean_sorted,cdf_mean, color=c, linestyle=l)
+            axs[1,0].plot(x,cum_R, color=c, linestyle=l)
+            axs[1,0].fill_between(x,cum_R-cum_R_SE, cum_R+cum_R_SE, color=c, alpha = 0.2)
+            axs[1,1].hist(time_mean, color=c, alpha=0.25)
 
         axs[0,0].set_xlabel("Episode")
         axs[0,0].set_ylabel('Reward')
@@ -360,7 +360,7 @@ class Evaluation:
         axs[1,0].set_title("Cumulative R with Std. Err.")
         
         axs[1,1].set_ylabel("Occurence")
-        axs[1,1].set_xlabel("Time")
+        axs[1,1].set_xlabel("Time (seconds)")
         axs[1,1].set_title("Dist of Time per Episode")
 
         #ax1.legend(loc=2, bbox_to_anchor=(-0.05, 0), fancybox=True, shadow=True, framealpha=1)

@@ -277,8 +277,8 @@ class Experiment:
 
                             # Collate complete setup info to full dict
                         self.training_setups['Training_Setup_'+str(engine_name) + '_' + str(agent_type)+'_'+str(adapter)] = train_setup_info.copy()
-                        #if (number_training_repeats>1)|(self.num_training_seeds):
-                        self.analysis.training_variance_report(self.save_dir, self.show_figures)
+
+        self.analysis.training_variance_report(self.save_dir, self.show_figures)
 
         return self.training_setups
 
@@ -376,8 +376,7 @@ class Experiment:
                                 # Produce training report with Analysis.py
                                 Return = self.analysis.test_report(testing_results, test_save_dir, self.show_figures)
 
-            # if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
-            self.analysis.testing_variance_report(self.save_dir, self.show_figures)
+        self.analysis.testing_variance_report(self.save_dir, self.show_figures)
 
         
     def render_results(self, training_setups:str=None):
