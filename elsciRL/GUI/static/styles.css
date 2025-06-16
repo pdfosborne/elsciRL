@@ -145,30 +145,6 @@ img {
   margin: 0 10px;
 }
 
-/* Rocket Animation */
-.rocket {
-  position: absolute;
-  left: 60%;
-  transform: translateX(-50%);
-  font-size: 2rem;
-  animation: launch 2s ease-in-out forwards;
-}
-
-@keyframes launch {
-  0% {
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    bottom: 100%;
-    left: 100%;
-    transform: translateX(-50%) rotate(45deg);
-    opacity: 0;
-  }
-}
-
 /* Tabs */
 .tabs {
   display: flex;

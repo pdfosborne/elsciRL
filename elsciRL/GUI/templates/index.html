@@ -6,19 +6,6 @@
     <title>Interactive Demo WebApp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
-        .rocket.launch {
-            animation: launchRocket 4s forwards;
-        }
-
-        @keyframes launchRocket {
-            0% {
-                transform: translate(0, 0) rotate(0deg);
-            }
-            100% {
-                transform: translate(700px, -500px) rotate(45deg);
-            }
-        }
-
         .loading-circle {
             border: 8px solid var(--border-color);
             border-top: 8px solid var(--button-color);
@@ -353,12 +340,8 @@
                         <div class="button-group">
                             <div style="display: flex; align-items: center;">
                                 <button id="submitBtn" class="submit-btn" onclick="processInput()">Submit</button>
-                                <div id="loadingCircleSubmit" class="loading-circle"></div>
                             </div>
                             <button id="newInstructionBtn" onclick="newInstruction()">New Instruction</button>
-                        </div>
-                        <div id="rocket" class="rocket" style="display:none;">
-                            🚀
                         </div>
                     </div>
                     <div class="console-section shadow-effect" style="flex: 1;">
@@ -711,7 +694,6 @@
             const submitBtn = document.getElementById('submitBtn');
             const consoleOutput = document.getElementById('consoleOutput');
             const loadingCircleSubmit = document.getElementById('loadingCircleSubmit');
-            const rocket = document.getElementById('rocket');
             const instructionMatchPlots = document.getElementById('instructionMatchPlots');
 
             const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
@@ -733,8 +715,6 @@
             input.disabled = true;
             submitBtn.disabled = true;
             loadingCircleSubmit.style.display = 'block';
-            rocket.style.display = 'block';
-            rocket.classList.add('launch');
 
             try {
                 const response = await fetch('/process_input', {
@@ -759,8 +739,6 @@
                 input.disabled = false;
                 submitBtn.disabled = false;
                 consoleOutput.innerHTML = data.console_output;
-                rocket.style.display = 'none';
-                rocket.classList.remove('launch');
                 instructionMatchPlots.innerHTML = '';
                 if (data.matchPlots && data.matchPlots.length > 0) {
                     data.matchPlots.forEach(plot => {
