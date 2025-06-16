@@ -1,14 +1,11 @@
 import os
-from elsciRL.experiments.experiment_utils.agent_factory import AgentFactory
 from elsciRL.experiments.experiment_utils.config_utils import ensure_dir
-from elsciRL.experiments.experiment_utils.env_manager import EnvManager
-from elsciRL.experiments.experiment_utils.result_manager import ResultManager
 from elsciRL.experiments.experiment_utils.render_current_results import render_current_result
 
 
 def run_training_loop(
-    agent_factory,
     env_manager,
+    agent_factory,
     result_manager,
     training_render,
     training_render_save_dir,
@@ -23,7 +20,8 @@ def run_training_loop(
     num_training_seeds,
     test_agent_type,
     show_figures,
-    number_training_repeats
+    number_training_repeats,
+    gym_env:bool=False
 ):
     if f"{engine_name}_{agent_type}_{adapter}" not in trained_agents:
         trained_agents[f"{engine_name}_{agent_type}_{adapter}"] = {}
@@ -46,7 +44,12 @@ def run_training_loop(
             setup_num += 1
             player = agent_factory.create(agent_type, train_setup_info['agent_parameters'][agent_type], adapter)
             train_setup_info['agent'] = player
-            live_env = env_manager.create_env(engine, all_adapters, train_setup_info)
+            # Create the environment, use gym_env if specified
+            if gym_env:
+                live_env = env_manager.create_gym_env(engine, adapter, train_setup_info)
+            else:
+                live_env = env_manager.create_env(engine, all_adapters, train_setup_info)
+            # ---
             if training_repeat > 1:
                 live_env.start_obs = env_start
             env_start = live_env.start_obs
@@ -56,13 +59,11 @@ def run_training_loop(
                 setup_num = seed_recall[goal]
             else:
                 seed_recall[goal] = 1
-            agent_save_dir = os.path.join(
-                save_dir,
+            agent_save_dir = os.path.join(save_dir,
                 f"{engine_name}_{agent_type}_{adapter}__training_results_{goal}_{setup_num}"
-            ) if num_training_seeds > 1 else os.path.join(
-                save_dir,
-                f"{engine_name}_{agent_type}_{adapter}__training_results_{setup_num}"
-            )
+                    ) if num_training_seeds > 1 else os.path.join(save_dir,
+                            f"{engine_name}_{agent_type}_{adapter}__training_results_{setup_num}"
+                        )
             ensure_dir(agent_save_dir)
             if goal in trained_agents[f"{engine_name}_{agent_type}_{adapter}"]:
                 live_env.agent = trained_agents[f"{engine_name}_{agent_type}_{adapter}"][goal].clone()
@@ -105,4 +106,5 @@ def run_training_loop(
             end_repeat_num = list(temp_agent_store[goal].keys())[-1]
             all_agents = [temp_agent_store[goal][repeat]['agent'] for repeat in range(start_repeat_num, end_repeat_num + 1)]
             trained_agents[f"{engine_name}_{agent_type}_{adapter}"][goal] = all_agents
+
     return trained_agents, seed_results_connection, temp_agent_store, training_results_stored, observed_states_stored

@@ -15,6 +15,10 @@ from elsciRL.environment_setup.gym_translator import GymRegistration
 from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
 from elsciRL.agents.stable_baselines.SB3_PPO import SB_PPO
 from elsciRL.agents.stable_baselines.SB3_A2C import SB_A2C
+from elsciRL.experiments.experiment_utils.env_manager import EnvManager
+from elsciRL.experiments.experiment_utils.result_manager import ResultManager
+from elsciRL.experiments.experiment_utils.agent_factory import AgentFactory
+from elsciRL.experiments.training_procedures.default_exp_training import run_training_loop
 
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used
@@ -34,7 +38,6 @@ class GymExperiment:
     """
     def __init__(self, Config:dict, ProblemConfig:dict, Engine, Adapters:dict, save_dir:str, show_figures:str, window_size:float): 
         # Environment setup
-        # - Multiple Engine support
         if isinstance(Engine, dict):
             print("\n Multiple Engines detected, will compare results across engines...")
             self.engine_comparison = True
@@ -43,7 +46,7 @@ class GymExperiment:
             self.engine_comparison = False
             self.engine_list = {'DefaultEng':Engine}
         self.adapters = Adapters
-        self.gym_env = GymInteractionLoop 
+        self.env_manager = EnvManager(GymInteractionLoop, Adapters)
         # ---
         # Configuration setup
         self.ExperimentConfig = Config
@@ -52,205 +55,72 @@ class GymExperiment:
             os.mkdir(save_dir)
         self.save_dir = save_dir
         self.show_figures = show_figures
-        if (self.show_figures.lower() != 'y')|(self.show_figures.lower() != 'yes'):
+        if (self.show_figures.lower() != 'y') and (self.show_figures.lower() != 'yes'):
             print("Figures will not be shown and only saved.")
-
         try:
             self.setup_info = self.ExperimentConfig['data'] | self.LocalConfig['data'] 
-        except:
+        except Exception:
             self.setup_info = self.ExperimentConfig | self.LocalConfig 
         self.training_setups: dict = {}
-        # new - store agents cross training repeats for completing the same start-end goal
         self.trained_agents: dict = {}
         self.num_training_seeds = self.setup_info['number_training_seeds']
-        # new - config input defines the re-use of trained agents for testing: 'best' or 'all'
         self.test_agent_type = self.setup_info['test_agent_type']
         self.analysis = Evaluation(window_size=window_size)
-        
-        # ---
-        # Agent setup
-        self.AGENT_TYPES = {
-            "SB3_DQN": SB_DQN,
-            "SB3_PPO": SB_PPO,
-            "SB3_A2C": SB_A2C
-        }
-        
-        self.PLAYER_PARAMS = {
-            "SB3_DQN": ["policy"],
-            "SB3_PPO": ["policy"],
-            "SB3_A2C": ["policy"]
-        }
-
-        # New: Define sub-goals with reward signal
+        self.result_manager = ResultManager(self.analysis)
+        self.agent_factory = AgentFactory(self.adapters)
         self.reward_signal = None
 
     def add_agent(self, agent_name:str, agent):
-        """Add a custom agent to the experiment using the agent name as a key.
-            - Parameters must be defined in the config.json file with matching name."""
-        self.AGENT_TYPES[agent_name] = agent
-        print("\n Agent added to experiment, all available agents: ", self.AGENT_TYPES)
+        self.agent_factory.register_agent(agent_name, agent)
+        print("\n Agent added to experiment, all available agents: ", self.agent_factory.agent_types)
 
     def train(self):
         if not os.path.exists(self.save_dir):
             os.mkdir(self.save_dir)
-        
         for engine_name, engine in self.engine_list.items():
-            for n, agent_type in enumerate(self.setup_info['agent_select']):
-                # We are adding then overriding some inputs from general configs for experimental setups
-                train_setup_info = self.setup_info.copy()
-                # ----- State Adapter Choice
-                #adapter = train_setup_info["adapter_select"][n]
-                for adapter in train_setup_info["adapter_input_dict"][agent_type]:
-                    # ----- Agent parameters
-                    agent_parameters = train_setup_info["agent_parameters"][agent_type]
+            for agent_type in self.setup_info['agent_select']:
+                for adapter in self.setup_info['adapter_input_dict'][agent_type]:
+                    train_setup_info = self.setup_info.copy()
+                    agent_parameters = train_setup_info['agent_parameters'][agent_type]
                     train_setup_info['agent_type'] = agent_type
-                    # ----- Neural Agent Setup
-                    # Get the input dim from the adapter or the encoder's output dim
-                    if agent_type == "DQN":
-                        try:
-                            agent_parameters['input_size'] = self.adapters[adapter].input_dim
-                        except:
-                            try:
-                                agent_parameters['input_size'] = self.adapters[adapter].encoder.output_dim
-                            except:
-                                print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.output_dim in the adapter class.")
-                                raise ValueError(f"No output dim size found in adapter: {adapter}")
-                    train_setup_info['agent_name'] = str(engine_name) + str(agent_type) + '_' + str(adapter) + '_' + str(agent_parameters)
+                    train_setup_info['agent_name'] = f"{engine_name}{agent_type}_{adapter}_{agent_parameters}"
                     train_setup_info['adapter_select'] = adapter
-                    # -----
-                    # Repeat training
                     train_setup_info['train'] = True
-                    number_training_episodes = train_setup_info['number_training_episodes']
                     number_training_repeats = self.ExperimentConfig["number_training_repeats"]
-                    print("Training Agent " + str(agent_type) + " for " + str(number_training_repeats) + " repeats on " + str(engine_name) + " engine")
-                    if str(engine_name) + '_' + str(agent_type) + '_' + str(adapter) not in self.trained_agents:
-                        self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)] = {}
-
-                    seed_recall = {}
-                    seed_results_connection = {}
-                    for seed_num in range(0,self.num_training_seeds):
-                        if self.num_training_seeds > 1:
-                            print("------")
-                            print("- Seed Num: ", seed_num)
-                        # -------------------------------------------------------------------------------
-                        # Initialise Environment
-                        # Environment now init here and called directly in experimental setup loop
-                        # - NEW: need to pass start position from live env so that experience can be sampled
-                        if seed_num==0:
-                            train_setup_info['training_results'] = False
-                            train_setup_info['observed_states'] = False
-                        else:
-                            train_setup_info['training_results'] = False
-                            train_setup_info['observed_states'] = observed_states_stored.copy()
-                        # ---
-                        setup_num:int = 0
-                        temp_agent_store:dict = {}
-                        for training_repeat in range(1,number_training_repeats+1):
-                            if number_training_repeats > 1:
-                                print("------")
-                                print("- Repeat Num: ", training_repeat)
-                            setup_num+=1
-                            
-                            # ----- init agent
-                            train_setup_info['live_env'] = True
-                            # ----- Induce reward signal into engine
-                            engine.reward_signal = self.reward_signal
-                            # - SB3 agents require a live environment to be initialised
-                            gym_adapter = self.adapters[adapter]
-                            gym_engine = GymRegistration(engine, gym_adapter, train_setup_info)
-                            
-                            player = self.AGENT_TYPES[agent_type](policy=agent_parameters['policy'], env=gym_engine)
-                            train_setup_info['agent'] = player 
-                            live_env = self.gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=train_setup_info)
-                            live_env.env = gym_engine # Override underlying env with gym format
-                        
-
-                            if training_repeat > 1:
-                                live_env.start_obs = env_start
-
-                            env_start = live_env.start_obs
-                            goal = str(env_start).split(".")[0] + "---" + "GOAL"
-                            print("Flat agent Goal: ", goal)
-                            if goal in seed_recall:
-                                setup_num = seed_recall[goal]
-                            else:
-                                seed_recall[goal] = 1
-                            # - Results save dir -> will override for same goal if seen in later seed
-                            if self.num_training_seeds > 1:
-                                agent_save_dir = self.save_dir+'/'+engine_name+'_'+agent_type+'_'+adapter+'__training_results_'+str(goal)+'_'+str(setup_num) 
-                            else:
-                                agent_save_dir = self.save_dir+'/'+engine_name+'_'+agent_type+'_'+adapter+'__training_results_'+str(setup_num)
-                            if not os.path.exists(agent_save_dir):
-                                os.mkdir(agent_save_dir)
-
-                            # Override with trained agent if goal seen previously
-                            if goal in self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)]:
-                                live_env.agent = self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal]#.clone()
-
-                            # ---
-                            if goal in seed_results_connection:
-                                live_env.results.load(seed_results_connection[goal])
-                            #live_env.agent.exploration_parameter_reset()
-                            training_results = live_env.episode_loop()
-                            training_results['episode'] = training_results.index
-                            # Opponent now defined in local setup.py
-                            # ----- Log training results      
-                            training_results.insert(loc=0, column='Repeat', value=setup_num)
-                            # Produce training report with Analysis.py
-                            Return = self.analysis.train_report(training_results, agent_save_dir, self.show_figures)
-                            # Extract trained agent from env and stored for re-call
-                            if goal not in temp_agent_store:
-                                temp_agent_store[goal] = {}
-                            temp_agent_store[goal][setup_num] = {'Return':Return,'agent':live_env.agent}#.clone()}
-                            
-                            if training_repeat == 1:
-                                max_Return = Return
-                                best_agent = live_env.agent
-                                training_results_stored =  live_env.results.copy()
-                                observed_states_stored = live_env.elsciRL.observed_states
-                            if Return > max_Return:
-                                max_Return = Return
-                                best_agent = live_env.agent
-                                training_results_stored =  live_env.results.copy()
-                                observed_states_stored = live_env.elsciRL.observed_states
-                            seed_recall[goal] = seed_recall[goal] + 1
-                            # Save trained agent to logged output
-                            train_setup_info['train_save_dir'] = agent_save_dir
-                            #train_setup_info['trained_agent'] = agent
-                        seed_results_connection[goal] = training_results_stored
-
-                        # ----- New: 'best' or 'all' agents saved
-                        # Save trained agent to logged output for testing phase
-                        if self.test_agent_type.lower() == 'best':
-                            self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal] = best_agent#.clone()
-                        elif self.test_agent_type.lower() == 'all':
-                            start_repeat_num = list(temp_agent_store[goal].keys())[0]
-                            end_repeat_num = list(temp_agent_store[goal].keys())[-1]
-
-                            all_agents = []
-                            for repeat in range(start_repeat_num,end_repeat_num+1):
-                                agent = temp_agent_store[goal][repeat]['agent']
-                                all_agents.append(agent)
-                                
-                            if goal not in self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)]:
-                                self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal] = {}
-                            self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal] = all_agents
-
-                        # Collate complete setup info to full dict
-                    self.training_setups['Training_Setup_'+str(engine_name) + '_' + str(agent_type)+'_'+str(adapter)] = train_setup_info
-        if (number_training_repeats>1)|(self.num_training_seeds):
-            self.analysis.training_variance_report(self.save_dir, self.show_figures)
-        #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
+                    # Induce reward signal into engine
+                    engine.reward_signal = self.reward_signal
+                    # Use run_training_loop utility
+                    trained_agents, seed_results_connection, temp_agent_store, training_results_stored, observed_states_stored = run_training_loop(
+                        self.env_manager,
+                        self.agent_factory,
+                        self.result_manager,
+                        training_render=False,
+                        training_render_save_dir=None,
+                        save_dir=self.save_dir,
+                        engine_name=engine_name,
+                        engine=engine,
+                        agent_type=agent_type,
+                        adapter=adapter,
+                        all_adapters=self.adapters,
+                        train_setup_info=train_setup_info,
+                        trained_agents=self.trained_agents,
+                        num_training_seeds=self.num_training_seeds,
+                        test_agent_type=self.test_agent_type,
+                        show_figures=self.show_figures,
+                        number_training_repeats=number_training_repeats,
+                        gym_env=True  # Use gym_env flag if available
+                    )
+                    self.trained_agents.update(trained_agents)
+                    self.training_setups[f'Training_Setup_{engine_name}_{agent_type}_{adapter}'] = train_setup_info
+        if (self.ExperimentConfig["number_training_repeats"] > 1) or (self.num_training_seeds > 1):
+            self.result_manager.training_variance_report(self.save_dir, self.show_figures)
         return self.training_setups
 
-    # TESTING PLAY
     def test(self, training_setups:str=None):
-        # Override input training setups with previously saved 
         if training_setups is None:
             training_setups = self.training_setups
         else:
             training_setups = json.load(training_setups)
-
         for training_key in list(training_setups.keys()):    
             test_setup_info = training_setups[training_key]
             test_setup_info['train'] = False # Testing Phase
@@ -261,80 +131,34 @@ class GymExperiment:
             print(test_setup_info['train_save_dir'])
             number_training_repeats = test_setup_info['number_test_repeats']
             agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-
-            # Only use the trained agent with best return
-            if self.test_agent_type.lower()=='best':
-                for engine_name, engine in self.engine_list.items():
-                    for testing_repeat in range(0, test_setup_info['number_test_repeats']):  
-                        # Re-init env for testing
-                        # - SB3 agents require a live environment to be initialised
-                        engine.reward_signal = None # clear instr reward signal
-                        gym_adapter = self.adapters[test_setup_info['adapter_select']]
-                        gym_engine = GymRegistration(engine, gym_adapter, test_setup_info)
-                        env = self.gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=test_setup_info)
-                        env.env = gym_engine # Override underlying env with gym format
-                        #env = self.gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=test_setup_info)
-                        # ---
-                        start_obs = env.start_obs
-                        goal = str(start_obs).split(".")[0] + "---" + "GOAL"
-                        print("Flat agent Goal: ", goal)
-                        # Override with trained agent if goal seen previously
-                        if goal in self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
-                            print("Trained agent available for testing.")
-                            env.agent = self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
-                        else:
-                            print("NO agent available for testing position.")
+            for engine_name, engine in self.engine_list.items():
+                for testing_repeat in range(0, test_setup_info['number_test_repeats']):  
+                    engine.reward_signal = None # clear instr reward signal
+                    env = self.env_manager.create_gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=test_setup_info)
+                    start_obs = env.start_obs
+                    goal = str(start_obs).split(".")[0] + "---GOAL"
+                    print("Flat agent Goal: ", goal)
+                    if goal in self.trained_agents.get(f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}", {}):
+                        print("Trained agent available for testing.")
+                        all_agents = self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
+                        if not isinstance(all_agents, list):
+                            all_agents = [all_agents]
+                    else:
+                        print("NO agent available for testing position.")
+                    env.agent.epsilon = 0 # Remove random actions
+                    for ag,agent in enumerate(all_agents):
+                        env.results.reset() # Reset results table for each agent
+                        env.start_obs = start_obs
+                        env.agent = agent
                         env.agent.epsilon = 0 # Remove random actions
+                        agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
                         # ---
                         # Testing generally is the agents replaying on the testing ENV
                         testing_results = env.episode_loop() 
-                        test_save_dir = (self.save_dir+'/' + str(engine_name) + '_' + agent_adapter + '__testing_results_' + str(goal).split("/")[0]+"_"+str(testing_repeat))
+                        test_save_dir = (self.save_dir+'/'+ str(engine_name) + '_' + agent_adapter + '__testing_results_' + str(goal).split("/")[0]+"_"+"agent"+str(ag)+"-repeat"+str(testing_repeat))
                         if not os.path.exists(test_save_dir):
                             os.mkdir(test_save_dir)
                         # Produce training report with Analysis.py
                         Return = self.analysis.test_report(testing_results, test_save_dir, self.show_figures)
-                        
-            # Re-apply all trained agents with fixed policy
-            elif self.test_agent_type.lower()=='all':
-                # All trained agents are used:
-                # - Repeats can be used to vary start position
-                # - But assumed environment is deterministic otherwise
-                # Re-init env for testing
-                for engine_name, engine in self.engine_list.items():
-                    for testing_repeat in range(0, test_setup_info['number_test_repeats']):
-                        engine.reward_signal = None # clear instr reward signal
-                        env = self.gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=test_setup_info)                           
-                        # ---
-                        start_obs = env.start_obs
-                        goal = str(start_obs).split(".")[0] + "---" + "GOAL"
-                        print("Flat agent Goal: ", goal)
-                        # Override with trained agent if goal seen previously
-                        if goal in self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+ '_' +test_setup_info['adapter_select']]:
-                            print("Trained agents available for testing.")
-                            all_agents = self.trained_agents[str(engine_name) + '_' + test_setup_info['agent_type']+'_'+test_setup_info['adapter_select']][goal]
-                            
-                        else:
-                            print("NO agent available for testing position.")
-                        
-                        agent_type = test_setup_info['agent_type']
-                        for ag,agent in enumerate(all_agents):
-                            if agent_type.split('_')[0] == "SB3":
-                                gym_adapter = self.adapters[test_setup_info['adapter_select']]
-                                gym_engine = GymRegistration(engine, gym_adapter, test_setup_info)
-                                env.env = gym_engine
-                            env.results.reset() # Reset results table for each agent
-                            env.start_obs = start_obs
-                            env.agent = agent
-                            env.agent.epsilon = 0 # Remove random actions
-                            agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-                            # ---
-                            # Testing generally is the agents replaying on the testing ENV
-                            testing_results = env.episode_loop() 
-                            test_save_dir = (self.save_dir+'/'+ str(engine_name) + '_' + agent_adapter + '__testing_results_' + str(goal).split("/")[0]+"_"+"agent"+str(ag)+"-repeat"+str(testing_repeat))
-                            if not os.path.exists(test_save_dir):
-                                os.mkdir(test_save_dir)
-                            # Produce training report with Analysis.py
-                            Return = self.analysis.test_report(testing_results, test_save_dir, self.show_figures)
-
-        if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
-            self.analysis.testing_variance_report(self.save_dir, self.show_figures)
+        if (self.ExperimentConfig["number_training_repeats"] > 1) or (self.test_agent_type.lower() == 'all'):
+            self.result_manager.testing_variance_report(self.save_dir, self.show_figures)

@@ -7,7 +7,6 @@ from elsciRL.evaluation.standard_report import Evaluation
 # ------ Gym Experiment ----------------------------------------
 from elsciRL.experiments.GymExperiment import GymExperiment
 # ---------------------------------------------------------------
-
 from elsciRL.experiments.experiment_utils.agent_factory import AgentFactory
 from elsciRL.experiments.experiment_utils.config_utils import ensure_dir, merge_configs
 from elsciRL.experiments.experiment_utils.env_manager import EnvManager
@@ -116,8 +115,8 @@ class Experiment:
                         
                         # Use the modular training procedure
                         self.trained_agents,_,_,_,_ = run_training_loop(
-                            self.agent_factory,
                             self.env_manager,
+                            self.agent_factory,
                             self.result_manager,
                             self.training_render,
                             self.training_render_save_dir,
@@ -173,6 +172,8 @@ class Experiment:
                         if goal in self.trained_agents[agent_key]:
                             print("Trained agents available for testing.")
                             all_agents = self.trained_agents[agent_key][goal]
+                            if not isinstance(all_agents, list):
+                                all_agents = [all_agents]
                         else:
                             print("NO agent available for testing position.")
                             all_agents = []
@@ -213,6 +214,8 @@ class Experiment:
                 if goal in self.trained_agents[agent_key]:
                     print("Trained agents available for testing.")
                     all_agents = self.trained_agents[agent_key][goal]
+                    if not isinstance(all_agents, list):
+                        all_agents = [all_agents]
                 else:
                     print("NO agent available for testing position.")
                     all_agents = []
