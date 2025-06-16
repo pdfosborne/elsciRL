@@ -99,6 +99,9 @@ class DQNAgent(QLearningAgent):
     def policy(self, state: torch.Tensor, legal_actions: list, **kwargs) -> Hashable:
         """Select action using epsilon-greedy policy"""
         if random.random() < self.epsilon:
+            # Decay epsilon
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
             return random.choice(legal_actions)
         
         with torch.no_grad():
@@ -137,9 +140,6 @@ class DQNAgent(QLearningAgent):
         if self.update_counter % self.target_update == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
             
-        # Decay epsilon
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
 
     def _train(self):
         """Train the network using experience replay"""
@@ -158,7 +158,7 @@ class DQNAgent(QLearningAgent):
         
         # Get next Q values from target network
         with torch.no_grad():
-            next_q_values = self.target_net(next_states).max(1)[0]  # [batch_size]
+            next_q_values = self.target_net(next_states).max(1)[0][:self.batch_size]  # [batch_size]
         
         # Compute target Q values
         target_q_values = rewards + (self.gamma * next_q_values)

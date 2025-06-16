@@ -564,8 +564,8 @@ class elsciRLOptimize:
                                                 
                     # Store last train_setup_info as collection of observed states
                     self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info.copy()
-                #if (number_training_repeats>1)|(self.num_training_seeds):
-                self.analysis.training_variance_report(self.save_dir, self.show_figures)
+
+        self.analysis.training_variance_report(self.save_dir, self.show_figures)
                     
         #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
         return self.training_setups
@@ -660,9 +660,8 @@ class elsciRLOptimize:
                             # Produce training report with Analysis.py
                             Return = self.analysis.test_report(testing_results, test_save_dir, self.show_figures)
 
-            # Path is the experiment save dir + the final instruction
-            #if (number_training_repeats>1)|(self.test_agent_type.lower()=='all'):
-            self.analysis.testing_variance_report(self.save_dir, self.show_figures)
+        # Path is the experiment save dir + the final instruction
+        self.analysis.testing_variance_report(self.save_dir, self.show_figures)
 
         
     def render_results(self, training_setups:str=None):
