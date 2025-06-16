@@ -4,27 +4,15 @@ import json
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
 # ------ Experiment Import --------------------------------------
 from elsciRL.evaluation.standard_report import Evaluation
-# ------ Agent Imports -----------------------------------------
-# Universal Agents
-from elsciRL.agents.agent_abstract import Agent, QLearningAgent
-from elsciRL.agents.table_q_agent import TableQLearningAgent
-from elsciRL.agents.DQN import DQNAgent
-from elsciRL.agents.agent_abstract import Agent
-# Stable Baselines
-from elsciRL.agents.stable_baselines.SB3_DQN import SB_DQN
-from elsciRL.agents.stable_baselines.SB3_PPO import SB_PPO
-from elsciRL.agents.stable_baselines.SB3_A2C import SB_A2C
 # ------ Gym Experiment ----------------------------------------
 from elsciRL.experiments.GymExperiment import GymExperiment
-from elsciRL.experiments.experiment_utils.render_current_results import render_current_result
-# ------ LLM Agents ---------------------------------------------
-from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
 # ---------------------------------------------------------------
 
 from elsciRL.experiments.experiment_utils.agent_factory import AgentFactory
 from elsciRL.experiments.experiment_utils.config_utils import ensure_dir, merge_configs
 from elsciRL.experiments.experiment_utils.env_manager import EnvManager
 from elsciRL.experiments.experiment_utils.result_manager import ResultManager
+from elsciRL.experiments.training_procedures.default_exp_training import run_training_loop
 
 # This is the main run functions for elsciRL to be imported
 # Defines the train/test operators and imports all the required agents and experiment functions ready to be used
@@ -125,86 +113,27 @@ class Experiment:
                         train_setup_info['agent'] = player
                         train_setup_info['live_env'] = True
                         number_training_repeats = self.ExperimentConfig["number_training_repeats"]
-                        if f"{engine_name}_{agent_type}_{adapter}" not in self.trained_agents:
-                            self.trained_agents[f"{engine_name}_{agent_type}_{adapter}"] = {}
-                        seed_recall = {}
-                        seed_results_connection = {}
-                        for seed_num in range(self.num_training_seeds):
-                            if self.num_training_seeds > 1:
-                                print("------\n- Seed Num: ", seed_num)
-                            if seed_num == 0:
-                                train_setup_info['training_results'] = False
-                                train_setup_info['observed_states'] = False
-                            else:
-                                train_setup_info['training_results'] = False
-                                train_setup_info['observed_states'] = observed_states_stored.copy()
-                            setup_num = 0
-                            temp_agent_store = {}
-                            for training_repeat in range(1, number_training_repeats + 1):
-                                if number_training_repeats > 1:
-                                    print("------\n- Repeat Num: ", training_repeat)
-                                setup_num += 1
-                                player = self.agent_factory.create(agent_type, agent_parameters, adapter)
-                                train_setup_info['agent'] = player
-                                live_env = self.env_manager.create_env(engine, self.adapters, train_setup_info)
-                                if training_repeat > 1:
-                                    live_env.start_obs = env_start
-                                env_start = live_env.start_obs
-                                goal = str(env_start).split(".")[0] + "---GOAL"
-                                print("Flat agent Goal: ", goal)
-                                if goal in seed_recall:
-                                    setup_num = seed_recall[goal]
-                                else:
-                                    seed_recall[goal] = 1
-                                agent_save_dir = os.path.join(
-                                    self.save_dir,
-                                    f"{engine_name}_{agent_type}_{adapter}__training_results_{goal}_{setup_num}"
-                                ) if self.num_training_seeds > 1 else os.path.join(
-                                    self.save_dir,
-                                    f"{engine_name}_{agent_type}_{adapter}__training_results_{setup_num}"
-                                )
-                                ensure_dir(agent_save_dir)
-                                if goal in self.trained_agents[f"{engine_name}_{agent_type}_{adapter}"]:
-                                    live_env.agent = self.trained_agents[f"{engine_name}_{agent_type}_{adapter}"][goal].clone()
-                                    live_env.agent.exploration_parameter_reset()
-                                if goal in seed_results_connection:
-                                    live_env.results.load(seed_results_connection[goal])
-                                training_results = live_env.episode_loop()
-                                training_results['episode'] = training_results.index
-                                training_results.insert(loc=0, column='Repeat', value=setup_num)
-                                Return = self.result_manager.train_report(training_results, agent_save_dir, self.show_figures)
-                                if goal not in temp_agent_store:
-                                    temp_agent_store[goal] = {}
-                                temp_agent_store[goal][setup_num] = {'Return': Return, 'agent': live_env.agent.clone()}
-                                if training_repeat == 1:
-                                    max_Return = Return
-                                    best_agent = live_env.agent
-                                    training_results_stored = live_env.results.copy()
-                                    observed_states_stored = live_env.elsciRL.observed_states
-                                if Return > max_Return:
-                                    max_Return = Return
-                                    best_agent = live_env.agent
-                                    training_results_stored = live_env.results.copy()
-                                    observed_states_stored = live_env.elsciRL.observed_states
-                                seed_recall[goal] = seed_recall[goal] + 1
-                                train_setup_info['train_save_dir'] = agent_save_dir
-                                if self.training_render:
-                                    current_render_save_dir = self.training_render_save_dir or agent_save_dir
-                                    render_current_result(
-                                        training_setup=train_setup_info,
-                                        current_environment=live_env,
-                                        current_agent=live_env.agent,
-                                        local_save_dir=current_render_save_dir
-                                    )
-                            seed_results_connection[goal] = training_results_stored
-                            # Save trained agent(s)
-                            if self.test_agent_type.lower() == 'best':
-                                self.trained_agents[f"{engine_name}_{agent_type}_{adapter}"][goal] = best_agent.clone()
-                            elif self.test_agent_type.lower() == 'all':
-                                start_repeat_num = list(temp_agent_store[goal].keys())[0]
-                                end_repeat_num = list(temp_agent_store[goal].keys())[-1]
-                                all_agents = [temp_agent_store[goal][repeat]['agent'] for repeat in range(start_repeat_num, end_repeat_num + 1)]
-                                self.trained_agents[f"{engine_name}_{agent_type}_{adapter}"][goal] = all_agents
+                        
+                        # Use the modular training procedure
+                        self.trained_agents,_,_,_,_ = run_training_loop(
+                            self.agent_factory,
+                            self.env_manager,
+                            self.result_manager,
+                            self.training_render,
+                            self.training_render_save_dir,
+                            self.save_dir,
+                            engine_name,
+                            engine,
+                            agent_type,
+                            adapter,
+                            self.adapters,
+                            train_setup_info,
+                            self.trained_agents,
+                            self.num_training_seeds,
+                            self.test_agent_type,
+                            self.show_figures,
+                            number_training_repeats
+                        )
                         self.training_setups[f'Training_Setup_{engine_name}_{agent_type}_{adapter}'] = train_setup_info.copy()
         self.result_manager.training_variance_report(self.save_dir, self.show_figures)
         return self.training_setups
@@ -234,58 +163,32 @@ class Experiment:
                 gym_test_exp.reward_signal = None
                 gym_test_exp.test()
             else:
-                if self.test_agent_type.lower() == 'best':
-                    for engine_name, engine in self.engine_list.items():
-                        for testing_repeat in range(0, test_setup_info['number_test_repeats']):
-                            env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
-                            start_obs = env.start_obs
-                            goal = str(start_obs).split(".")[0] + "---GOAL"
-                            print("Flat agent Goal: ", goal)
-                            agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
-                            if goal in self.trained_agents[agent_key]:
-                                print("Trained agent available for testing.")
-                                env.agent = self.trained_agents[agent_key][goal]
-                            else:
-                                print("NO agent available for testing position.")
-                            try:
-                                env.agent.epsilon = 0
-                            except Exception:
-                                print(self.trained_agents)
-                                raise KeyError("Trained agents lookup not found for testing position.")
+                for engine_name, engine in self.engine_list.items():
+                    for testing_repeat in range(0, test_setup_info['number_test_repeats']):
+                        env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
+                        start_obs = env.start_obs
+                        goal = str(start_obs).split(".")[0] + "---GOAL"
+                        print("Flat agent Goal: ", goal)
+                        agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
+                        if goal in self.trained_agents[agent_key]:
+                            print("Trained agents available for testing.")
+                            all_agents = self.trained_agents[agent_key][goal]
+                        else:
+                            print("NO agent available for testing position.")
+                            all_agents = []
+                        for agent_num, agent in enumerate(all_agents):
+                            env.results.reset()
+                            env.start_obs = start_obs
+                            env.agent = agent
+                            env.agent.epsilon = 0
+                            agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
                             testing_results = env.episode_loop()
                             test_save_dir = os.path.join(
                                 self.save_dir,
-                                f"{engine_name}_{agent_adapter}__testing_results_{str(goal).split('/')[0]}_{testing_repeat}"
+                                f"{engine_name}_{agent_adapter}__testing_results_{str(goal).split('/')[0]}_agent{agent_num}-repeat{testing_repeat}"
                             )
                             ensure_dir(test_save_dir)
                             Return = self.result_manager.test_report(testing_results, test_save_dir, self.show_figures)
-                elif self.test_agent_type.lower() == 'all':
-                    for engine_name, engine in self.engine_list.items():
-                        for testing_repeat in range(0, test_setup_info['number_test_repeats']):
-                            env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
-                            start_obs = env.start_obs
-                            goal = str(start_obs).split(".")[0] + "---GOAL"
-                            print("Flat agent Goal: ", goal)
-                            agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
-                            if goal in self.trained_agents[agent_key]:
-                                print("Trained agents available for testing.")
-                                all_agents = self.trained_agents[agent_key][goal]
-                            else:
-                                print("NO agent available for testing position.")
-                                all_agents = []
-                            for ag, agent in enumerate(all_agents):
-                                env.results.reset()
-                                env.start_obs = start_obs
-                                env.agent = agent
-                                env.agent.epsilon = 0
-                                agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-                                testing_results = env.episode_loop()
-                                test_save_dir = os.path.join(
-                                    self.save_dir,
-                                    f"{engine_name}_{agent_adapter}__testing_results_{str(goal).split('/')[0]}_agent{ag}-repeat{testing_repeat}"
-                                )
-                                ensure_dir(test_save_dir)
-                                Return = self.result_manager.test_report(testing_results, test_save_dir, self.show_figures)
         self.result_manager.testing_variance_report(self.save_dir, self.show_figures)
 
         
@@ -301,43 +204,26 @@ class Experiment:
             test_setup_info['observed_states'] = False
             test_setup_info['num_test_episodes'] = 10
             print("----------\nRendering trained agent's policy:")
-            agent_adapter = test_setup_info['agent_type'] + "_" + test_setup_info['adapter_select']
-            if self.test_agent_type.lower() == 'best':
-                for engine_name, engine in self.engine_list.items():
-                    env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
-                    start_obs = env.start_obs
-                    goal = str(start_obs).split(".")[0] + "---GOAL"
-                    print("Flat agent Goal: ", goal)
-                    agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
-                    if goal in self.trained_agents[agent_key]:
-                        print("Trained agent available for testing.")
-                        env.agent = self.trained_agents[agent_key][goal]
-                    else:
-                        print("NO agent available for testing position.")
+            for engine_name, engine in self.engine_list.items():
+                env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
+                start_obs = env.start_obs
+                goal = str(start_obs).split(".")[0] + "---GOAL"
+                print("Flat agent Goal: ", goal)
+                agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
+                if goal in self.trained_agents[agent_key]:
+                    print("Trained agents available for testing.")
+                    all_agents = self.trained_agents[agent_key][goal]
+                else:
+                    print("NO agent available for testing position.")
+                    all_agents = []
+                for agent_num, agent in enumerate(all_agents):
+                    env.results.reset()
+                    env.start_obs = start_obs
+                    env.agent = agent
+                    env.num_train_repeat = 1
+                    env.num_test_repeat = 1
+                    env.number_episodes = 10
                     env.agent.epsilon = 0
                     render_save_dir = os.path.join(self.save_dir, 'render_results')
                     ensure_dir(render_save_dir)
                     render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
-            else:
-                for engine_name, engine in self.engine_list.items():
-                    env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
-                    start_obs = env.start_obs
-                    goal = str(start_obs).split(".")[0] + "---GOAL"
-                    print("Flat agent Goal: ", goal)
-                    agent_key = f"{engine_name}_{test_setup_info['agent_type']}_{test_setup_info['adapter_select']}"
-                    if goal in self.trained_agents[agent_key]:
-                        print("Trained agents available for testing.")
-                        all_agents = self.trained_agents[agent_key][goal]
-                    else:
-                        print("NO agent available for testing position.")
-                        all_agents = []
-                    for ag, agent in enumerate(all_agents):
-                        env.results.reset()
-                        env.start_obs = start_obs
-                        env.agent = agent
-                        env.num_train_repeat = 1
-                        env.num_test_repeat = 1
-                        env.agent.epsilon = 0
-                        render_save_dir = os.path.join(self.save_dir, 'render_results')
-                        ensure_dir(render_save_dir)
-                        render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
