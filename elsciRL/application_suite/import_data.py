@@ -121,8 +121,7 @@ class Applications:
                 "engine_filename": "engine",
                 "config_folder": "configs",
                 "experiment_config_filenames": {"default_agent":"config.json"},
-                "local_config_filenames": {"default":"config_local.json",
-                                           "umaze":"umaze.json",
+                "local_config_filenames": {"umaze":"umaze.json",
                                            "double_t_maze":"double_t_maze.json",
                                            "medium":"medium.json",
                                            "large":"large.json",
@@ -132,7 +131,8 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {},
+                "prerender_data_filenames": {'observed_states_umaze_language':'observed_states_Maze_umaze_language_default_10000.txt',
+                                             'observed_states_umaze_LLM':'observed_states_Maze_default_LLM_100.txt'},
                 "prerender_image_filenames": {}
                 }
         }

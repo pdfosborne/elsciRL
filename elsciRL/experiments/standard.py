@@ -216,11 +216,10 @@ class Experiment:
                                 # Override with trained agent if goal seen previously
                                 if goal in self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)]:
                                     live_env.agent = self.trained_agents[str(engine_name) + '_' + str(agent_type) + '_' + str(adapter)][goal].clone()
-
+                                    live_env.agent.exploration_parameter_reset()
                                 # ---
                                 if goal in seed_results_connection:
                                     live_env.results.load(seed_results_connection[goal])
-                                #live_env.agent.exploration_parameter_reset()
                                 training_results = live_env.episode_loop()
                                 training_results['episode'] = training_results.index
                                 # Opponent now defined in local setup.py
