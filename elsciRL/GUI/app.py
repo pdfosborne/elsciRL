@@ -945,6 +945,72 @@ def get_interface_guide():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/export_config', methods=['POST'])
+def export_config():
+    try:
+        data = request.get_json()
+        
+        # Create a timestamp for the filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"config_export_{timestamp}.json"
+        
+        # Save to the output directory
+        output_path = os.path.join(WebApp_instance.global_save_dir, filename)
+        
+        with open(output_path, 'w') as f:
+            json.dump(data, f, indent=4)
+            
+        return jsonify({
+            'status': 'success',
+            'message': f'Configuration exported to {filename}',
+            'filepath': output_path
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/import_config', methods=['POST'])
+def import_config():
+    try:
+        if 'file' not in request.files:
+            return jsonify({
+                'status': 'error',
+                'message': 'No file provided'
+            }), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'status': 'error',
+                'message': 'No file selected'
+            }), 400
+            
+        if not file.filename.endswith('.json'):
+            return jsonify({
+                'status': 'error',
+                'message': 'File must be a JSON file'
+            }), 400
+            
+        # Read and parse the JSON file
+        config_data = json.load(file)
+        
+        return jsonify({
+            'status': 'success',
+            'config': config_data
+        })
+    except json.JSONDecodeError:
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid JSON file'
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp_instance.global_save_dir, 'uploads')):
         os.makedirs(os.path.join(WebApp_instance.global_save_dir, 'uploads'))

@@ -301,15 +301,26 @@
             </div>
             <div id="configTab" class="tab-content" style="display:none;">
                 <div class="config-section" style="width: 95%;">
-                    <!-- Add experiment config selection at the top -->
                     <div class="config-group" style="margin-bottom: 20px;">
-                        <h3>Import a Configuration</h3>
-                        <div class="select-container">
-                            <label for="experimentConfigSelect" title="Choose a preset experiment configuration.">Select Experiment Config:</label>
-                            <select id="experimentConfigSelect" class="form-select">
-                                <option value="" disabled selected>Choose experiment config...</option>
-                            </select>
+                        <h3>Import/Export Configuration</h3>
+                        <div class="select-container" style="display: flex; align-items: center; gap: 15px;">
+                            <div style="flex: 1;">
+                                <label for="experimentConfigSelect" title="Choose a preset experiment configuration.">Published Configs:</label>
+                                <select id="experimentConfigSelect" class="form-select">
+                                    <option value="" disabled selected>Choose experiment config...</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: flex-end; gap: 10px;">
+                                <input type="file" id="configFileInput" accept=".json" style="display: none;" onchange="importConfiguration(this)">
+                                <button onclick="document.getElementById('configFileInput').click()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Import Config
+                                </button>
+                                <button id="exportConfigBtn" onclick="exportConfiguration()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Export Config
+                                </button>
+                            </div>
                         </div>
+                        <div id="exportStatus" style="margin-top: 10px;"></div>
                     </div>
 
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
@@ -1351,6 +1362,143 @@
         window.addEventListener('load', function() {
             loadInterfaceGuide();
         });
+
+        async function exportConfiguration() {
+            const exportStatus = document.getElementById('exportStatus');
+            exportStatus.innerHTML = '<div class="loading-circle"></div> Exporting configuration...';
+            
+            // Collect all configuration data
+            const config = {
+                application: document.getElementById('applicationSelect').value,
+                local_config: document.getElementById('localConfigSelect').value,
+                observed_state: document.getElementById('observedStateSelect').value,
+                selected_plot: document.getElementById('plotSelect').value,
+                training_episodes: parseInt(document.getElementById('trainingEpisodes').value),
+                training_repeats: parseInt(document.getElementById('trainingRepeats').value),
+                training_seeds: parseInt(document.getElementById('trainingSeeds').value),
+                test_episodes: parseInt(document.getElementById('testEpisodes').value),
+                test_repeats: parseInt(document.getElementById('testRepeats').value),
+                selected_agents: Array.from(document.querySelectorAll('input[name="agentType"]:checked')).map(cb => cb.value),
+                agent_adapter_dict: {},
+                agent_parameters: {}
+            };
+
+            // Collect adapter selections
+            config.selected_agents.forEach(agentId => {
+                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                if (adapterSubgroup) {
+                    const selectedAdapters = Array.from(adapterSubgroup.querySelectorAll('input[name="adapter"]:checked'))
+                        .map(cb => cb.value);
+                    if (selectedAdapters.length > 0) {
+                        config.agent_adapter_dict[agentId] = selectedAdapters;
+                    }
+                }
+            });
+
+            // Collect agent parameters
+            if (agentParameterDefinitions) {
+                config.selected_agents.forEach(agentId => {
+                    if (agentParameterDefinitions[agentId] && agentParameterDefinitions[agentId].params) {
+                        config.agent_parameters[agentId] = {};
+                        for (const paramKey in agentParameterDefinitions[agentId].params) {
+                            const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                            if (inputElement) {
+                                config.agent_parameters[agentId][paramKey] = inputElement.value;
+                            }
+                        }
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch('/export_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    exportStatus.innerHTML = `<p style="color: green;">✓ ${data.message}</p>`;
+                } else {
+                    exportStatus.innerHTML = `<p style="color: red;">✗ Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                exportStatus.innerHTML = `<p style="color: red;">✗ Error exporting configuration: ${error}</p>`;
+            }
+        }
+
+        async function importConfiguration(input) {
+            const exportStatus = document.getElementById('exportStatus');
+            if (!input.files || !input.files[0]) {
+                return;
+            }
+
+            exportStatus.innerHTML = '<div class="loading-circle"></div> Importing configuration...';
+            
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const response = await fetch('/import_config', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Apply the imported configuration
+                    const config = data.config;
+                    
+                    // Set application
+                    const appSelect = document.getElementById('applicationSelect');
+                    if (config.application) {
+                        appSelect.value = config.application;
+                        appSelect.dispatchEvent(new Event('change'));
+                    }
+
+                    // Set training parameters
+                    if (config.training_episodes) document.getElementById('trainingEpisodes').value = config.training_episodes;
+                    if (config.training_repeats) document.getElementById('trainingRepeats').value = config.training_repeats;
+                    if (config.training_seeds) document.getElementById('trainingSeeds').value = config.training_seeds;
+                    if (config.test_episodes) document.getElementById('testEpisodes').value = config.test_episodes;
+                    if (config.test_repeats) document.getElementById('testRepeats').value = config.test_repeats;
+
+                    // Set agents and adapters
+                    if (config.selected_agents) {
+                        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                            checkbox.checked = config.selected_agents.includes(checkbox.value);
+                            checkbox.dispatchEvent(new Event('change'));
+                        });
+                    }
+
+                    // Set agent parameters
+                    if (config.agent_parameters) {
+                        for (const agentId in config.agent_parameters) {
+                            for (const paramKey in config.agent_parameters[agentId]) {
+                                const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                                if (inputElement) {
+                                    inputElement.value = config.agent_parameters[agentId][paramKey];
+                                }
+                            }
+                        }
+                    }
+
+                    exportStatus.innerHTML = `<p style="color: green;">✓ Configuration imported successfully</p>`;
+                } else {
+                    exportStatus.innerHTML = `<p style="color: red;">✗ Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                exportStatus.innerHTML = `<p style="color: red;">✗ Error importing configuration: ${error}</p>`;
+            }
+
+            // Clear the file input
+            input.value = '';
+        }
 
     </script>
 </body>
