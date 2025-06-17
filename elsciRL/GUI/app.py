@@ -473,8 +473,15 @@ class WebApp:
                 })
 
             selected_adapters = data.get('selectedAdapters', [])
-            agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
+            agent_adapter_dict = data.get('agent_adapter_dict', {})
+            if not agent_adapter_dict:
+                # Fallback to all adapters if new format not provided
+                all_adapters = list(adapters.keys())
+                agent_adapter_dict = {agent_name: list(all_adapters) for agent_name in selected_agents} if selected_agents else {}            
             ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
+            print("\n --- AGENT ADAPTER SELECTION ---")
+            print(agent_adapter_dict)
+            print("-------------------------------\n")
             job_queue.put(f"EVENT: Adapter dictionary set up: {agent_adapter_dict}")
 
             instruction_results_map = self.instruction_results_validated.get(application, {})

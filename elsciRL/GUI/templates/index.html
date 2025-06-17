@@ -235,7 +235,7 @@
                 <div class="config-section" style="width: 95%;">
                     <!-- Add experiment config selection at the top -->
                     <div class="config-group" style="margin-bottom: 20px;">
-                        <h3>Experiment Configuration</h3>
+                        <h3>Import a Configuration</h3>
                         <div class="select-container">
                             <label for="experimentConfigSelect" title="Choose a preset experiment configuration.">Select Experiment Config:</label>
                             <select id="experimentConfigSelect" class="form-select">
@@ -244,46 +244,6 @@
                         </div>
                     </div>
 
-                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
-                        <div class="config-group" style="flex: 1;">
-                            <h3>Agent Type</h3>
-                            <!-- TODO: DEFINE AGENTS THAT ARE READY, UNCHECK SO PARAMTERS SHOWS WHEN CHECKED -->
-                            <div class="applications-checklist">
-                                <div class="application-item">
-                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab" unchecked>
-                                    <label for="agent-Qlearntab">Q-Learning</label>
-                                </div>
-                                <div class="application-item">
-                                    <input type="checkbox" id="agent-DQN" name="agentType" value="DQN" unchecked>
-                                    <label for="agent-DQN">Deep Q-Network</label>
-                                </div>  
-                                <!-- TODO: DISABLED NEURAL AGENTS FOR NOW, UNCOMMENT WHEN READY -->
-                                <!-- <div class="application-item">
-                                    <input type="checkbox" id="agent-SB3_DQN" name="agentType" value="SB3_DQN">
-                                    <label for="agent-SB3_DQN">Stable Baselines DQN</label>
-                                </div>
-                                <div class="application-item">
-                                    <input type="checkbox" id="agent-SB3_PPO" name="agentType" value="SB3_PPO">
-                                    <label for="agent-SB3_PPO">Stable Baselines PPO</label>
-                                </div>
-                                <div class="application-item">
-                                    <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
-                                    <label for="agent-SB3_A2C">Stable Baselines A2C</label>
-                                </div> -->
-                                <div class="application-item">
-                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama" unchecked>
-                                    <label for="agent-LLM_Ollama">LLM Ollama Local</label>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Add new adapter selection section -->
-                        <div class="config-group" style="flex: 1;">
-                            <h3>Adapters</h3>
-                            <div class="applications-checklist" id="adapterChecklist">
-                                <!-- Adapters will be populated dynamically -->
-                            </div>
-                        </div>
-                    </div>
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
                             <h3>Training Configuration</h3>
@@ -314,12 +274,93 @@
                         </div>
                     </div>
 
-                    {# Dynamically include agent parameter forms #}
-                    {% if agent_parameter_definitions %}
-                        {% for agent_id, agent_config in agent_parameter_definitions.items() %}
-                            {% include 'agent_params/_generic_agent_param_form.html' %}
-                        {% endfor %}
-                    {% endif %}
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1; max-width: 50%;">
+                            <h3>Agent and Adapter Selection</h3>
+                            <!-- TODO: DEFINE AGENTS THAT ARE READY, UNCHECK SO PARAMTERS SHOWS WHEN CHECKED -->
+                            <div class="applications-checklist" style="display: flex; flex-direction: column; gap: 10px;">
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab">
+                                    <label for="agent-Qlearntab" style="font-weight: bold;">Q-Learning</label>
+                                    <div class="adapter-subgroup" id="adapters-Qlearntab" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-DQN" name="agentType" value="DQN">
+                                    <label for="agent-DQN" style="font-weight: bold;">Deep Q-Network</label>
+                                    <div class="adapter-subgroup" id="adapters-DQN" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>  
+                                <!-- TODO: DISABLED NEURAL AGENTS FOR NOW, UNCOMMENT WHEN READY -->
+                                <!-- <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_DQN" name="agentType" value="SB3_DQN">
+                                    <label for="agent-SB3_DQN" style="font-weight: bold;">Stable Baselines DQN</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_DQN" style="margin-left: 20px;">
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_PPO" name="agentType" value="SB3_PPO">
+                                    <label for="agent-SB3_PPO" style="font-weight: bold;">Stable Baselines PPO</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_PPO" style="margin-left: 20px;">
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
+                                    <label for="agent-SB3_A2C" style="font-weight: bold;">Stable Baselines A2C</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_A2C" style="margin-left: 20px;">
+                                    </div>
+                                </div> -->
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama">
+                                    <label for="agent-LLM_Ollama" style="font-weight: bold;">LLM Ollama Local</label>
+                                    <div class="adapter-subgroup" id="adapters-LLM_Ollama" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-group" style="flex: 1; max-width: 50%;">
+                            <h3>Agent Parameters</h3>
+                            {# Dynamically include agent parameter forms #}
+                            {% if agent_parameter_definitions %}
+                                {% for agent_id, agent_config in agent_parameter_definitions.items() %}
+                                    {% include 'agent_params/_generic_agent_param_form.html' %}
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    
+
+                    <script>
+                        // Update the event listener for agent checkboxes to handle both adapter states and parameter visibility
+                        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                            checkbox.addEventListener('change', function() {
+                                const agentId = this.value;
+                                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                                if (adapterSubgroup) {
+                                    // Enable/disable adapter checkboxes based on agent selection
+                                    adapterSubgroup.querySelectorAll('input[name="adapter"]').forEach(adapterCheckbox => {
+                                        adapterCheckbox.disabled = !this.checked;
+                                        if (!this.checked) {
+                                            adapterCheckbox.checked = false;
+                                        }
+                                    });
+                                }
+                                
+                                // Show/hide parameter sections based on selected agents
+                                if (agentParameterDefinitions) {
+                                    const agentParamsDiv = document.getElementById(`${agentId}-params`);
+                                    if (agentParamsDiv) {
+                                        agentParamsDiv.style.display = this.checked ? 'block' : 'none';
+                                    }
+                                }
+                            });
+                        });
+                    </script>
                 </div>
             </div>
 
@@ -600,7 +641,40 @@
 
                     configSelections.style.display = 'block';
                     loadingOverlay.style.display = 'none';
-                }, 2000); // 2-second delay
+
+                    // Add adapter fetch and populate under each agent
+                    fetch('/get_adapters', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ application: selectedApp })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.adapters) {
+                            // Clear all adapter subgroups first
+                            document.querySelectorAll('.adapter-subgroup').forEach(subgroup => {
+                                subgroup.innerHTML = '';
+                            });
+                            
+                            // Populate adapters under each agent
+                            data.adapters.forEach(adapter => {
+                                const adapterDiv = document.createElement('div');
+                                adapterDiv.className = 'application-item';
+                                adapterDiv.innerHTML = `
+                                    <input type="checkbox" id="adapter-${adapter}" name="adapter" value="${adapter}" checked>
+                                    <label for="adapter-${adapter}">${adapter}</label>
+                                `;
+                                
+                                // Add to each agent's adapter subgroup
+                                document.querySelectorAll('.adapter-subgroup').forEach(subgroup => {
+                                    subgroup.appendChild(adapterDiv.cloneNode(true));
+                                });
+                            });
+                        }
+                    });
+                }, 2000);
 
                 // Fetch and display prerender images
                 fetch('/get_prerender_image', {
@@ -638,31 +712,6 @@
                     }
                 })
                 .catch(error => console.error('Error loading prerender images:', error));
-
-                // Add adapter fetch
-                fetch('/get_adapters', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ application: selectedApp })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const adapterChecklist = document.getElementById('adapterChecklist');
-                    adapterChecklist.innerHTML = '';
-                    if (data.adapters) {
-                        data.adapters.forEach(adapter => {
-                            const div = document.createElement('div');
-                            div.className = 'application-item';
-                            div.innerHTML = `
-                                <input type="checkbox" id="adapter-${adapter}" name="adapter" value="${adapter}" checked>
-                                <label for="adapter-${adapter}">${adapter}</label>
-                            `;
-                            adapterChecklist.appendChild(div);
-                        });
-                    }
-                });
             } else {
                 configSelections.style.display = 'none';
             }
@@ -906,8 +955,19 @@
 
             const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
                 .map(cb => cb.value);
-            const selectedAdapters = Array.from(document.querySelectorAll('input[name="adapter"]:checked'))
-                .map(cb => cb.value);
+
+            // Create agent_adapter_dict by collecting adapters for each selected agent
+            const agent_adapter_dict = {};
+            selectedAgents.forEach(agentId => {
+                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                if (adapterSubgroup) {
+                    const selectedAdapters = Array.from(adapterSubgroup.querySelectorAll('input[name="adapter"]:checked'))
+                        .map(cb => cb.value);
+                    if (selectedAdapters.length > 0) {
+                        agent_adapter_dict[agentId] = selectedAdapters;
+                    }
+                }
+            });
 
             const selectedApp = document.getElementById('applicationSelect').value;
             const localConfig = document.getElementById('localConfigSelect').value;
@@ -944,7 +1004,7 @@
                 testEpisodes: testEpisodes,
                 testRepeats: testRepeats,
                 selectedAgents: selectedAgents,
-                selectedAdapters: selectedAdapters,
+                agent_adapter_dict: agent_adapter_dict, // Send the new agent_adapter_dict
                 selectedApps: [selectedApp],
                 localConfigInput: localConfig,
                 observedStateInput: observedState,
@@ -1165,50 +1225,6 @@
                 })
                 .catch(error => console.error('Error loading data:', error));
         };
-
-        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const qlearnParams = document.getElementById('qlearn-params');
-                const dqnParams = document.getElementById('dqn-params');
-                const sb3DqnParams = document.getElementById('sb3-dqn-params');
-                const sb3PpoParams = document.getElementById('sb3-ppo-params');
-                const sb3A2cParams = document.getElementById('sb3-a2c-params');
-                const LLMOllamaParams = document.getElementById('LLM-Ollama-params');
-                
-                // Generic handling for all agent parameter sections
-                if (agentParameterDefinitions) {
-                    for (const agentId in agentParameterDefinitions) {
-                        const agentParamsDiv = document.getElementById(`${agentId}-params`);
-                        if (agentParamsDiv) {
-                            if (this.value === agentId) {
-                                agentParamsDiv.style.display = this.checked ? 'block' : 'none';
-                            } else if (!document.getElementById(`agent-${agentId}`).checked) {
-                                // Hide other non-selected agent param divs if this one is being unchecked.
-                                // This logic might need refinement if multiple agents can be selected and their params shown simultaneously.
-                                // For now, it assumes one agent's params are shown at a time based on its checkbox.
-                                // agentParamsDiv.style.display = 'none'; 
-                            }
-                        }
-                    }
-                }
-
-                // Keep specific handling for old IDs if they exist for some reason (e.g. during transition)
-                // or if new agents are added without using the generic template (not recommended)
-                if (this.value === 'Qlearntab' && qlearnParams) {
-                    qlearnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'DQN' && dqnParams) {
-                    dqnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_DQN' && sb3DqnParams) {
-                    sb3DqnParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_PPO' && sb3PpoParams) {
-                    sb3PpoParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'SB3_A2C' && sb3A2cParams) {
-                    sb3A2cParams.style.display = this.checked ? 'block' : 'none';
-                } else if (this.value === 'LLM_Ollama' && LLMOllamaParams) {
-                    LLMOllamaParams.style.display = this.checked ? 'block' : 'none';
-                }
-            });
-        });
 
         async function resetAllInstructions() {
             if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
