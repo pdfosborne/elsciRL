@@ -51,6 +51,7 @@ setup(
         'stable-baselines3',
         'flask',
         'ollama',
-        'openai'
+        'openai',
+        'markdown',
     ] 
 )
