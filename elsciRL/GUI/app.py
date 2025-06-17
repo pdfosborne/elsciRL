@@ -7,6 +7,8 @@ import threading
 import queue
 import uuid
 from flask import Response # Added Response for SSE
+import requests
+from markdown import markdown
 
 # App tools
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -929,6 +931,19 @@ def get_job_results_route(job_id):
     else:
         return jsonify({'error': 'Job results not found or job may have failed without storing final results.'}), 404
     
+@app.route('/get_interface_guide')
+def get_interface_guide():
+    try:
+        # Fetch the raw markdown content from GitHub
+        response = requests.get('https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/main/App%20Interface%20Guide.md')
+        if response.status_code == 200:
+            # Convert markdown to HTML
+            html_content = markdown(response.text)
+            return jsonify({'content': html_content})
+        else:
+            return jsonify({'error': 'Failed to fetch guide content'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp_instance.global_save_dir, 'uploads')):

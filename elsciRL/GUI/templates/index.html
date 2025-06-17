@@ -175,9 +175,10 @@
         <div class="box shadow-effect">
             <div class="tabs">
                 <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="openTab(event, 'homeTab')">Home</button>
                     <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
                     <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
-                    <button class="tab-btn active" onclick="openTab(event, 'inputTab')">Instruction Input</button>
+                    <button class="tab-btn" onclick="openTab(event, 'inputTab')">Instruction Input</button>
                     <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Train Model</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
@@ -185,7 +186,74 @@
                     See <a href="https://elsci.org">elsci.org</a> for more information 
                     <a href="https://elsci.org"><img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL_logo_owl_cropped.png?raw=true" alt="elsciRL-Logo" style="width:24px;height:24px;"></a>  
                 </div>
-                
+            </div>
+            <div id="homeTab" class="tab-content" style="display:block;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-row" style="display: flex; gap: 20px;">
+                        <div class="config-group" style="flex: 1;">
+                            <h2>Welcome to elsciRL</h2>
+                            <p>This web application helps you run reinforcement learning experiments with various agents and adapters. Follow these steps to get started:</p>
+            
+                            <h3>1. Application Setup</h3>
+                            <p>In the <b>Application</b> tab:</p>
+                            <ul>
+                                <li>Select your desired application/environment</li>
+                                <li>Choose a local configuration for the problem</li>
+                                <li>Select observed state data if needed</li>
+                                <li>Pick an analysis file for results visualization</li>
+                            </ul>
+
+                            <h3>2. Configuration</h3>
+                            <p>In the <b>Config</b> tab:</p>
+                            <ul>
+                                <li>Optionally import a preset configuration</li>
+                                <li>Set training parameters (episodes, repeats, seeds)</li>
+                                <li>Set testing parameters</li>
+                                <li>Select your agents and their adapters</li>
+                                <li>Configure agent-specific parameters</li>
+                            </ul>
+
+                            <h3>3. Instruction Input</h3>
+                            <p>In the <b>Instruction Input</b> tab:</p>
+                            <ul>
+                                <li>Optionally provide language instructions for the agent</li>
+                                <li>Use the LLM Instruction Planner to validate instructions</li>
+                                <li>Review and confirm the agent's understanding</li>
+                            </ul>
+
+                            <h3>4. Training</h3>
+                            <p>In the <b>Train Model</b> tab:</p>
+                            <ul>
+                                <li>Review your configuration</li>
+                                <li>Click "Run Experiment" to start training</li>
+                                <li>Monitor training progress in real-time</li>
+                            </ul>
+
+                            <h3>5. Results</h3>
+                            <p>In the <b>Results</b> tab:</p>
+                            <ul>
+                                <li>View validated instructions used in training</li>
+                                <li>Examine problem-specific results</li>
+                                <li>Analyze variance in performance</li>
+                            </ul>
+
+                            <h3>Tips</h3>
+                            <ul>
+                                <li>You can save your configuration for future use</li>
+                                <li>Use the LLM Instruction Planner to ensure clear instructions</li>
+                                <li>Monitor the training log for progress and potential issues</li>
+                                <li>Results are automatically saved and can be compared across runs</li>
+                            </ul>
+                        </div>
+
+                        <div class="config-group" style="flex: 1;">
+                            <h2>App Interface Guide</h2>
+                            <div id="interfaceGuideContent" style="overflow-y: auto; max-height: 2000px;">
+                                <div class="loading-circle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="setupTab" class="tab-content" style="display:none;">
                 <div class="config-section" style="width: 95%;">
@@ -1217,7 +1285,7 @@
         }
 
         window.onload = function() {
-            openTab(null, 'setupTab');
+            openTab(null, 'homeTab');
             fetch('/load_data')
                 .then(response => response.json())
                 .then(data => {
@@ -1260,6 +1328,29 @@
                 alert('An error occurred while trying to reset instructions.');
             }
         }
+
+        function loadInterfaceGuide() {
+            const guideContent = document.getElementById('interfaceGuideContent');
+            const loadingCircle = guideContent.querySelector('.loading-circle');
+            
+            fetch('/get_interface_guide')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        guideContent.innerHTML = `<p style="color: red;">Error loading guide: ${data.error}</p>`;
+                    } else {
+                        guideContent.innerHTML = data.content;
+                    }
+                })
+                .catch(error => {
+                    guideContent.innerHTML = `<p style="color: red;">Error loading guide: ${error}</p>`;
+                });
+        }
+
+        // Call this when the page loads
+        window.addEventListener('load', function() {
+            loadInterfaceGuide();
+        });
 
     </script>
 </body>
