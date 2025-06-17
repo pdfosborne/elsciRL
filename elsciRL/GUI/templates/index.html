@@ -1237,7 +1237,9 @@
                 if (data.figures && data.figures.length > 0) {
                     data.figures.forEach(figPath => {
                         const img = document.createElement('img');
-                        img.src = `/${figPath}?t=${new Date().getTime()}`;
+                        // Ensure the image is loaded from the uploads directory
+                        let imgSrc = figPath.startsWith('uploads/') ? `/${figPath}` : `/uploads/${figPath}`;
+                        img.src = `${imgSrc}?t=${new Date().getTime()}`;
                         img.alt = 'Analysis result';
                         img.className = 'shadow-effect';
                         
