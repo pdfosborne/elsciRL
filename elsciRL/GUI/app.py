@@ -19,7 +19,6 @@ from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLO
 from elsciRL.experiments.standard import Experiment as STANDARD_RL
 # Get application data
 from elsciRL.application_suite.import_data import Applications
-from elsciRL.application_suite.import_tool import PullApplications
 
 # elsciRL LLM Instruction Following
 from elsciRL.instruction_following.instr_utils.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
@@ -46,13 +45,8 @@ class WebApp:
         imports = Applications().data
         possible_applications = list(imports.keys())
         self.available_applications = possible_applications
+        self.pull_app_data = None  # Will be set when load_data is called
         
-        # Currently pulls all the available applications
-        # - TODO: Make it so it pulls all the file names but not the data
-        #    ---> Then once problem is selected it then pulls data
-        self.application_data = PullApplications()
-        self.pull_app_data = self.application_data.pull(problem_selection=possible_applications)
-        self.config = self.application_data.setup()
 
         # Data used for LLM prompt
         with open(os.path.join(app.static_folder, 'app_setup.md'), "r") as f:
@@ -112,6 +106,14 @@ class WebApp:
         self.job_results = {} # Stores job_id: results payload
 
     def load_data(self):
+        # Currently pulls all the available applications
+        # - Moved to load_data so that it doesnt load on import
+        if self.pull_app_data is None:
+            from elsciRL.application_suite.import_tool import PullApplications
+            self.application_data = PullApplications()
+            self.pull_app_data = self.application_data.pull(problem_selection=self.available_applications)
+            self.config = self.application_data.setup()
+
         # Init data here so it reset when page is reloaded
         self.global_input_count = 0
         self.instruction_results = {}
