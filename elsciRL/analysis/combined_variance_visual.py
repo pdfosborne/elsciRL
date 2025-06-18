@@ -13,7 +13,6 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
     analysis_type = analysis_type.lower() # lowercase analysis type input
     # Get sub-dir for each problem-experiment type
     instruction_folders = [os.path.join(results_dir, instr) for instr in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, instr))]
-    print(instruction_folders)
     variance_results = {}
     for instr_folder_dir in instruction_folders:
         instr_id = instr_folder_dir.split('/')[-1]
@@ -97,7 +96,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
         for i,instr_id in enumerate(list(variance_results.keys())):
             for n,experiment in enumerate(list(variance_results[instr_id].keys())):
                 for ag,agent in enumerate(list(variance_results[instr_id][experiment].keys())):
-                    results = variance_results[instr_id][experiment]['results']
+                    results = variance_results[instr_id][experiment][agent]['results']
                     num_episode = np.max(results['episode'])
                     avg_r_mean_sorted = np.sort(results['avg_R_mean'])
                     cdf_mean = 1. * np.arange(len(avg_r_mean_sorted)) / (len(avg_r_mean_sorted) - 1)

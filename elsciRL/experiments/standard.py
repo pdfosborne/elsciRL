@@ -56,7 +56,10 @@ class Experiment:
         if 'adapter_input_dict' in self.ExperimentConfig:
             self.setup_info['adapter_input_dict'] = self.ExperimentConfig['adapter_input_dict']
         else:
-            selected_adapters = list(Adapters.keys())
+            if ('adapter_select' in self.ExperimentConfig)&(len(self.ExperimentConfig['adapter_select']) > 0):
+                selected_adapters = self.ExperimentConfig['adapter_select']
+            else:
+                selected_adapters = list(Adapters.keys())
             selected_agents = self.ExperimentConfig.get('agent_select', [])
             agent_adapter_dict = {agent_name: list(selected_adapters) for agent_name in selected_agents} if selected_agents else {}
             self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
@@ -145,7 +148,7 @@ class Experiment:
         else:
             training_setups = json.load(training_setups)
         for training_key in list(training_setups.keys()):
-            test_setup_info = training_setups[training_key]
+            test_setup_info = training_setups[training_key].copy()
             test_setup_info['train'] = False
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
@@ -199,11 +202,11 @@ class Experiment:
         else:
             training_setups = json.load(training_setups)
         for training_key in list(training_setups.keys()):
-            test_setup_info = training_setups[training_key]
+            test_setup_info = training_setups[training_key].copy()
             test_setup_info['train'] = False
             test_setup_info['training_results'] = False
             test_setup_info['observed_states'] = False
-            test_setup_info['num_test_episodes'] = 10
+            test_setup_info['num_test_episodes'] = 1
             print("----------\nRendering trained agent's policy:")
             for engine_name, engine in self.engine_list.items():
                 env = self.env_manager.create_env(engine, self.adapters, test_setup_info)

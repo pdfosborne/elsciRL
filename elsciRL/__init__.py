@@ -1,4 +1,4 @@
-# Removed from init for now as it pre-loads data that is not needed for the package to run
+from .examples.DemoExperiment import DemoExperiment as Demo
 from .GUI.app import app as App
 from .GUI.prerender import Prerender as get_prerender_data
 

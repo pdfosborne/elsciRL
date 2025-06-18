@@ -84,6 +84,18 @@ cd elsciRL
 pip install -e .
 ```
 
+## Quick Demo
+
+To check the install has worked, you can run a quick CLI demo from a selection of applications:
+
+```python
+from elsciRL import Demo
+test = Demo()
+test.run()
+```
+A help function is included in demo: *test.help()*
+
+
 ## Run the App Interface
 
 To run the App, run the following code in a Python script.
