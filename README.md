@@ -93,6 +93,11 @@ from elsciRL import Demo
 test = Demo()
 test.run()
 ```
+
+This will run a tabular Q learning agent on your selected problem and save results to:
+
+> '*CURRENT_DIRECTORY*/elsciRL-EXAMPLE-output/...'
+
 A help function is included in demo: *test.help()*
 
 
