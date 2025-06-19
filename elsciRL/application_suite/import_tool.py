@@ -54,6 +54,19 @@ class PullApplications:
                 # NOTE - This requires repo to match structure with engine inside environment folder
                 engine_module = httpimport.load(engine, root+'/'+self.imports[problem]['engine_folder']) 
                 # TODO: Pull class name directly from engine file to be called
+                self.current_test[problem]['source'] = {str(root): {
+                                            'engine_folder': self.imports[problem]['engine_folder'],
+                                            'engine_filename': self.imports[problem]['engine_filename'],
+                                            'config_folder': self.imports[problem]['config_folder'],
+                                            'experiment_config_filenames': self.imports[problem]['experiment_config_filenames'],
+                                            'local_config_filenames': self.imports[problem]['local_config_filenames'],
+                                            'local_adapter_folder': self.imports[problem]['local_adapter_folder'],
+                                            'adapter_filenames': self.imports[problem]['adapter_filenames'],
+                                            'local_analysis_folder': self.imports[problem]['local_analysis_folder'],
+                                            'local_analysis_filenames': self.imports[problem]['local_analysis_filenames'],
+                                            'prerender_data_folder': self.imports[problem]['prerender_data_folder'],
+                                            'prerender_data_filenames': self.imports[problem]['prerender_data_filenames']}}
+
                 self.current_test[problem]['engine'] = engine_module.Engine
             # ------------------------------------------------
             # - Pull Adapters, Configs and Analysis

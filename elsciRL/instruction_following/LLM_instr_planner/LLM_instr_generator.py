@@ -15,7 +15,7 @@ class OllamaTaskBreakdown:
     """
     
     def __init__(self, model_name: str = "llama3.2", context_length: int = 4000, host: str = "localhost:11434",
-                 observed_states:dict= None):
+                 input_prompt: str = None, observed_states: dict = None):
         """
         Initialize the Ollama chat client.
         
@@ -24,7 +24,7 @@ class OllamaTaskBreakdown:
             context_length: Maximum number of messages to keep in context
             host: Ollama server host and port
         """
-        self.model_name = model_name
+        self.model_name = model_name.strip().lower()
         self.host = host
         self.client = ollama.Client(host=host)
         self.conversation_history = []
@@ -37,22 +37,29 @@ class OllamaTaskBreakdown:
             logger.error(f"Failed to initialize Ollama client: {e}")
             raise
 
+        # Set input prompt if provided
+        if input_prompt is not None:
+            logger.info(f"Using input prompt: {input_prompt[:self.context_length]}...")  # Log first 100 chars
+            self.input_prompt = input_prompt
+
         # Get randomly sampled observed states if provided to use for prompt output structure
         if observed_states is not None:
             print("Using observed states for prompt output structure.")
-            keys = random.sample(list(observed_states), 10)
+            keys = random.sample(list(observed_states), min(10, len(observed_states)))
             self.observed_states_prompt = str([observed_states[k] for k in keys])
     
     def _verify_model(self):
         """Verify that the specified model is available."""
         try:
             models = self.client.list()
-            available_models = [model['model'].split(':')[0] for model in models['models']]
-            if self.model_name not in available_models:
+            available_models = [model['model'] for model in models['models']]
+            available_models_short = [model['model'].split(':')[0] for model in models['models']]
+            if (self.model_name not in available_models) or (self.model_name not in available_models_short):
                 logger.warning(f"Model {self.model_name} not found. Available models: {available_models}")
-                # Try to pull the model
-                logger.info(f"Attempting to pull model {self.model_name}")
-                self.client.pull(self.model_name)
+                print(f"Model {self.model_name} not found. Available models: {available_models}")                
+            else:
+                logger.info(f"Model {self.model_name} is available.")
+                print(f"Model {self.model_name} is available.")
         except Exception as e:
             logger.error(f"Error verifying model: {e}")
             raise
@@ -137,6 +144,11 @@ Example format:
 2. Second sub-goal description
 3. Third sub-goal description"""
         
+        # If input prompt is provided, include it in the system prompt
+        if hasattr(self, 'input_prompt'):
+            system_prompt += f"\n\nThe problem's data source are provided by the following code, use this as guidance on how to act: {self.input_prompt}"
+
+        # If observed states are provided, include them in the system prompt
         if hasattr(self, 'observed_states_prompt'):
             system_prompt += f"\n\nMatch your output language form to the observed language from the environment, here are some examples of the language structure:\n{self.observed_states_prompt}"
 
@@ -152,13 +164,13 @@ Provide your response as a numbered list of sub-goals."""
 
         try:
             response = self.chat(user_prompt, system_prompt)
-            return self._parse_subgoals_response(response)
+            return self._parse_subgoals_response(response, max_subgoals)
             
         except Exception as e:
             logger.error(f"Error breaking down task: {e}")
             raise
     
-    def _parse_subgoals_response(self, response: str) -> List[str]:
+    def _parse_subgoals_response(self, response: str, max_subgoal: int = None) -> List[str]:
         """
         Parse the LLM response and extract sub-goals.
         
@@ -186,14 +198,19 @@ Provide your response as a numbered list of sub-goals."""
             if not sub_goals:
                 potential_goals = [line.strip() for line in lines if line.strip()]
                 sub_goals = [goal for goal in potential_goals if len(goal) > 10]  # Filter out very short lines
+
+            # NOTE: HARD LIMIT ON NUMBER OF SUB-GOALS
+            if max_subgoal is None or max_subgoal > len(potential_goals):
+                max_subgoal = len(potential_goals)
+            sub_goals = sub_goals[:max_subgoal]
             
-            return sub_goals if sub_goals else [f"Complete the task: {response[:100]}..."]
+            return sub_goals if sub_goals else [f"Complete the task: {response[:self.context_length]}..."]
             
         except Exception as e:
             logger.error(f"Error parsing sub-goals response: {e}")
             logger.error(f"Raw response: {response}")
             # Return a fallback sub-goal
-            return [f"Complete the task: {response[:100]}..."]
+            return [f"Complete the task: {response[:self.context_length]}..."]
     
     def refine_subgoals(self, sub_goals: List[str], feedback: str) -> List[str]:
         """

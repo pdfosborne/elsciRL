@@ -447,9 +447,29 @@
                 <div align="center">   
                     <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
                     <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="margin-bottom: 15px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
-                    <div style="margin-bottom: 15px;">
-                        <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner" unchecked>
-                        <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;" title="Enable the LLM-based instruction planner for automatic instruction validation.">Enable LLM Instruction Planner</label>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner">
+                            <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;" title="Enable the LLM-based instruction planner for automatic instruction validation.">Enable LLM Instruction Planner</label>
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- LLM Model Selection as Text Box -->
+                            <label for="llmModelSelect" style="color: var(--text-color); font-weight: bold;">LLM Model:</label>
+                            <input type="text" id="llmModelSelect" value="llama3.2" style="margin-left: 5px; width: 120px;">
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- Context Length -->
+                            <label for="llmContextLength" style="color: var(--text-color); font-weight: bold;">Context Length:</label>
+                            <input type="number" id="llmContextLength" min="100" max="32000" value="1000" style="width: 80px; margin-left: 5px;">
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- Number of Instructions -->
+                            <label for="llmNumInstructions" style="color: var(--text-color); font-weight: bold;"># Instructions:</label>
+                            <input type="number" id="llmNumInstructions" min="1" max="9" value="1" style="width: 50px; margin-left: 5px;">
+                        </div>
                     </div>
                 </div>
 

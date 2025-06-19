@@ -1,5 +1,6 @@
 import sys
 import os
+import inspect
 import shutil
 from datetime import datetime
 import json
@@ -225,7 +226,26 @@ class WebApp:
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
         enable_llm_planner = data.get('enableLLMPlanner', False)
-        sub_goal_limit = 3
+        # Get user LLM settings from input
+        llm_model_name = data.get('llmModelSelect', data.get('LLMModelName', 'llama3.2'))
+        llm_context_length = int(data.get('llmContextLength', data.get('LLMContextLength', 1000)))
+        llm_num_instructions = int(data.get('llmNumInstructions', 1))
+
+        # --- Add Problem info to input prompt ---
+        input_prompt = 'Reinforcement Learning experiment for application: ' + application + '\n'
+        try:
+            input_prompt += inspect.getsource(self.pull_app_data[application]['engine'])
+        except TypeError:
+            input_prompt += f"\n# Source code unavailable for built-in class: {self.pull_app_data[application]['engine']}\n"
+
+        input_prompt += '\n elsciRL Adapters for application: '
+        for adapter_name, adapter in self.pull_app_data[application]['adapters'].items():
+            input_prompt += f'\n - {adapter_name}: '
+            try:
+                input_prompt += inspect.getsource(adapter)
+            except TypeError:
+                input_prompt += f"\n# Source code unavailable for built-in class: {adapter_name}\n"
+        # ---
 
         # Set LLM Instruction Planner state
         self.LLM_INSTUCTION_PLANNER = enable_llm_planner
@@ -235,8 +255,9 @@ class WebApp:
                     observed_states_data = None
                 else:
                     observed_states_data = self.pull_app_data[application]['prerender_data'][observed_states_filename]
-                self.LLM_plan_generator = LLMTaskBreakdown(model_name=data.get('LLMModelName', 'llama3.2'),
-                                                           context_length=int(data.get('LLMContextLength', 1000)),
+                self.LLM_plan_generator = LLMTaskBreakdown(model_name=llm_model_name,
+                                                           context_length=llm_context_length,
+                                                           input_prompt = input_prompt,
                                                            observed_states=observed_states_data)
                 self.LLM_validation = LLMInstructionValidator()
             except Exception as e:
@@ -254,9 +275,7 @@ class WebApp:
         if self.LLM_INSTUCTION_PLANNER and self.LLM_plan_generator is not None:
             try:
                 # Use LLM to breakdown the user input into structured instructions
-                # TODO: Max max sub-goals a parameter inpput
-                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=sub_goal_limit)
-                llm_breakdown = llm_breakdown[:sub_goal_limit] # HARD LIMIT NUMBER OF INSTRUCTIONS 
+                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=llm_num_instructions)
                 if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
                     instruction_descriptions = llm_breakdown
                     instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
