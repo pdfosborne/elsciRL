@@ -200,9 +200,9 @@ Provide your response as a numbered list of sub-goals."""
                 sub_goals = [goal for goal in potential_goals if len(goal) > 10]  # Filter out very short lines
 
             # NOTE: HARD LIMIT ON NUMBER OF SUB-GOALS
-            if max_subgoal is None or max_subgoal > len(potential_goals):
-                max_subgoal = len(potential_goals)
-            sub_goals = sub_goals[:max_subgoal]
+            if max_subgoal is None or max_subgoal > len(sub_goals):
+                max_subgoal = len(sub_goals)
+            sub_goals = sub_goals[:max_subgoal+1]
             
             return sub_goals if sub_goals else [f"Complete the task: {response[:self.context_length]}..."]
             
