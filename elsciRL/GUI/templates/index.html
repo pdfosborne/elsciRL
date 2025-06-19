@@ -459,9 +459,8 @@
                         <label for="userInput"></label>
                         <textarea id="userInput" placeholder="Enter your instructions for the agent here. Leave blank to run without instructions."></textarea>
                         <div class="button-group">
-                            <div style="display: flex; align-items: center;">
-                                <button id="submitBtn" class="submit-btn" onclick="processInput()">Submit</button>
-                            </div>
+                            <button id="submitBtn" onclick="processInput()" style="margin-top: 10px;">Submit</button>
+                            <div id="loadingCircleSubmit" class="loading-circle" style="display: none;"></div>
                             <button id="newInstructionBtn" onclick="newInstruction()">New Instruction</button>
                         </div>
                     </div>

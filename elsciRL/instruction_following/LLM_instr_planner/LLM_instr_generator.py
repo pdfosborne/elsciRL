@@ -2,6 +2,7 @@ import ollama
 import json
 import re
 from typing import List, Dict, Optional, Union
+import random
 import logging
 
 # Configure logging
@@ -13,7 +14,8 @@ class OllamaTaskBreakdown:
     Ollama LLM chat class for breaking down complex tasks into manageable sub-goals.
     """
     
-    def __init__(self, model_name: str = "llama3.2", context_length: int = 4000, host: str = "localhost:11434"):
+    def __init__(self, model_name: str = "llama3.2", context_length: int = 4000, host: str = "localhost:11434",
+                 observed_states:dict= None):
         """
         Initialize the Ollama chat client.
         
@@ -34,6 +36,12 @@ class OllamaTaskBreakdown:
         except Exception as e:
             logger.error(f"Failed to initialize Ollama client: {e}")
             raise
+
+        # Get randomly sampled observed states if provided to use for prompt output structure
+        if observed_states is not None:
+            print("Using observed states for prompt output structure.")
+            keys = random.sample(list(observed_states), 10)
+            self.observed_states_prompt = str([observed_states[k] for k in keys])
     
     def _verify_model(self):
         """Verify that the specified model is available."""
@@ -121,11 +129,16 @@ INSTRUCTIONS:
 3. List each sub-goal on a separate line, numbered (1., 2., 3., etc.)
 4. Focus on creating logical, sequential sub-goals that when completed will achieve the main objective
 5. Keep each sub-goal description clear and concise
+6. Do not include any additional commentary or explanations, just the sub-goals
+7. You do not need any sub-goals that are not actually actionable, for example, do not include "Determinge the best approach" or "Research the topic" as sub-goals.
 
 Example format:
 1. First sub-goal description
 2. Second sub-goal description
 3. Third sub-goal description"""
+        
+        if hasattr(self, 'observed_states_prompt'):
+            system_prompt += f"\n\nMatch your output language form to the observed language from the environment, here are some examples of the language structure:\n{self.observed_states_prompt}"
 
         user_prompt = f"""Task to break down: {task_prompt}
 

@@ -21,8 +21,8 @@ from elsciRL.experiments.standard import Experiment as STANDARD_RL
 from elsciRL.application_suite.import_data import Applications
 
 # elsciRL LLM Instruction Following
-from elsciRL.instruction_following.instr_utils.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
-from elsciRL.instruction_following.instr_utils.LLM_instr_validator import LLMInstructionValidator
+from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
+from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_validator import LLMInstructionValidator
 
 # Analysis
 import matplotlib
@@ -215,6 +215,7 @@ class WebApp:
         return jsonify({"reply": None})
 
     def process_input(self):
+        print("Processing input...")
         data = request.get_json()
         if data is None:
             return jsonify({'error': 'No data provided'}), 400
@@ -224,12 +225,19 @@ class WebApp:
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
         enable_llm_planner = data.get('enableLLMPlanner', False)
+        sub_goal_limit = 3
 
         # Set LLM Instruction Planner state
         self.LLM_INSTUCTION_PLANNER = enable_llm_planner
-        if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is None:
+        if self.LLM_INSTUCTION_PLANNER:
             try:
-                self.LLM_plan_generator = LLMTaskBreakdown()
+                if observed_states_filename == '':
+                    observed_states_data = None
+                else:
+                    observed_states_data = self.pull_app_data[application]['prerender_data'][observed_states_filename]
+                self.LLM_plan_generator = LLMTaskBreakdown(model_name=data.get('LLMModelName', 'llama3.2'),
+                                                           context_length=int(data.get('LLMContextLength', 1000)),
+                                                           observed_states=observed_states_data)
                 self.LLM_validation = LLMInstructionValidator()
             except Exception as e:
                 print(f"Error initializing LLM validator: {e}")
@@ -247,8 +255,8 @@ class WebApp:
             try:
                 # Use LLM to breakdown the user input into structured instructions
                 # TODO: Max max sub-goals a parameter inpput
-                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=1)
-                llm_breakdown = llm_breakdown[:1] # HARD LIMIT NUMBER OF INSTRUCTIONS 
+                llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=sub_goal_limit)
+                llm_breakdown = llm_breakdown[:sub_goal_limit] # HARD LIMIT NUMBER OF INSTRUCTIONS 
                 if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
                     instruction_descriptions = llm_breakdown
                     instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
