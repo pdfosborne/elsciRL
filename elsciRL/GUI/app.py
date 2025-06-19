@@ -316,7 +316,10 @@ class WebApp:
         results[application] = best_match_dict
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
-        self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
+        if enable_llm_planner:
+            self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
+        else:
+            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
 
         try:
             console_output += f'<br><b>Results for {application}:</b><br>'
@@ -643,7 +646,7 @@ class WebApp:
             return 'File uploaded successfully'
 
     def new_instruction(self):
-        self.global_input_count = len(self.correct_instructions)+1
+        self.global_input_count = len(self.correct_instructions)
         return jsonify({'status': 'success'})
 
     def confirm_result(self):
@@ -669,16 +672,18 @@ class WebApp:
             self.instruction_results_validated[application] = {}
 
         if is_correct:
-            if application in self.instruction_results and \
-               'instr_'+str(self.global_input_count) in self.instruction_results[application]:
-                self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = \
-                    self.instruction_results[application]['instr_'+str(self.global_input_count)]
-                
+            if application in self.instruction_results:
                 self.correct_instructions.append(user_input)
-                if enable_llm_planner:
+                if 'LLM_instr_'+str(self.global_input_count) in self.instruction_results[application]:
+                    self.instruction_results_validated[application]['LLM_instr_'+str(self.global_input_count)] = self.instruction_results[application]['LLM_instr_'+str(self.global_input_count)]
                     message = "<br>LLM validation confirmed: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
-                else:
+                elif 'instr_'+str(self.global_input_count) in self.instruction_results[application]:
+                    self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = self.instruction_results[application]['instr_'+str(self.global_input_count)]
                     message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
+                else:
+                    message = "<br>Error: Could not find instruction data for validation. Please try again."
+                    print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
+                    return jsonify({'status': 'error', 'message': message}), 500
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
                 print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")

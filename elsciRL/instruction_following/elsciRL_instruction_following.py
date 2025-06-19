@@ -705,7 +705,7 @@ class elsciRLOptimize:
                     env.agent = agent
                     env.num_train_repeat = 1
                     env.num_test_repeat = 1
-                    env.number_episodes = 10
+                    env.number_episodes = 1
                     env.agent.epsilon = 0
                     render_save_dir = os.path.join(self.save_dir, 'render_results')
                     ensure_dir(render_save_dir)

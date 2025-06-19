@@ -73,7 +73,17 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
                     cum_R_SE = np.array(results['cum_R_se'])
                     time_mean = np.array(results['time_mean'])
 
-                    if 'instr_exp' in str(experiment).lower():
+                    if 'instr_' in str(experiment).lower():
+                        if '/' in str(instr_id):
+                            instr_id = instr_id.split('/')[-1]
+                        elif '//' in str(instr_id):
+                            instr_id = instr_id.split('//')[-1]
+                        elif "\\" in str(instr_id):
+                            instr_id = instr_id.split('\\')[-1]
+                        elif '\\\\' in str(instr_id):
+                            instr_id = instr_id.split('\\\\')[-1]
+                        else:
+                            instr_id = instr_id
                         label = str(instr_id) + ' - ' + str(agent)
                     else:
                         label = 'No Instr - ' + str(agent)
