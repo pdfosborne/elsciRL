@@ -486,26 +486,26 @@ class elsciRLOptimize:
                                             # Reset exploration parameter between seeds so to not get 'trapped'
                                             live_env.agent.exploration_parameter_reset()
                                     break
-                                # train for entire path 
-                                if self.instruction_chain:
-                                    live_env.start_obs = env_start
-                                # Number of episodes used reduced by those used for instructions (lower bounded)
-                                if (number_training_episodes-total_instr_episodes)<int(number_training_episodes*self.instruction_episode_ratio):
-                                    if int(number_training_episodes*self.instruction_episode_ratio) < 10:
-                                        live_env.number_episodes = 10
-                                    else:
-                                        live_env.number_episodes = int(number_training_episodes*self.instruction_episode_ratio)
+                            # train for entire path 
+                            if self.instruction_chain:
+                                live_env.start_obs = env_start
+                            # Number of episodes used reduced by those used for instructions (lower bounded)
+                            if (number_training_episodes-total_instr_episodes)<int(number_training_episodes*self.instruction_episode_ratio):
+                                if int(number_training_episodes*self.instruction_episode_ratio) < 10:
+                                    live_env.number_episodes = 10
                                 else:
-                                    live_env.number_episodes = number_training_episodes - total_instr_episodes
-                                # Remove sub-goal
-                                live_env.sub_goal = None
-                                print("Goal: ", goal)
-                                # Add instruction training to output chart
-                                if type(instr_results)==type(pd.DataFrame()):
-                                    live_env.results.load(instr_results)
-                                
-                                training_results = live_env.episode_loop()
-                                training_results['episode'] = training_results.index
+                                    live_env.number_episodes = int(number_training_episodes*self.instruction_episode_ratio)
+                            else:
+                                live_env.number_episodes = number_training_episodes - total_instr_episodes
+                            # Remove sub-goal
+                            live_env.sub_goal = None
+                            print("Goal: ", goal)
+                            # Add instruction training to output chart
+                            if type(instr_results)==type(pd.DataFrame()):
+                                live_env.results.load(instr_results)
+                            
+                            training_results = live_env.episode_loop()
+                            training_results['episode'] = training_results.index
 
                             # Render current result after all instructions have been trained
                             if self.training_render:
