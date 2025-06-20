@@ -77,7 +77,7 @@ class Applications:
                 "adapter_filenames": {"numeric_board_mapping": "numeric_board",
                                       "numeric_piece_counter":"numeric_piece_counter", 
                                       "active_pieces_language":"language_active_pieces",
-                                      "LLM_Generator":"LLM_adapter"},
+                                      "LLM":"LLM_adapter"},
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
