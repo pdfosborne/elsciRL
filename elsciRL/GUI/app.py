@@ -105,6 +105,7 @@ class WebApp:
 
         self.active_jobs = {}  # Stores job_id: {'queue': Queue, 'thread': Thread, 'status': str}
         self.job_results = {} # Stores job_id: results payload
+        self.render_image_cache = []
 
     def load_data(self):
         # Currently pulls all the available applications
@@ -573,6 +574,8 @@ class WebApp:
                     instr_save_dir = os.path.join(app_save_dir, instr_key)
 
                     for agent_name in list(agent_adapter_dict.keys()):
+                        agent_select_sub = [agent_name] if agent_name in selected_agents else []
+                        ExperimentConfig['agent_select'] = agent_select_sub
                         for adapter_name in list(agent_adapter_dict[agent_name]):
                             agent_adapter_dict_sub = {agent_name: [adapter_name]}
                             ExperimentConfig['adapter_input_dict'] = agent_adapter_dict_sub
@@ -593,20 +596,22 @@ class WebApp:
                             render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
                             if os.path.exists(render_results_dir_instr):
                                 for file_item in os.listdir(render_results_dir_instr):
-                                    if file_item.endswith('.gif'):
-                                        # Copy to uploads directory for web access
-                                        dest_filename = f'{instr_key}_{file_item}'
-                                        shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, dest_filename))
-                                        figures_to_display.append(f'uploads/{dest_filename}')
-                                        
-                                        # Send real-time figure update
-                                        figure_event = {
-                                            'figure_path': f'uploads/{dest_filename}',
-                                            'experiment_type': f'Instruction: {instr_text}',
-                                            'filename': dest_filename,
-                                            'timestamp': datetime.now().isoformat()
-                                        }
-                                        job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+                                    if file_item not in self.render_image_cache:
+                                        self.render_image_cache.append(file_item)
+                                        if file_item.endswith('.gif'):
+                                            # Copy to uploads directory for web access
+                                            dest_filename = f'{instr_key}_{file_item}'
+                                            shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, dest_filename))
+                                            figures_to_display.append(f'uploads/{dest_filename}')
+                                            
+                                            # Send real-time figure update
+                                            figure_event = {
+                                                'figure_path': f'uploads/{dest_filename}',
+                                                'experiment_type': f'Instruction: {instr_text}',
+                                                'filename': dest_filename,
+                                                'timestamp': datetime.now().isoformat()
+                                            }
+                                            job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
 
                             job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
                             reinforced_experiment.test()
@@ -629,6 +634,8 @@ class WebApp:
             no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
 
             for agent_name in list(agent_adapter_dict.keys()):
+                agent_select_sub = [agent_name] if agent_name in selected_agents else []
+                ExperimentConfig['agent_select'] = agent_select_sub
                 for adapter_name in list(agent_adapter_dict[agent_name]):
                     agent_adapter_dict_sub = {agent_name: [adapter_name]}
                     ExperimentConfig['adapter_input_dict'] = agent_adapter_dict_sub
@@ -646,20 +653,22 @@ class WebApp:
                     render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
                     if os.path.exists(render_results_dir_std):
                         for file_item_std in os.listdir(render_results_dir_std):
-                            if file_item_std.endswith('.gif'):
-                                # Copy to uploads directory for web access
-                                dest_filename = f'no-instr_{file_item_std}'
-                                shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
-                                figures_to_display.append(f'uploads/{dest_filename}')
-                                
-                                # Send real-time figure update
-                                figure_event = {
-                                    'figure_path': f'uploads/{dest_filename}',
-                                    'experiment_type': 'Standard (No Instruction)',
-                                    'filename': dest_filename,
-                                    'timestamp': datetime.now().isoformat()
-                                }
-                                job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+                            if file_item_std not in self.render_image_cache:
+                                self.render_image_cache.append(file_item_std)
+                                if file_item_std.endswith('.gif'):
+                                    # Copy to uploads directory for web access
+                                    dest_filename = f'no-instr_{file_item_std}'
+                                    shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
+                                    figures_to_display.append(f'uploads/{dest_filename}')
+                                    
+                                    # Send real-time figure update
+                                    figure_event = {
+                                        'figure_path': f'uploads/{dest_filename}',
+                                        'experiment_type': 'Standard (No Instruction)',
+                                        'filename': dest_filename,
+                                        'timestamp': datetime.now().isoformat()
+                                    }
+                                    job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
 
                     job_queue.put("EVENT: Standard train complete. Starting test.")
                     standard_experiment.test()

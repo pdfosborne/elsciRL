@@ -319,8 +319,8 @@ class StandardInteractionLoop:
                 save_all=True,
                 append_images=render_stack[1:],
                 optimize=False,
+                loop=5, # 0 = infinite loop, 1 = loop once
                 duration=200
-                #loop=0, # 0 = infinite loop, 1 = loop once
             )
             return render_stack
 
