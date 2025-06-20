@@ -571,24 +571,46 @@ class WebApp:
                     job_queue.put(f"EVENT: RENDER_PHASE_TITLE: Instruction: {instr_text}")
                     job_queue.put(f"EVENT: Processing instruction key: {instr_key}")
                     instr_save_dir = os.path.join(app_save_dir, instr_key)
-                    reinforced_experiment = elsciRLOptimize(
-                        Config=ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=adapters,
-                        save_dir=instr_save_dir, show_figures='No', window_size=0.1,
-                        instruction_path=instr_data_path, predicted_path=None, instruction_episode_ratio=0.1,
-                        instruction_chain=True, instruction_chain_how='exact')
-                    job_queue.put(f"EVENT: Starting train for {instr_key} ({instr_text})")
-                    reinforced_experiment.train()
-                    job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
-                    reinforced_experiment.test()
-                    job_queue.put(f"EVENT: Test complete for {instr_key}. Rendering results.")
-                    render_result = reinforced_experiment.render_results()
+
+                    for agent_name in list(agent_adapter_dict.keys()):
+                        for adapter_name in list(agent_adapter_dict[agent_name]):
+                            agent_adapter_dict_sub = {agent_name: [adapter_name]}
+                            ExperimentConfig['adapter_input_dict'] = agent_adapter_dict_sub
+                            job_queue.put(f"EVENT: Running standard train for {agent_name} with {adapter_name} adapter...")
+                            
+                            reinforced_experiment = elsciRLOptimize(
+                                Config=ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=adapters,
+                                save_dir=instr_save_dir, show_figures='No', window_size=0.1,
+                                instruction_path=instr_data_path, predicted_path=None, instruction_episode_ratio=0.1,
+                                instruction_chain=True, instruction_chain_how='exact')
+                            job_queue.put(f"EVENT: Starting train for {instr_key} ({instr_text})")
+                            reinforced_experiment.train()
+
+                            job_queue.put(f"EVENT: Test complete for {instr_key}. Rendering results.")
+                            render_result = reinforced_experiment.render_results()
+                            
+                            # Send real-time figure update for instruction experiments
+                            render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
+                            if os.path.exists(render_results_dir_instr):
+                                for file_item in os.listdir(render_results_dir_instr):
+                                    if file_item.endswith('.gif'):
+                                        # Copy to uploads directory for web access
+                                        dest_filename = f'{instr_key}_{file_item}'
+                                        shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, dest_filename))
+                                        figures_to_display.append(f'uploads/{dest_filename}')
+                                        
+                                        # Send real-time figure update
+                                        figure_event = {
+                                            'figure_path': f'uploads/{dest_filename}',
+                                            'experiment_type': f'Instruction: {instr_text}',
+                                            'filename': dest_filename,
+                                            'timestamp': datetime.now().isoformat()
+                                        }
+                                        job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+
+                            job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
+                            reinforced_experiment.test()
                     
-                    render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
-                    if os.path.exists(render_results_dir_instr):
-                        for file_item in os.listdir(render_results_dir_instr):
-                            if file_item.endswith('.gif'):
-                                shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, f'{instr_key}_{file_item}'))
-                                figures_to_display.append(f'uploads/{instr_key}_{file_item}')
 
                 if selected_plot:
                     analysis_class = self.pull_app_data[application]['local_analysis'][selected_plot]
@@ -605,22 +627,43 @@ class WebApp:
             job_queue.put("EVENT: RENDER_PHASE_TITLE: No Instruction")
             job_queue.put("EVENT: Running standard (no-instruction) experiment...")
             no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
-            standard_experiment = STANDARD_RL(
-                Config=ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
-                save_dir=no_instr_save_dir, show_figures='No', window_size=0.1)
-            job_queue.put("EVENT: Starting standard train.")
-            standard_experiment.train()
-            job_queue.put("EVENT: Standard train complete. Starting test.")
-            standard_experiment.test()
-            job_queue.put("EVENT: Standard test complete. Rendering results.")
-            render_result = standard_experiment.render_results()
+
+            for agent_name in list(agent_adapter_dict.keys()):
+                for adapter_name in list(agent_adapter_dict[agent_name]):
+                    agent_adapter_dict_sub = {agent_name: [adapter_name]}
+                    ExperimentConfig['adapter_input_dict'] = agent_adapter_dict_sub
+                    job_queue.put(f"EVENT: Running standard train for {agent_name} with {adapter_name} adapter...")
+                    standard_experiment = STANDARD_RL(
+                        Config=ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
+                        save_dir=no_instr_save_dir, show_figures='No', window_size=0.1)
+                    job_queue.put("EVENT: Starting standard train.")
+                    standard_experiment.train()
+
+                    job_queue.put("EVENT: Standard test complete. Rendering results.")
+                    render_result = standard_experiment.render_results()
+                    
+                    # Send real-time figure update for standard experiments
+                    render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
+                    if os.path.exists(render_results_dir_std):
+                        for file_item_std in os.listdir(render_results_dir_std):
+                            if file_item_std.endswith('.gif'):
+                                # Copy to uploads directory for web access
+                                dest_filename = f'no-instr_{file_item_std}'
+                                shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
+                                figures_to_display.append(f'uploads/{dest_filename}')
+                                
+                                # Send real-time figure update
+                                figure_event = {
+                                    'figure_path': f'uploads/{dest_filename}',
+                                    'experiment_type': 'Standard (No Instruction)',
+                                    'filename': dest_filename,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                                job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+
+                    job_queue.put("EVENT: Standard train complete. Starting test.")
+                    standard_experiment.test()
             
-            render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
-            if os.path.exists(render_results_dir_std):
-                for file_item_std in os.listdir(render_results_dir_std):
-                    if file_item_std.endswith('.gif'):
-                        shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, f'no-instr_{file_item_std}'))
-                        figures_to_display.append(f'uploads/no-instr_{file_item_std}')
             
             if selected_plot:
                 analysis_class_std = self.pull_app_data[application]['local_analysis'][selected_plot]

@@ -520,14 +520,29 @@
             <div id="trainModelTab" class="tab-content" style="display:none;">
                 <div align="center" style="padding-top: 20px;">   
                     <button id="runExperimentBtn" onclick="runExperiment()">Run Experiment</button>
-                    <p style="margin-top: 15px;"><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
-                    <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
+                    <div id="experimentInstructions" style="margin-top: 15px;">
+                        <p><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
+                        <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
+                    </div>
+                    <div id="experimentLoading" style="margin-top: 15px; display: none;">
+                        <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                        <div id="recentTrainingLog" style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; text-align: left; font-family: 'Courier New', monospace; font-size: 12px;">
+                            <!-- Recent training log messages will appear here -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Real-time Rendered Figures Display -->
+                <div id="realTimeRenderDisplay">
+                    <h4 id="realTimeRenderPhaseTitle">Waiting for first render...</h4>
+                    <div id="realTimeRenderCarousel">
+                        <!-- Figures will be dynamically added here -->
+                    </div>
+                    <p id="realTimeRenderStatus">No figures available yet</p>
                 </div>
                 <div id="trainingLogOutputContainer" style="padding: 20px; display: none;"> 
-                    <h2>Training Log</h3>
+                    <h2>Full Training Log</h3>
                     <div id="trainingLogOutput"></div>
-                </div>
-                
+                </div>   
             </div>
 
             <div id="resultsTab" class="tab-content" style="display:none;">
@@ -1049,13 +1064,24 @@
                 jobEventSource = null;
             }
             currentJobId = null;
-            // Removed real-time render references
-            // Optionally clear log display areas
-            // document.getElementById('trainingLogOutput').innerHTML = '';
+            // Clear real-time render display
+            const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+            realTimeRenderDisplay.style.display = 'none';
+            document.getElementById('realTimeRenderCarousel').innerHTML = '';
+            document.getElementById('realTimeRenderPhaseTitle').textContent = 'Waiting for first render...';
+            document.getElementById('realTimeRenderStatus').textContent = 'No figures available yet';
+            
+            // Clear recent training log
+            document.getElementById('recentTrainingLog').innerHTML = '';
         }
 
         async function runExperiment() {
             clearPreviousJobState(); // Clear any state from a previous run
+
+            // Hide instructions and show loading
+            document.getElementById('experimentInstructions').style.display = 'none';
+            document.getElementById('experimentLoading').style.display = 'block';
+            document.getElementById('runExperimentBtn').disabled = true;
 
             const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
                 .map(cb => cb.value);
@@ -1154,10 +1180,16 @@
                 }
 
                 trainingLogOutput.innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
-                // Removed real-time render display elements
-                // realTimeRenderDisplay.style.display = 'block';
-                // document.getElementById('realTimeRenderTitle').textContent = 'Waiting for first render...';
-                // document.getElementById('realTimeRenderImage').src = ''; // Clear previous image
+                
+                // Show real-time render display
+                const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+                realTimeRenderDisplay.style.display = 'block';
+                document.getElementById('realTimeRenderPhaseTitle').textContent = 'Waiting for first render...';
+                document.getElementById('realTimeRenderCarousel').innerHTML = ''; // Clear previous figures
+                document.getElementById('realTimeRenderStatus').textContent = 'Initializing experiment...';
+                
+                // Update recent training log with initial message
+                document.getElementById('recentTrainingLog').innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
 
                 // Start SSE for job notifications
                 jobEventSource = new EventSource(`/stream_job_notifications/${currentJobId}`);
@@ -1165,47 +1197,145 @@
                 jobEventSource.onmessage = function(event) {
                     const message = event.data;
                     console.log("SSE Message:", message);
+                    
+                    // Update both the main training log and the recent training log
+                    let logMessage = '';
+                    let shouldUpdateRecentLog = false;
+                    
                     if (message.startsWith("EVENT: RENDER_PHASE_TITLE:")) {
                         const phaseTitle = message.substring("EVENT: RENDER_PHASE_TITLE:".length).trim();
-                        // Removed real-time render phase title display
-                        // document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
+                        // Update real-time render phase title display
+                        document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
+                        document.getElementById('realTimeRenderStatus').innerHTML = `<span style="color: orange;">⏳ Processing: ${phaseTitle}</span>`;
                         // Log this change to the main log for visibility
-                        trainingLogOutput.innerHTML += `<p style="color: mediumpurple;"><strong>Phase:</strong> ${phaseTitle}</p>`;
+                        logMessage = `<p style="color: mediumpurple;"><strong>Phase:</strong> ${phaseTitle}</p>`;
+                        shouldUpdateRecentLog = true;
+                    } else if (message.startsWith("EVENT: RENDER_FIGURE:")) {
+                        // Handle real-time figure updates
+                        const figureData = message.substring("EVENT: RENDER_FIGURE:".length).trim();
+                        try {
+                            const figureInfo = JSON.parse(figureData);
+                            if (figureInfo.figure_path) {
+                                const carousel = document.getElementById('realTimeRenderCarousel');
+                                
+                                // Clear previous figures and show only the most recent
+                                carousel.innerHTML = '';
+                                
+                                // Create figure container
+                                const figureContainer = document.createElement('div');
+                                figureContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin: 10px;';
+                                
+                                // Create image element
+                                const imgElement = document.createElement('img');
+                                imgElement.src = `/${figureInfo.figure_path}?t=${new Date().getTime()}`;
+                                imgElement.alt = 'Experiment result';
+                                imgElement.className = 'shadow-effect';
+                                imgElement.style.cssText = 'max-width: 300px; max-height: 300px; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 5px;';
+                                
+                                // Create caption
+                                const caption = document.createElement('p');
+                                caption.textContent = figureInfo.filename || figureInfo.experiment_type || 'Experiment';
+                                caption.style.cssText = 'font-size: 12px; color: var(--text-color); margin: 0; font-weight: bold;';
+                                
+                                figureContainer.appendChild(imgElement);
+                                figureContainer.appendChild(caption);
+                                carousel.appendChild(figureContainer);
+                                
+                                document.getElementById('realTimeRenderStatus').innerHTML = `<span style="color: green;">Latest figure: ${figureInfo.filename || figureInfo.experiment_type || 'Experiment'}</span>`;
+                                logMessage = `<p style="color: green;"><strong>Figure rendered:</strong> ${figureInfo.figure_path}</p>`;
+                                shouldUpdateRecentLog = true;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing figure data:', e);
+                        }
                     } else if (message.startsWith("EVENT: JOB_COMPLETE")) {
-                        trainingLogOutput.innerHTML += `<p><strong>${message}</strong></p>`;
+                        logMessage = `<p><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Experiment completed - see Results tab for all figures';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
                         if (jobEventSource) {
                             jobEventSource.close();
                             jobEventSource = null;
                         }
                         fetchAndDisplayFinalResults(currentJobId);
                     } else if (message.startsWith("EVENT: JOB_FAILED")) {
-                        trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
+                        logMessage = `<p style="color: red;"><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Experiment failed';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
                         if (jobEventSource) {
                             jobEventSource.close();
                             jobEventSource = null;
                         }
                         // Optionally try to fetch partial results or error details if your backend supports it
                     } else if (message.startsWith("ERROR:")) {
-                        trainingLogOutput.innerHTML += `<p style="color: red;">${message}</p>`;
+                        logMessage = `<p style="color: red;">${message}</p>`;
+                        shouldUpdateRecentLog = true;
                         // Keep listening for JOB_FAILED, but log error
                     } else if (message.startsWith("WARNING:")) {
-                        trainingLogOutput.innerHTML += `<p style="color: orange;">${message}</p>`;
+                        logMessage = `<p style="color: orange;">${message}</p>`;
+                        shouldUpdateRecentLog = true;
                     } else if (message.startsWith("INFO:") || message.startsWith("EVENT:")) {
-                        trainingLogOutput.innerHTML += `<p>${message}</p>`;
+                        logMessage = `<p>${message}</p>`;
+                        shouldUpdateRecentLog = true;
                     } else if (message.startsWith("SSE_ERROR:") || message.includes("Job ID") && message.includes("not found")){
-                        trainingLogOutput.innerHTML += `<p style="color: red;"><strong>${message}</strong></p>`;
+                        logMessage = `<p style="color: red;"><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Connection error';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
                         if (jobEventSource) {
                             jobEventSource.close();
                             jobEventSource = null;
                         }
                         // Critical SSE error, stop everything for this job
                     }
+                    
+                    // Update the main training log
+                    if (logMessage) {
+                        trainingLogOutput.innerHTML += logMessage;
+                    }
+                    
+                    // Update the recent training log with the most recent messages (keep last 10 messages)
+                    if (shouldUpdateRecentLog && logMessage) {
+                        const recentLog = document.getElementById('recentTrainingLog');
+                        const currentContent = recentLog.innerHTML;
+                        const messages = currentContent.split('</p>').filter(msg => msg.trim());
+                        
+                        // Add new message
+                        messages.push(logMessage.replace('<p>', '').replace('</p>', ''));
+                        
+                        // Keep only the last 10 messages
+                        const recentMessages = messages.slice(-10);
+                        
+                        // Reconstruct the HTML
+                        recentLog.innerHTML = recentMessages.map(msg => `<p>${msg}</p>`).join('');
+                        recentLog.scrollTop = recentLog.scrollHeight; // Auto-scroll to bottom
+                    }
+                    
                     trainingLogOutput.scrollTop = trainingLogOutput.scrollHeight; // Auto-scroll
                 };
 
                 jobEventSource.onerror = function(err) {
                     trainingLogOutput.innerHTML += "<p style='color: red;'><strong>Job notification stream error. Connection lost.</strong></p>";
                     console.error("Job EventSource failed:", err);
+                    
+                    // Restore instructions and hide loading
+                    document.getElementById('experimentInstructions').style.display = 'block';
+                    document.getElementById('experimentLoading').style.display = 'none';
+                    document.getElementById('runExperimentBtn').disabled = false;
+                    
                     // Close this specific EventSource instance
                     if (jobEventSource) {
                         jobEventSource.close();
@@ -1216,6 +1346,12 @@
             } catch (error) {
                 console.error('Error initiating experiment run:', error);
                 trainingLogOutput.innerHTML = `<p style="color: red;">Failed to initiate experiment: ${error}</p>`;
+                
+                // Restore instructions and hide loading on error
+                document.getElementById('experimentInstructions').style.display = 'block';
+                document.getElementById('experimentLoading').style.display = 'none';
+                document.getElementById('runExperimentBtn').disabled = false;
+                
                 if (loadingOverlay) loadingOverlay.style.display = 'none'; // Ensure overlay is off on error
             }
         }
