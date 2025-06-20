@@ -21,11 +21,14 @@ class AgentFactory:
             try:
                 agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).input_dim
             except Exception:
-                print(f"Adapter {adapter} does not have input_dim specified.")
                 try:
                     agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).encoder.output_dim
                 except Exception:
-                    raise ValueError(f"No input dim size found in adapter: {adapter}")
+                    try:
+                        agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).LLM_adapter.encoder.output_dim
+                    except Exception:
+                        print(f"Adapter {adapter} does not have input_dim specified.")
+                        raise ValueError(f"No input dim size found in adapter: {adapter}")
         if agent_type not in self.agent_types:
             raise ValueError(f"Unknown agent type: {agent_type}")
         return self.agent_types[agent_type](**agent_parameters)

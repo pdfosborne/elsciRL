@@ -295,13 +295,16 @@ class elsciRLOptimize:
                     # Get the input dim from the adapter or the encoder's output dim
                     if agent_type == "DQN":
                         try:
-                            agent_parameters['input_size'] = self.adapters[adapter].output_dim
+                            agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).output_dim
                         except:
                             try:
-                                agent_parameters['input_size'] = self.adapters[adapter].encoder.output_dim
+                                agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).encoder.output_dim
                             except:
-                                print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.input_dim in the adapter class.")
-                                raise ValueError(f"No output dim size found in adapter: {adapter}")
+                                try:
+                                    agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).LLM_adapter.encoder.output_dim
+                                except:
+                                    print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.input_dim in the adapter class.")
+                                    raise ValueError(f"No output dim size found in adapter: {adapter}")
                     # ----- Sub-Goal
                     # - If we have setup dict to include agent_adapter specific location of sub-goals
                     #   i.e. {instr:{env_code:{agent_adapter:{sub_goal:'ENV_CODE', sim_score:0.8}}, action_cap:5}}
