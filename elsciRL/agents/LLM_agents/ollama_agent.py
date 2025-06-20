@@ -67,9 +67,8 @@ class LLMAgent(LLMAgentAbstract):
         self.model_name = model_name
         self.system_prompt = (
             "You are an AI agent that takes actions based on the current state. "
-            "Your task is to analyze the state and select the most appropriate action "
-            "from the available actions. Respond with a JSON object containing the "
-            "selected action and a brief explanation."
+            "Your task is to analyze the state and select the most appropriate action from the available actions. "
+            "Respond with a JSON object containing the selected action and a brief explanation."
         )
         
         # No need to instantiate ollama.Client; use ollama.chat directly
@@ -90,6 +89,14 @@ class LLMAgent(LLMAgentAbstract):
             You are a expected to track the experience of the agent over many episodes.
             You are given a state, action and reward.
             You need to write a summary of the experience based on the state, action and reward that allows the LLM to learn which actions are good and which are bad.
+            ONLY select the most appropriate action, do not provide any reasoning, do not provide any explanation, do not provide any additional text, just the action.
+            DO NOT RETURN THE ACTION 'THINK' OR 'THINKING' OR 'THINK ABOUT IT' OR 'THINKING ABOUT IT' OR 'THINKING ABOUT THE NEXT ACTION' OR 'THINKING ABOUT THE NEXT MOVE' OR 'THINKING ABOUT THE NEXT STEP' OR 'THINKING ABOUT THE NEXT DECISION' OR 'THINKING ABOUT THE NEXT CHOICE' OR 'THINKING ABOUT THE NEXT OPTION'.
+
+            Respond in JSON format with the following structure:
+            {{
+                "action": "selected_action",
+                "explanation": "brief explanation of the action taken"
+            }}
         """
         self.diary = ''
         self.diary_model_name = 'llama3.2'
@@ -160,63 +167,76 @@ class LLMAgent(LLMAgentAbstract):
                 if self.epsilon < 0:
                     self.epsilon = 0         
         else:
-            prompt = f"""Current state: {state}
+            prompt = f"""
+                        Current state: {state}
+                        
+                        You must select an action from the following list: {str(legal_actions)}
 
-                        You must select an action from the following list: {', '.join(str(legal_actions))}
-
-                        Please select the most appropriate action and explain your reasoning.
-
-                        You have access to a diary of previous states, actions and rewards. Use the diary to help you make the best decision: {self.diary}
-
-                        Respond in JSON format with the following structure:
-                        {{
-                            "action": "selected_action",
-                            "explanation": "brief explanation of why this action was chosen"
-                        }}"""
+                        You have access to information on previous states, actions and rewards. Use this information to help you make the best decision: {self.diary}
+"""
 
             # Use ollama.chat with the correct message format
             messages = []
             if self.system_prompt:
                 messages.append({'role': 'system', 'content': self.system_prompt})
-            messages.append({'role': 'user', 'content': prompt})
+            messages.append({'role': 'user', 'content': prompt[:self.manual_context_length]})
 
+            if len(prompt) > self.manual_context_length:
+                print("\n WARNING: Context length exceeded, cutting off input to fit within model limits.")
+                print(" Context Length:", len(prompt))
+                print(" Model Limit:", self.manual_context_length)
             response = ollama.chat(
                 model=self.model_name,
-                messages=messages[:self.manual_context_length]  # Limit context length
+                messages=messages  # Limit context length
             )
             
             # Result not always ending content with brackets
-            content = response['message']['content'].strip().replace('\n', '').replace('```', '').translate(str.maketrans('', '', string.punctuation))
+            # - limit output length to save time, use end of content as action is usually given at the end
+            content = response['message']['content'].strip().replace('json','').replace('\n', ' ').replace('```', ' ')
+            print("\n ----------------------------------------------------")
             # Try to parse as JSON object
             try:
-                content_split = content.split(',')
-                for i in range(len(content_split)):
-                    if 'action' in content_split[i]:
-                        content_action = (content_split[i])
+                content_split = content.split('"action":')
+                content_action = content_split[1].strip().replace(':', '').replace('\"', ' ').replace('\'', ' ').replace('"','').translate(str.maketrans(' ', ' ', string.punctuation))
+                for term in content_action.split(' '):
+                    if term.strip() in legal_actions:
+                        content_action = term.strip()
                         break
             except:
+                content_action = content.strip().replace('\n', ' ').replace('```', ' ').replace('\"', ' ').replace('\'', ' ').translate(str.maketrans(' ', ' ', string.punctuation))
+                content_action = content_action.replace('  ', ' ')
                 print('Action result not standard format.')
-
-            if 'explanation' in content_action:
-                content_action = content_action.split('explanation')[0]
-                content_action = content_action.replace('action','').replace('json','').strip()
-
+                if '"explanation"' in content_action:
+                    content_action = content_action.split('"explanation"')[0]
+                    content_action = content_action.replace('json','').strip()
             action = content_action
             if (action in legal_actions) and (action is not None):
+                print(f"LLM response content: {content_action} in LEGAL ACTIONS")
                 action = action
-
             else:
-                # 1. CHECK IF LEGAL ACTION IN ACTION TEXT
-                action_match_found = False
-                for legal_a in legal_actions:
-                    if str(legal_a) in action:
-                        print(f"Action {action} found in legal moves as {legal_a}.")
-                        action = legal_a
-                        action_match_found = True
+                print(f"Action {action} not in legal actions, trying to find best match.")
+                # 1. Check if action is a cross-reference to legal actions
+                cross_reference = False
+                for term in content_action.split(' '):
+                    if term.strip() in legal_actions:
+                        action = term.strip()
+                        cross_reference = True
                         break
 
-                # 2. IF NOT, FIND BEST MATCH OVER THRESHOLD
-                if not action_match_found:
+                if cross_reference is False:
+                    action = content.strip().replace('\n', ' ').replace('```', ' ').replace('\"', ' ').replace('\'', ' ').translate(str.maketrans(' ', ' ', string.punctuation))
+                    action = action.replace('  ', ' ')
+                    # 2. CHECK IF LEGAL ACTION IN ACTION TEXT
+                    action_match_found = False
+                    for legal_a in legal_actions:
+                        if str(legal_a) in content:
+                            print(f"Action {action} found in legal moves as {legal_a}.")
+                            action = legal_a
+                            action_match_found = True
+                            break
+
+                # 3. IF NOT EITHER, FIND BEST MATCH OVER THRESHOLD
+                if (cross_reference is False) and (action_match_found is False):
                     # Encode the proposed action and legal actions using miniLMv6
                     if (len(action)>0) and (action.lower() not in self.null_actions):
                         action_embedding = self.encoder.encode(action)[0]
@@ -224,6 +244,7 @@ class LLMAgent(LLMAgentAbstract):
                         
                         # Calculate cosine similarity between proposed action and legal actions
                         best_match_sim = 0
+                        best_match_idx = 0
                         for idx, legal_emb in enumerate(legal_action_embeddings):
                             sim = self.cos(action_embedding,legal_emb).item()
                             if sim > best_match_sim:

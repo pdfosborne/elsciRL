@@ -54,12 +54,10 @@ class OllamaTaskBreakdown:
             models = self.client.list()
             available_models = [model['model'] for model in models['models']]
             available_models_short = [model['model'].split(':')[0] for model in models['models']]
-            if (self.model_name not in available_models) or (self.model_name not in available_models_short):
+            if (self.model_name.strip not in available_models) and (self.model_name not in available_models_short):
                 logger.warning(f"Model {self.model_name} not found. Available models: {available_models}")
-                print(f"Model {self.model_name} not found. Available models: {available_models}")                
             else:
                 logger.info(f"Model {self.model_name} is available.")
-                print(f"Model {self.model_name} is available.")
         except Exception as e:
             logger.error(f"Error verifying model: {e}")
             raise

@@ -1,6 +1,6 @@
 import sys
 import os
-import inspect
+import httpimport
 import shutil
 from datetime import datetime
 import json
@@ -233,18 +233,33 @@ class WebApp:
 
         # --- Add Problem info to input prompt ---
         input_prompt = 'Reinforcement Learning experiment for application: ' + application + '\n'
+        
         try:
-            input_prompt += inspect.getsource(self.pull_app_data[application]['engine'])
-        except TypeError:
-            input_prompt += f"\n# Source code unavailable for built-in class: {self.pull_app_data[application]['engine']}\n"
+            source = self.pull_app_data[application]['source']
+            root_url = list(source.keys())[0]
+            engine_folder = source[root_url]['engine_folder']
+            engine_filename = source[root_url]['engine_filename']
 
-        input_prompt += '\n elsciRL Adapters for application: '
-        for adapter_name, adapter in self.pull_app_data[application]['adapters'].items():
-            input_prompt += f'\n - {adapter_name}: '
-            try:
-                input_prompt += inspect.getsource(adapter)
-            except TypeError:
-                input_prompt += f"\n# Source code unavailable for built-in class: {adapter_name}\n"
+            # Get the engine source code as text from the URL
+            engine_url = f"{root_url.rstrip('/')}/{engine_folder.strip('/')}/{engine_filename}.py"
+            response = requests.get(engine_url)
+            engine_source_code = response.text
+
+            input_prompt += f"\n Engine source code:\n{engine_source_code}...\n" 
+
+            # Get the adapter source code
+            adapter_folder = source[root_url]['local_adapter_folder']
+            adapter_filename = source[root_url]['adapter_filenames']
+            for adapter_name, adapter_file in adapter_filename.items():
+                adapter_url = f"{root_url.rstrip('/')}/{adapter_folder.strip('/')}/{adapter_file}.py"
+                response = requests.get(adapter_url)
+                if response.status_code == 200:
+                    input_prompt += f"\n Adapter source code ({adapter_name}):\n{response.text}...\n"
+                else:
+                    print(f"Error fetching adapter source code from {adapter_url}: {response.status_code}")
+
+        except Exception as e:
+            print(f"Error fetching engine source code from {root_url}: {e}")
         # ---
 
         # Set LLM Instruction Planner state
