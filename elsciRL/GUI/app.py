@@ -86,7 +86,7 @@ class WebApp:
                 "display_name": "LLM Ollama",
                 "params": {
                     "epsilon": {"label": "Epsilon", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.2},
-                    "model_name": {"label": "Model Name", "type": "text", "default": "llama3.2"},
+                    "model_name": {"label": "Model Name", "type": "text", "default": "qwen3:0.6b"},
                     "context_length":{"label": "Context Length", "type": "text", "default":"1000"},
                     "system_prompt": {"label": "System Prompt", "type": "textarea", "rows": 4, "placeholder": "Enter system prompt...", "default": ""},
                 }
@@ -511,6 +511,10 @@ class WebApp:
                             job_queue.put(f"WARNING: Param {form_field_name} not found. Using default: {param_config['default']}")
                             ExperimentConfig['agent_parameters'][agent_id][param_key] = param_config['default']
             
+            # Add user selected LLM adapter model to be called by adapters
+            adapter_LLM_model = data.get('llmAdapterModelSelect', 'qwen3:0.6b').lower()
+            local_config['model_name'] = adapter_LLM_model
+
             if 'LLM_Ollama' in selected_agents:
                 if 'LLM_Ollama' not in ExperimentConfig['agent_parameters']:
                     ExperimentConfig['agent_parameters']['LLM_Ollama'] = {}

@@ -402,6 +402,11 @@
                         </div>
 
                         <div class="config-group" style="flex: 1; max-width: 50%;">
+                            <!-- LLM Adapter Model Selection input -->
+                            <div class="training-params">
+                                <label for="llmAdapterModelSelect" title="Select the LLM model for the LLM Adapter agent."><b>LLM Adapter Model Selection:</b></label>
+                                <input type="text" id="llmAdapterModelSelect" value="qwen3:0.6b" style="width: 180px; margin-left: 10px;">
+                            </div>
                             <h3>Agent Parameters</h3>
                             {# Dynamically include agent parameter forms #}
                             {% if agent_parameter_definitions %}

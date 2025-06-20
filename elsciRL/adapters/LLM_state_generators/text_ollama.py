@@ -41,7 +41,8 @@ class OllamaAdapter(LLMAdapter):
     
     def __init__(self, base_prompt:str=None, model_name:str="llama3.2", 
                  context_length:int = 1000,
-                 action_history_length:int=10, encoder:str='MiniLM_L6v2', ):
+                 action_history_length:int=10, encoder:str='MiniLM_L6v2'):
+        print("Using OllamaAdapter with model:", model_name)
         super().__init__(base_prompt)
         self.model_name = model_name
         self.manual_context_length = context_length
