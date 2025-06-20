@@ -581,7 +581,7 @@ class WebApp:
                     job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
                     reinforced_experiment.test()
                     job_queue.put(f"EVENT: Test complete for {instr_key}. Rendering results.")
-                    reinforced_experiment.render_results()
+                    render_result = reinforced_experiment.render_results()
                     
                     render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
                     if os.path.exists(render_results_dir_instr):
@@ -613,7 +613,7 @@ class WebApp:
             job_queue.put("EVENT: Standard train complete. Starting test.")
             standard_experiment.test()
             job_queue.put("EVENT: Standard test complete. Rendering results.")
-            standard_experiment.render_results()
+            render_result = standard_experiment.render_results()
             
             render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
             if os.path.exists(render_results_dir_std):

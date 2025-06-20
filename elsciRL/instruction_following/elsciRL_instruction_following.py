@@ -713,4 +713,5 @@ class elsciRLOptimize:
                     render_save_dir = os.path.join(self.save_dir, 'render_results')
                     ensure_dir(render_save_dir)
                     render_results = env.episode_loop(render=True, render_save_dir=render_save_dir)
+        return render_results
 

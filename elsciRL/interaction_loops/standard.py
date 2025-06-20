@@ -322,6 +322,7 @@ class StandardInteractionLoop:
                 duration=200
                 #loop=0, # 0 = infinite loop, 1 = loop once
             )
+            return render_stack
 
         if self.sub_goal:
             if sub_goal_best > 0:
