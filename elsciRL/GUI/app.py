@@ -382,22 +382,39 @@ class WebApp:
 
                 # LLM Validation checks all instructions to confirm they are complete
                 if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is not None and results[application][instr] is not None:
-                    try:
-                        instr_complete = self.LLM_validation.validate_instruction_completion(
-                            instruction_descriptions[n], results[application][instr]['sub_goal']
-                            )['is_complete']
-                        
-                        # TODO: FOR NOW, AUTO ACCEPT PREDICTIONS OTHERWISE INSTR FOLLOWING WONT BE RUN
-                        # if not instr_complete:
-                        #     self.validated_LLM_instructions = False
-                        
-                    except Exception as e:
-                        print(f"Error in LLM validation: {e}")
-                        self.validated_LLM_instructions = False
-                   
-                else:
-                    self.validated_LLM_instructions = False
+                    # Loop until instructions are validated positive
+                    feedback_counter = 0
+                    while not self.validated_LLM_instructions:
+                        try:
+                            instr_complete = self.LLM_validation.validate_instruction_completion(
+                                instruction_descriptions[n], results[application][instr]['sub_goal']
+                                )['is_complete']
+                            
+                            # TODO: FOR NOW, AUTO ACCEPT PREDICTIONS OTHERWISE INSTR FOLLOWING WONT BE RUN
+                            if not instr_complete:
+                                self.validated_LLM_instructions = False
+                            
+                            if self.validated_LLM_instructions:
+                                feedback_plot = self.elsci_run.feedback(instruction_descriptions[n], feedback_type='positive', feedback_increment=0.5, plot=True)
+                            else:
+                                feedback_plot = self.elsci_run.feedback(instruction_descriptions[n], feedback_type='negative', feedback_increment=0.5, plot=True)
 
+                            match_plots.append(feedback_plot)
+                            feedback_counter += 1
+                            if feedback_counter > 5:
+                                print("LLM validation failed after 10 attempts, assuming instructions as valid")
+                                self.validated_LLM_instructions = True
+                                break
+                            
+                        except Exception as e:
+                            print(f"Error in LLM validation, assuming instructions as valid: {e}")
+                            self.validated_LLM_instructions = True
+
+                else:
+                    # If LLM validation is not enabled, assume instructions are valid
+                    self.validated_LLM_instructions = True
+
+                
 
         except Exception as e:
             print(f"Error in process_input: {str(e)}")
@@ -450,6 +467,8 @@ class WebApp:
                     job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Failed")
                     job_queue.put("EVENT: JOB_FAILED")
                     return
+            
+
 
             engine_class = self.pull_app_data[application]['engine']
             local_config = self.pull_app_data[application]['local_configs'][config_input]
@@ -549,6 +568,9 @@ class WebApp:
             
             if instruction_results_map:
                 job_queue.put("EVENT: Training with instructions...")
+                if 'feedback_plot' in instruction_results_map:
+                    job_queue.put(f"EVENT: Feedback plot found for {application}. Adding to results.")
+                    figures_to_display.append(self.instruction_results_validated[application]['feedback_plot'])
 
                 # Instruction keys can skip numbers which miss-aligns lookup of correct instructions from list
                 # TODO: Make self.correct_instructions a dictionary with keys as instr_key and values as instruction text
@@ -774,6 +796,9 @@ class WebApp:
                     message = "<br>Error: Could not find instruction data for validation. Please try again."
                     print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                     return jsonify({'status': 'error', 'message': message}), 500
+                # Add feedback to the instruction results
+                feedback_plot = self.elsci_run.feedback(user_input, feedback_type='positive', feedback_increment=0.5, plot=True)
+                self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
                 print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
@@ -785,6 +810,12 @@ class WebApp:
                 message = "<br>LLM validation indicates instructions may need refinement. The model will use this feedback to improve."
             else:
                 message = "<br>Thanks for the feedback. The model will use this to improve."
+
+            # Add feedback to the instruction results
+            if application in self.instruction_results:
+                feedback_plot = self.elsci_run.feedback(user_input, feedback_type='negative', feedback_increment=0.5, plot=True)
+                self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
+            
 
         return jsonify({
             'status': 'received',

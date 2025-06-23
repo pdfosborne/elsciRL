@@ -1,6 +1,7 @@
 import os
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
 # ------ Agent Imports -----------------------------------------
@@ -24,7 +25,7 @@ class elsciRLSearch:
                  save_dir:str, 
                  number_exploration_episodes:int = 10000,
                  match_sim_threshold:float=0.9,
-                 observed_states:dict = {}, context_length:int=100):
+                 observed_states:dict = {}, context_length:int=1000):
         
         # ----- Configs
         self.observed_states = observed_states
@@ -130,6 +131,7 @@ class elsciRLSearch:
         train_setup_info['training_action_cap'] = action_cap 
         # ----- State Adapter Choice
         adapter = train_setup_info["adapter_select"][0]
+        self.agent_adapter = agent_type+'_'+adapter
         # ----- Agent parameters
         agent_parameters = train_setup_info["agent_parameters"][agent_type]
         train_setup_info['agent_type'] = agent_type
@@ -180,24 +182,24 @@ class elsciRLSearch:
             sub_goal = None
             # ---------------------------
             if (instruction in self.instruction_results):
-                if (agent_type+'_'+adapter) in self.instruction_results[instruction]:
+                if (self.agent_adapter) in self.instruction_results[instruction]:
                     # We use feedback layer even if sub_goal not a good match
-                    feedback_layer = self.instruction_results[instruction][agent_type+'_'+adapter]['feedback_layer']
-                    if (self.instruction_results[instruction][agent_type+'_'+adapter]['sim_score']>=self.sim_threshold):
-                        sub_goal = self.instruction_results[instruction][agent_type+'_'+adapter]['sub_goal'][0]
-                        sub_goal_list = self.instruction_results[instruction][agent_type+'_'+adapter]['sub_goal']
-                        sim = self.instruction_results[instruction][agent_type+'_'+adapter]['sim_score']
+                    feedback_layer = self.instruction_results[instruction][self.agent_adapter]['feedback_layer']
+                    if (self.instruction_results[instruction][self.agent_adapter]['sim_score']>=self.sim_threshold):
+                        sub_goal = self.instruction_results[instruction][self.agent_adapter]['sub_goal'][0]
+                        sub_goal_list = self.instruction_results[instruction][self.agent_adapter]['sub_goal']
+                        sim = self.instruction_results[instruction][self.agent_adapter]['sim_score']
                 else:
-                    self.instruction_results[instruction][agent_type+'_'+adapter] = {}
+                    self.instruction_results[instruction][self.agent_adapter] = {}
                     feedback_layer = torch.zeros(instruction_vector.size()).to(device)
-                self.instruction_results[instruction][agent_type+'_'+adapter]['count'] = self.instruction_results[instruction][agent_type+'_'+adapter]['count']+1
+                self.instruction_results[instruction][self.agent_adapter]['count'] = self.instruction_results[instruction][self.agent_adapter]['count']+1
             else:
                 self.instruction_results[instruction] = {}    
-                self.instruction_results[instruction][agent_type+'_'+adapter] = {} 
-                self.instruction_results[instruction][agent_type+'_'+adapter]['count'] = 1
-                self.instruction_results[instruction][agent_type+'_'+adapter]['action_cap'] = action_cap
+                self.instruction_results[instruction][self.agent_adapter] = {} 
+                self.instruction_results[instruction][self.agent_adapter]['count'] = 1
+                self.instruction_results[instruction][self.agent_adapter]['action_cap'] = action_cap
                 feedback_layer = torch.zeros(instruction_vector.size()).to(device)
-                self.instruction_results[instruction][agent_type+'_'+adapter]['feedback_layer'] = feedback_layer
+                self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             # ---------------------------
             while not sub_goal:
                 # If no description -> no sub-goal (i.e. envs terminal goal position)
@@ -264,20 +266,108 @@ class elsciRLSearch:
                     sub_goal_list = ['']
                     break
 
-            if (agent_type+'_'+adapter) in self.instruction_results[instruction]:
-                self.instruction_results[instruction][agent_type+'_'+adapter]['sub_goal'] = sub_goal_list
-                self.instruction_results[instruction][agent_type+'_'+adapter]['sim_score'] = sim
-                self.instruction_results[instruction][agent_type+'_'+adapter]['feedback_layer'] = feedback_layer
+            if (self.agent_adapter) in self.instruction_results[instruction]:
+                self.instruction_results[instruction][self.agent_adapter]['sub_goal'] = sub_goal_list
+                self.instruction_results[instruction][self.agent_adapter]['sim_score'] = sim
+                self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             else:
-                self.instruction_results[instruction][agent_type+'_'+adapter] = {}
-                self.instruction_results[instruction][agent_type+'_'+adapter]['count'] = 1
-                self.instruction_results[instruction][agent_type+'_'+adapter]['action_cap'] = action_cap
-                self.instruction_results[instruction][agent_type+'_'+adapter]['sub_goal'] = sub_goal_list
-                self.instruction_results[instruction][agent_type+'_'+adapter]['sim_score'] = sim
-                self.instruction_results[instruction][agent_type+'_'+adapter]['feedback_layer'] = feedback_layer
+                self.instruction_results[instruction][self.agent_adapter] = {}
+                self.instruction_results[instruction][self.agent_adapter]['count'] = 1
+                self.instruction_results[instruction][self.agent_adapter]['action_cap'] = action_cap
+                self.instruction_results[instruction][self.agent_adapter]['sub_goal'] = sub_goal_list
+                self.instruction_results[instruction][self.agent_adapter]['sim_score'] = sim
+                self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
 
             best_match_results[instruction] = {}
             best_match_results[instruction]['sub_goal'] = self.observed_states[sub_goal]
             best_match_results[instruction]['best_match'] = sub_goal_max
                        
         return best_match_results, self.instruction_results
+    
+    def feedback(self, instruction:str, feedback_type:str='positive', feedback_increment:float=0.5,
+                 plot:bool=False):
+        # Update feedback layer to based on validation
+        # Get instruction vector
+        instruction_vector = self.enc.encode(instruction)
+        # Get sub-goal vector
+        sub_goal = self.instruction_results[instruction][self.agent_adapter]['sub_goal'][0]
+        sub_goal_t = self.enc.encode(sub_goal)
+        # Get feedback layer vector
+        feedback_layer = self.instruction_results[instruction][self.agent_adapter]['feedback_layer']
+
+        if feedback_type == 'positive':
+            for idx,instr_sentence in enumerate(instruction_vector):
+                feedback_layer_sent = feedback_layer[idx]
+                for sentence in sub_goal_t:
+                    feedback_layer[idx] = torch.add(feedback_layer_sent, feedback_increment*(torch.sub(instr_sentence, sentence))) 
+        elif feedback_type == 'negative':
+            for idx,instr_sentence in enumerate(instruction_vector):
+                feedback_layer_sent = feedback_layer[idx]
+                for sentence in sub_goal_t:
+                    feedback_layer[idx] = torch.sub(feedback_layer_sent, feedback_increment*(torch.sub(instr_sentence, sentence)))
+        else:
+            raise ValueError(f"Invalid feedback type: {feedback_type}")
+        
+        self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
+        
+        total_sim = 0
+        # Average sim across each sentence in instruction vs state
+        dim_count = 0
+        for idx,instr_sentence in enumerate(instruction_vector):
+            feedback_layer_sent = feedback_layer[idx]
+            for state_sentence in sub_goal_t:
+                total_sim+=self.cos(torch.add(state_sentence, feedback_layer_sent), instr_sentence)
+                dim_count+=1
+        sim = 0 if dim_count==0 else total_sim.item()/dim_count
+        sim_delta = abs(sim-self.instruction_results[instruction][self.agent_adapter]['sim_score'])
+        print(f"--- Change in sim results with {feedback_type} reinforcement of correct state match = {sim_delta:.2f}")
+        print(f"--- New Sim Value = {sim:.2f}") 
+
+        if plot:
+            return self.sim_plot(sim_delta, self.instruction_results[instruction][self.agent_adapter]['sim_score'], feedback_type)
+
+        self.instruction_results[instruction]['sim_score'] = sim
+        return sim_delta
+    
+    def sim_plot(self, sim_delta:float, sim:float, feedback_type:str='positive'):
+        # Plot sim delta and sim value
+
+        # Create arbitrary 2D vectors for visualization
+        instruction_vec = [1, 0]  # Unit vector along x-axis
+        
+        # Calculate predicted vector based on similarity (sim)
+        angle = torch.arccos(torch.tensor(sim)) # Convert sim to angle
+        pred_x = torch.cos(angle)
+        pred_y = torch.sin(angle)
+        pred_vec = [pred_x.item(), pred_y.item()]
+        
+        # Calculate updated vector after feedback
+        if feedback_type == 'positive':
+            # Move closer by sim_delta
+            new_angle = torch.arccos(torch.tensor(sim + sim_delta))
+        else:
+            # Move further by sim_delta 
+            new_angle = torch.arccos(torch.tensor(sim - sim_delta))
+            
+        new_x = torch.cos(new_angle)
+        new_y = torch.sin(new_angle)
+        new_vec = [new_x.item(), new_y.item()]
+
+        # Plot vectors
+        fig = plt.figure(figsize=(8,8))
+        plt.quiver(0, 0, instruction_vec[0], instruction_vec[1], angles='xy', scale_units='xy', scale=1, color='blue', label='Instruction')
+        plt.quiver(0, 0, pred_vec[0], pred_vec[1], angles='xy', scale_units='xy', scale=1, color='red', label='Initial Prediction')
+        plt.quiver(0, 0, new_vec[0], new_vec[1], angles='xy', scale_units='xy', scale=1, color='green', label='After Feedback')
+        
+        plt.xlim(-1.5, 1.5)
+        plt.ylim(-1.5, 1.5)
+        plt.grid(True)
+        plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+        plt.axvline(x=0, color='k', linestyle='-', alpha=0.3)
+        plt.title(f'Vector Similarity After {feedback_type.title()} Feedback\nUpdated Sim: {abs(sim+sim_delta):.2f}, Delta: {sim_delta:.2f}')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(self.save_dir+'/vector_similarity.png', dpi=100)
+        plt.close()
+
+        return fig
