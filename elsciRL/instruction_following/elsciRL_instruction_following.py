@@ -207,6 +207,8 @@ class elsciRLOptimize:
                             print("\n Agent + Adapter not used in instruction search, please select the search agent:")
                             print(agent_adapter_list)
                             agent_adapter_i = input("\t - Select the id number of the default search agent+adapter you wish to use:    ")
+                            if agent_adapter_i == '':
+                                agent_adapter_i = '0'
                         elif (i>1)&(agent_adapter_i is not None):
                             agent_adapter_i = agent_adapter_i
                         else:

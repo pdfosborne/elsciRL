@@ -339,14 +339,14 @@ class elsciRLSearch:
 
             if plot:
                 if plot_save_dir is not None:
-                    self.file_name = self.save_dir + '/' + plot_save_dir + '/feedbackplot__' + instruction + '.png'
+                    self.file_name = self.save_dir + '/' + plot_save_dir + '/feedbackplot__' + instruction[:4] + '.png'
                 else:
-                    self.file_name = self.save_dir + '/feedbackplot__'  + instruction + '.png'
+                    self.file_name = self.save_dir + '/feedbackplot__'  + instruction[:4] + '.png'
 
                 print(f"--- Plotting feedback for instruction: {instruction} to {self.file_name}")
                 return self.sim_plot(sim_delta, self.instruction_results[instruction][self.agent_adapter]['sim_score'], feedback_type)
 
-            self.instruction_results[instruction]['sim_score'] = sim
+            self.instruction_results[instruction][self.agent_adapter]['sim_score'] = sim
             sim_total_delta += sim_delta
 
         sim_delta_avg = sim_total_delta / len(instructions)
@@ -374,7 +374,7 @@ class elsciRLSearch:
         # Plot vectors
         fig = plt.figure(figsize=(8,8))
         plt.quiver(0, 0, instruction_vec[0], instruction_vec[1], angles='xy', scale_units='xy', scale=1, color='black', label='Instruction')
-        plt.quiver(0, 0, pred_vec[0], pred_vec[1], angles='xy', scale_units='xy', scale=1, linestyle='dashed', facecolor='none', linewidth=2,
+        plt.quiver(0, 0, pred_vec[0], pred_vec[1], angles='xy', scale_units='xy', scale=1, color='grey', linestyle='dashed', facecolor='none', linewidth=2,
           width=0.0001, headwidth=300, headlength=500, label='Initial Prediction')
         if sim_delta >= 0:
             plt.quiver(0, 0, new_vec[0], new_vec[1], angles='xy', scale_units='xy', scale=1, color='blue', label='After Feedback')

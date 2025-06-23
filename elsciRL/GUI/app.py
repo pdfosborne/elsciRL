@@ -396,9 +396,9 @@ class WebApp:
                                     self.validated_LLM_instructions = True
                             
                             if self.validated_LLM_instructions:
-                                feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.5, plot=False)
+                                feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=False)
                             else:
-                                feedback_update = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.5, plot=False)
+                                feedback_update = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.1, plot=False)
 
                             feedback_counter += 1
                             if feedback_counter > 10:
@@ -822,7 +822,7 @@ class WebApp:
                     print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                     return jsonify({'status': 'error', 'message': message}), 500
                 # Add feedback to the instruction results
-                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.5, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
@@ -838,7 +838,7 @@ class WebApp:
 
             # Add feedback to the instruction results
             if application in self.instruction_results:
-                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.5, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.1, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             
 
