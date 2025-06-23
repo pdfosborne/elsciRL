@@ -3,6 +3,8 @@ import os
 import urllib.request
 import json 
 import httpimport
+import subprocess
+import sys
 # Local imports
 from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.search_agent import DefaultAgentConfig
@@ -67,7 +69,26 @@ class PullApplications:
                                             'prerender_data_folder': self.imports[problem]['prerender_data_folder'],
                                             'prerender_data_filenames': self.imports[problem]['prerender_data_filenames']}}
 
-                self.current_test[problem]['engine'] = engine_module.Engine
+                try:
+                    self.current_test[problem]['engine'] = engine_module.Engine
+                except:
+                    print("Engine error, attempting to install requirements.")
+                    try:
+                        requirements = urllib.request.urlopen(root+'/'+'requirements.txt').read()
+                        # Install packages from requirements.txt
+                        requirements = requirements.decode('utf-8').split('\n')
+                        for req in requirements:
+                            if req.strip():  # Skip empty lines
+                                try:
+                                    subprocess.check_call([sys.executable, "-m", "pip", "install", req.strip()])
+                                    print(f"Successfully installed {req}")
+                                except subprocess.CalledProcessError:
+                                    print(f"Failed to install {req}")
+                        # Try importing engine again after installing requirements
+                        self.current_test[problem]['engine'] = engine_module.Engine
+                        print("Successfully loaded engine after installing requirements.")
+                    except:
+                        print("Failed to load engine and no requirements.txt found.")
             # ------------------------------------------------
             # - Pull Adapters, Configs and Analysis
             self.current_test[problem]['adapters'] = {}
