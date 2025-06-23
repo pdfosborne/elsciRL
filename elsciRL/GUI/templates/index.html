@@ -183,8 +183,8 @@
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
                 <div class="tab-text">
-                    See <a href="https://elsci.org">elsci.org</a> for more information 
-                    <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_v3_2trianglesLightCropped_transparent.png?raw=true" alt="elsciRL-Logo" style="width:20px;height:20px;"></a>  
+                    <!-- <a href="https://elsci.org">elsci.org</a> -->
+                    <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_v3_2trianglesLightCropped_transparent.png?raw=true" alt="elsciRL-Logo" style="width:30px;height:30px;"></a>  
                 </div>
             </div>
             <div id="homeTab" class="tab-content" style="display:block;">
@@ -871,9 +871,11 @@
             const localConfig = document.getElementById('localConfigSelect').value;
             const observedState = document.getElementById('observedStateSelect').value;
             const selectedPlot = document.getElementById('plotSelect').value;
-            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
-
             const trainingEpisodes = document.getElementById('trainingEpisodes').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
+            const llmModelSelect = document.getElementById('llmModelSelect').value;
+            const llmContextLength = document.getElementById('llmContextLength').value;
+            const llmNumInstructions = document.getElementById('llmNumInstructions').value;
 
             if (!selectedApp) {
                 alert('Please select an application');
@@ -897,8 +899,11 @@
                         observedStateInput: observedState,
                         localConfigInput: localConfig,
                         selectedPlot: selectedPlot,
-                        trainingEpisodes: document.getElementById('trainingEpisodes').value,
-                        enableLLMPlanner: enableLLMPlanner
+                        trainingEpisodes: trainingEpisodes,
+                        enableLLMPlanner: enableLLMPlanner,
+                        llmModelSelect: llmModelSelect,
+                        llmContextLength: llmContextLength,
+                        llmNumInstructions: llmNumInstructions
                     })
                 });
 

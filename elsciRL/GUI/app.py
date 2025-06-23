@@ -105,7 +105,6 @@ class WebApp:
 
         self.active_jobs = {}  # Stores job_id: {'queue': Queue, 'thread': Thread, 'status': str}
         self.job_results = {} # Stores job_id: results payload
-        self.render_image_cache = []
 
     def load_data(self):
         # Currently pulls all the available applications
@@ -229,7 +228,7 @@ class WebApp:
         enable_llm_planner = data.get('enableLLMPlanner', False)
         # Get user LLM settings from input
         llm_model_name = data.get('llmModelSelect', data.get('LLMModelName', 'llama3.2'))
-        llm_context_length = int(data.get('llmContextLength', data.get('LLMContextLength', 1000)))
+        llm_context_length = int(data.get('LLMContextLength', 1000))
         llm_num_instructions = int(data.get('llmNumInstructions', 1))
 
         # --- Add Problem info to input prompt ---
@@ -295,7 +294,7 @@ class WebApp:
                 if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
                     instruction_descriptions = llm_breakdown
                     instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
-                    print(f"LLM breakdown generated {len(instruction_descriptions)} instructions")
+                    print(f"LLM breakdown generated {len(instruction_descriptions)} instructions out of a possible {llm_num_instructions}")
                 else:
                     print("LLM breakdown failed or returned empty, using original input")
             except Exception as e:
@@ -343,24 +342,89 @@ class WebApp:
             with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)
 
-        best_match_dict, instruction_results_data = self.elsci_run.match(
-            action_cap=5,
-            instructions=instructions,
-            instr_descriptions=instruction_descriptions
-        )
-        results[application] = best_match_dict
-        if application not in self.instruction_results:
-            self.instruction_results[application] = {}
-        if enable_llm_planner:
-            self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
-        else:
-            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
+        # Match is completed then checked by LLM method
+        # If LLM method not selected then will only complete the match and allow user to confirm
+        feedback_counter = 0
+        self.validated_LLM_instructions = False 
+        while not self.validated_LLM_instructions:
+            best_match_dict, instruction_results_data = self.elsci_run.match(
+                action_cap=5,
+                instructions=instructions,
+                instr_descriptions=instruction_descriptions
+            )
+            results[application] = best_match_dict.copy()
+            if application not in self.instruction_results:
+                self.instruction_results[application] = {}
+            if enable_llm_planner:
+                self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
+            else:
+                self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
+                
+            try:       
+                for n, instr in enumerate(list(results[application].keys())):
+                    
+                    # LLM Validation checks all instructions to confirm they are complete
+                    if (self.LLM_INSTUCTION_PLANNER) and (self.LLM_validation is not None) and (results[application][instr] is not None):
+                        # Loop until instructions are validated positive
+                        try:
+                            validation_result = self.LLM_validation.validate_instruction_completion(
+                                instruction_descriptions[n], results[application][instr]['sub_goal']
+                                )
+                            instr_complete = validation_result['is_complete']
+                            confidence = validation_result['confidence']
+                            print("++++++++++++++++++++++++")
+                            print(validation_result)
+                            print(instr_complete)
+                            print("TYPE CHECK", type(instr_complete))
+                            print("++++++++++++++++++++++++")
+                            # TYPE CHECKING
+                            if isinstance(instr_complete, str):
+                                instr_complete = instr_complete.strip().lower() == 'true'
+                            if isinstance(confidence, str):
+                                try:
+                                    confidence = float(confidence)
+                                except ValueError:
+                                    print(f"Invalid confidence value: {confidence}, defaulting to 0.75")
+                                    confidence = 0.75
 
-        try:
-            console_output += f'<br><b>Results for {application}:</b><br>'
+                            # Check if instruction is complete
+                            if not instr_complete:
+                                if confidence > 0.5:
+                                    self.validated_LLM_instructions = False
+                                else:
+                                    print("Confidence too low, assuming instructions as valid")
+                                    self.validated_LLM_instructions = True
+                            
+                            if self.validated_LLM_instructions:
+                                feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.5, plot=False)
+                            else:
+                                feedback_update = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.5, plot=False)
 
-            self.validated_LLM_instructions = True            
-            for n, instr in enumerate(list(results[application].keys())):
+                            feedback_counter += 1
+                            if feedback_counter > 10:
+                                print("LLM validation failed after 10 attempts, assuming instructions as valid")
+                                self.validated_LLM_instructions = True
+                                break
+                        
+                            if abs(feedback_update)<=0.01:
+                                print("Feedback update is too small, assuming instructions as valid")
+                                self.validated_LLM_instructions = True
+                                break
+                            
+                        except Exception as e:
+                            print(f"Error in LLM validation, assuming instructions as valid: {e}")
+                            self.validated_LLM_instructions = True
+                    else:
+                        # If LLM validation is not enabled, default to user validation as first check
+                        self.validated_LLM_instructions = True
+
+            except Exception as e:
+                print(f"Error in process_input: {str(e)}")
+                raise
+
+        console_output += f'<br><b>Results for {application}:</b><br>'
+        for n, instr in enumerate(list(results[application].keys())):
+            try:
                 if results[application][instr] is None:
                     console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
                 else:
@@ -368,57 +432,20 @@ class WebApp:
 
                     engine_dummy = engine(local_config)
                     engine_dummy.reset() # Reset required by gym environments
+                    
                     instr_match_plot = engine_dummy.render(results[application][instr]['best_match'])
                     instr_match_plot_filename = f'current_state_plot_{n}.png'
                     instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
                     instr_match_plot.savefig(instr_match_plot_path)
-
+            
                     if os.path.exists(instr_match_plot_path):
                         print(f"Current state plot created successfully at {instr_match_plot_path}")
                         print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
                         match_plots.append(f'uploads/{instr_match_plot_filename}')
                     else:
                         print(f"Error: Current state plot not created at {instr_match_plot_path}")
-
-                # LLM Validation checks all instructions to confirm they are complete
-                if self.LLM_INSTUCTION_PLANNER and self.LLM_validation is not None and results[application][instr] is not None:
-                    # Loop until instructions are validated positive
-                    feedback_counter = 0
-                    while not self.validated_LLM_instructions:
-                        try:
-                            instr_complete = self.LLM_validation.validate_instruction_completion(
-                                instruction_descriptions[n], results[application][instr]['sub_goal']
-                                )['is_complete']
-                            
-                            # TODO: FOR NOW, AUTO ACCEPT PREDICTIONS OTHERWISE INSTR FOLLOWING WONT BE RUN
-                            if not instr_complete:
-                                self.validated_LLM_instructions = False
-                            
-                            if self.validated_LLM_instructions:
-                                feedback_plot = self.elsci_run.feedback(instruction_descriptions[n], feedback_type='positive', feedback_increment=0.5, plot=True)
-                            else:
-                                feedback_plot = self.elsci_run.feedback(instruction_descriptions[n], feedback_type='negative', feedback_increment=0.5, plot=True)
-
-                            match_plots.append(feedback_plot)
-                            feedback_counter += 1
-                            if feedback_counter > 5:
-                                print("LLM validation failed after 10 attempts, assuming instructions as valid")
-                                self.validated_LLM_instructions = True
-                                break
-                            
-                        except Exception as e:
-                            print(f"Error in LLM validation, assuming instructions as valid: {e}")
-                            self.validated_LLM_instructions = True
-
-                else:
-                    # If LLM validation is not enabled, assume instructions are valid
-                    self.validated_LLM_instructions = True
-
-                
-
-        except Exception as e:
-            print(f"Error in process_input: {str(e)}")
-            raise
+            except:
+                pass
 
         prerender_image = self.get_prerender_image(application)
 
@@ -570,7 +597,9 @@ class WebApp:
                 job_queue.put("EVENT: Training with instructions...")
                 if 'feedback_plot' in instruction_results_map:
                     job_queue.put(f"EVENT: Feedback plot found for {application}. Adding to results.")
-                    figures_to_display.append(self.instruction_results_validated[application]['feedback_plot'])
+                    figures_to_display.append(self.instruction_results_validated[application]['feedback_plot'].split('/')[-1])
+                    # Remove feedback plot before using rest of results for training process
+                    self.instruction_results_validated[application].pop('feedback_plot', None)
 
                 # Instruction keys can skip numbers which miss-aligns lookup of correct instructions from list
                 # TODO: Make self.correct_instructions a dictionary with keys as instr_key and values as instruction text
@@ -618,22 +647,20 @@ class WebApp:
                             render_results_dir_instr = os.path.join(instr_save_dir, 'Instr_Experiment', 'render_results')
                             if os.path.exists(render_results_dir_instr):
                                 for file_item in os.listdir(render_results_dir_instr):
-                                    if file_item not in self.render_image_cache:
-                                        self.render_image_cache.append(file_item)
-                                        if file_item.endswith('.gif'):
-                                            # Copy to uploads directory for web access
-                                            dest_filename = f'{instr_key}_{file_item}'
-                                            shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, dest_filename))
-                                            figures_to_display.append(f'uploads/{dest_filename}')
-                                            
-                                            # Send real-time figure update
-                                            figure_event = {
-                                                'figure_path': f'uploads/{dest_filename}',
-                                                'experiment_type': f'Instruction: {instr_text}',
-                                                'filename': dest_filename,
-                                                'timestamp': datetime.now().isoformat()
-                                            }
-                                            job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+                                    if file_item.endswith('.gif'):
+                                        # Copy to uploads directory for web access
+                                        dest_filename = f'{instr_key}_{file_item}'
+                                        shutil.copyfile(os.path.join(render_results_dir_instr, file_item), os.path.join(self.uploads_dir, dest_filename))
+                                        figures_to_display.append(f'uploads/{dest_filename}')
+                                        
+                                        # Send real-time figure update
+                                        figure_event = {
+                                            'figure_path': f'uploads/{dest_filename}',
+                                            'experiment_type': f'Instruction: {instr_text}',
+                                            'filename': dest_filename,
+                                            'timestamp': datetime.now().isoformat()
+                                        }
+                                        job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
 
                             job_queue.put(f"EVENT: Train complete for {instr_key}. Starting test.")
                             reinforced_experiment.test()
@@ -675,22 +702,20 @@ class WebApp:
                     render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
                     if os.path.exists(render_results_dir_std):
                         for file_item_std in os.listdir(render_results_dir_std):
-                            if file_item_std not in self.render_image_cache:
-                                self.render_image_cache.append(file_item_std)
-                                if file_item_std.endswith('.gif'):
-                                    # Copy to uploads directory for web access
-                                    dest_filename = f'no-instr_{file_item_std}'
-                                    shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
-                                    figures_to_display.append(f'uploads/{dest_filename}')
-                                    
-                                    # Send real-time figure update
-                                    figure_event = {
-                                        'figure_path': f'uploads/{dest_filename}',
-                                        'experiment_type': 'Standard (No Instruction)',
-                                        'filename': dest_filename,
-                                        'timestamp': datetime.now().isoformat()
-                                    }
-                                    job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
+                            if file_item_std.endswith('.gif'):
+                                # Copy to uploads directory for web access
+                                dest_filename = f'no-instr_{file_item_std}'
+                                shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
+                                figures_to_display.append(f'uploads/{dest_filename}')
+                                
+                                # Send real-time figure update
+                                figure_event = {
+                                    'figure_path': f'uploads/{dest_filename}',
+                                    'experiment_type': 'Standard (No Instruction)',
+                                    'filename': dest_filename,
+                                    'timestamp': datetime.now().isoformat()
+                                }
+                                job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
 
                     job_queue.put("EVENT: Standard train complete. Starting test.")
                     standard_experiment.test()
@@ -797,7 +822,7 @@ class WebApp:
                     print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                     return jsonify({'status': 'error', 'message': message}), 500
                 # Add feedback to the instruction results
-                feedback_plot = self.elsci_run.feedback(user_input, feedback_type='positive', feedback_increment=0.5, plot=True)
+                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.5, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
@@ -813,7 +838,7 @@ class WebApp:
 
             # Add feedback to the instruction results
             if application in self.instruction_results:
-                feedback_plot = self.elsci_run.feedback(user_input, feedback_type='negative', feedback_increment=0.5, plot=True)
+                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.5, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             
 

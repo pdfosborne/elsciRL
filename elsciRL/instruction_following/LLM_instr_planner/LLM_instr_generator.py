@@ -200,7 +200,7 @@ Provide your response as a numbered list of sub-goals."""
             # NOTE: HARD LIMIT ON NUMBER OF SUB-GOALS
             if max_subgoal is None or max_subgoal > len(sub_goals):
                 max_subgoal = len(sub_goals)
-            sub_goals = sub_goals[:max_subgoal+1]
+            sub_goals = sub_goals[:max_subgoal]
             
             return sub_goals if sub_goals else [f"Complete the task: {response[:self.context_length]}..."]
             
