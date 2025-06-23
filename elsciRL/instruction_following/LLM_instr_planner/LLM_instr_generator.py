@@ -197,6 +197,50 @@ Provide your response as a numbered list of sub-goals."""
                 potential_goals = [line.strip() for line in lines if line.strip()]
                 sub_goals = [goal for goal in potential_goals if len(goal) > 10]  # Filter out very short lines
 
+            # Filter out non-actionable sub-goals
+            actionable_sub_goals = []
+            for goal in sub_goals:
+                # Lowercase for easier matching
+                goal_lower = goal.lower()
+                # Filter out goals that are not actionable
+                if any(word in goal_lower for word in ['think', 'consider', 'assess', 'look around', 'determine', 'research', 'analyze', 'review', 'explore', 'investigate', 'identify', 'understand', 'examine', 'evaluate', 'plan', 'decide']):
+                    continue
+                actionable_sub_goals.append(goal)
+
+            # If we have more or fewer than max_subgoal, use LLM to summarise into exactly max_subgoal actionable steps
+            summarise_prompt = (
+                f"Given the following actionable sub-goals:\n"
+                + "\n".join([f"- {g}" for g in actionable_sub_goals])
+                + f"\n\nSummarise and combine them into exactly {max_subgoal} clear, actionable, and non-overlapping steps. "
+                    "Do not include any steps about thinking, assessing, looking around, or planning. "
+                    "Return only a numbered list of actionable steps."
+            )
+            try:
+                summary_response = self.chat(summarise_prompt)
+                actionable_sub_goals = []
+                lines = summary_response.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if re.match(r'^\d+\.', line):
+                        clean_goal = re.sub(r'^\d+\.\s*', '', line)
+                        if clean_goal:
+                            actionable_sub_goals.append(clean_goal.strip())
+                # If still not exactly max_subgoal, trim or pad
+                if len(actionable_sub_goals) > max_subgoal:
+                    actionable_sub_goals = actionable_sub_goals[:max_subgoal]
+                elif len(actionable_sub_goals) < max_subgoal:
+                    # Pad with generic actionable step if needed
+                    actionable_sub_goals += [f"Complete the task step {i+1}" for i in range(len(actionable_sub_goals), max_subgoal)]
+            except Exception as e:
+                logger.error(f"Error summarising sub-goals with LLM: {e}")
+                # Fallback: trim or pad
+                if len(actionable_sub_goals) > max_subgoal:
+                    actionable_sub_goals = actionable_sub_goals[:max_subgoal]
+                elif len(actionable_sub_goals) < max_subgoal:
+                    actionable_sub_goals += [f"Complete the task step {i+1}" for i in range(len(actionable_sub_goals), max_subgoal)]
+
+            sub_goals = actionable_sub_goals
+
             # NOTE: HARD LIMIT ON NUMBER OF SUB-GOALS
             if max_subgoal is None or max_subgoal > len(sub_goals):
                 max_subgoal = len(sub_goals)
