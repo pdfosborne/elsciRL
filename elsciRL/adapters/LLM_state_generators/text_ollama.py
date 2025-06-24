@@ -119,12 +119,13 @@ class OllamaAdapter(LLMAdapter):
                 self.state_history.append(str(state))
                 self.prior_action_count = len(episode_action_history)
         
+            context_parts.append(f"The current state to describe is: {str(state)}")
+
         # Add legal moves if provided
         # TODO: ADD ACTION MAPPER TO ALL ADAPTERS AS STANDARD FUNCTIONALITY
         if (legal_moves is not None) and (len(legal_moves) > 0):
             context_parts.append(f"Legal moves: {str(legal_moves)}")
         
-
         # Add action history if provided
         context_parts.append("The following is a history of the states and actions taken in the current episode.")
         if (episode_action_history is not None) and (len(episode_action_history) > 0):
@@ -133,9 +134,6 @@ class OllamaAdapter(LLMAdapter):
                 context_parts.append(f"Prior state {n}: {str(self.state_history[len(self.state_history)-len(recent_actions)-1+n])}")
                 context_parts.append(f"Action {n}: {str(prior_action)}")
         
-        if state:
-            context_parts.append(f"The current state to describe is: {str(state)}")
-
         # Combine all context into a single prompt
         full_prompt = " | ".join(context_parts)
         

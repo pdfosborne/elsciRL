@@ -55,10 +55,10 @@ class elsciRLSearch:
         self.context_length = context_length # Limit length of observed states
         self.enc = LanguageEncoder()
         self.sim_threshold: float = match_sim_threshold
-        self.cos = torch.nn.CosineSimilarity(dim=0)  
+        self.cos = torch.nn.CosineSimilarity(dim=1)  
 
         # Encode all observed states 
-        if self.observed_states & len(self.observed_states) > 0:
+        if (self.observed_states is not None) and (len(self.observed_states) > 0):
             str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
             self.str_states_encoded = self.enc.encode(str_states)
         
@@ -176,7 +176,7 @@ class elsciRLSearch:
             print(f"\nFinding match for instruction: {instruction}")
             
             if type(instr_description) == type(''):
-                instr_description = instr_description.split('.')
+                instr_description = instr_description
                 instr_description = list(filter(None, instr_description))
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
@@ -215,19 +215,12 @@ class elsciRLSearch:
                     max_sim = -1
                     # all states that are above threshold 
                     sub_goal_list = []
-                    for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states)):
+                    for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states), total=len(self.observed_states)):
                         #str_state = self.observed_states[obs_state][:self.context_length]
                         t_state = self.str_states_encoded[obs_state_idx] #self.enc.encode(str_state)
                         # ---
-                        total_sim = 0
-                        dim_count = 0 # For some reason encoder here is adding extra dimension                                        
-                        for idx,instr_sentence in enumerate(instruction_vector):
-                            feedback_layer_sent = feedback_layer[idx]
-                            for state_sentence in t_state:
-                                total_sim+=self.cos(torch.add(state_sentence, feedback_layer_sent), instr_sentence)
-                                dim_count+=1
+                        sim = self.cos(torch.add(t_state, feedback_layer), instruction_vector).mean()
                        
-                        sim = 0 if dim_count==0 else total_sim.item()/dim_count
                         if sim > max_sim:
                             max_sim  = sim
                             sub_goal_max = obs_state
@@ -245,19 +238,11 @@ class elsciRLSearch:
                         sub_goal = sub_goal_max
                         #sub_goal_t = sub_goal_max_t                                    
                         # Find all states that have same sim as max
-                        for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states)):
+                        for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states), total=len(self.observed_states)):
                             #str_state = self.observed_states[obs_state][:self.context_length]
                             t_state = self.str_states_encoded[obs_state_idx] #self.enc.encode(str_state)
                             # ---
-                            total_sim = 0
-                            # Average sim across each sentence in instruction vs state
-                            dim_count = 0
-                            for idx,instr_sentence in enumerate(instruction_vector):
-                                feedback_layer_sent = feedback_layer[idx]
-                                for state_sentence in t_state:
-                                    total_sim+=self.cos(torch.add(state_sentence, feedback_layer_sent), instr_sentence)
-                                    dim_count+=1
-                            sim = 0 if dim_count==0 else total_sim.item()/dim_count
+                            sim = self.cos(torch.add(t_state, feedback_layer), instruction_vector).mean()
                             if sim >= (max_sim):
                                 sub_goal_list.append(obs_state)
 
@@ -317,29 +302,17 @@ class elsciRLSearch:
             feedback_layer = self.instruction_results[instruction][self.agent_adapter]['feedback_layer']
 
             if feedback_type == 'positive':
-                for idx,instr_sentence in enumerate(instruction_vector):
-                    feedback_layer_sent = feedback_layer[idx]
-                    for sentence in sub_goal_t:
-                        feedback_layer[idx] = torch.add(feedback_layer_sent, feedback_increment*(torch.sub(instr_sentence, sentence))) 
+                # Positive feedback - add to feedback layer
+                feedback_layer = torch.add(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t))) 
             elif feedback_type == 'negative':
-                for idx,instr_sentence in enumerate(instruction_vector):
-                    feedback_layer_sent = feedback_layer[idx]
-                    for sentence in sub_goal_t:
-                        feedback_layer[idx] = torch.sub(feedback_layer_sent, feedback_increment*(torch.sub(instr_sentence, sentence)))
+                feedback_layer = torch.sub(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t)))
             else:
                 raise ValueError(f"Invalid feedback type: {feedback_type}")
             
             self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             
-            total_sim = 0
             # Average sim across each sentence in instruction vs state
-            dim_count = 0
-            for idx,instr_sentence in enumerate(instruction_vector):
-                feedback_layer_sent = feedback_layer[idx]
-                for state_sentence in sub_goal_t:
-                    total_sim+=self.cos(torch.add(state_sentence, feedback_layer_sent), instr_sentence)
-                    dim_count+=1
-            sim = 0 if dim_count==0 else total_sim.item()/dim_count
+            sim =self.cos(torch.add(sub_goal_t, feedback_layer), instruction_vector).mean()            
             sim_delta = sim-self.instruction_results[instruction][self.agent_adapter]['sim_score']
             print(f"--- Change in sim results with {feedback_type} reinforcement of correct state match = {sim_delta:.2f}")
             print(f"--- New Sim Value = {sim:.2f}") 
