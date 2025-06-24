@@ -849,7 +849,7 @@ class WebApp:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
                 print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                 return jsonify({'status': 'error', 'message': message}), 500
-            self.global_input_count = len(self.correct_instructions)+1
+            self.global_input_count = len(self.correct_instructions)
         else:
             self.incorrect_instructions.append(user_input)
             if enable_llm_planner:
