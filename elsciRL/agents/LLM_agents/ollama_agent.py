@@ -185,7 +185,8 @@ class LLMAgent(LLMAgentAbstract):
                     action_mapping = json.loads(action_mapping)
                     action_mapping = action_mapping['language']
                 except:
-                    action_mapping = action_mapping.split('"language":')[1]
+                    if '"language":' in action_mapping:
+                        action_mapping = action_mapping.split('"language":')[1]
                     if 'explanation' in action_mapping:
                         action_mapping = action_mapping.split('explanation')[0]
 
@@ -287,6 +288,9 @@ class LLMAgent(LLMAgentAbstract):
                 print('Action result not standard format.')
                 if '"explanation"' in content_action:
                     content_action = content_action.split('"explanation"')[0]
+                    content_action = content_action.replace('json','').strip()
+                if 'explanation' in content_action:
+                    content_action = content_action.split('explanation')[0]
                     content_action = content_action.replace('json','').strip()
             action = content_action
             if (action in legal_actions) and (action is not None):
