@@ -56,6 +56,11 @@ class elsciRLSearch:
         self.enc = LanguageEncoder()
         self.sim_threshold: float = match_sim_threshold
         self.cos = torch.nn.CosineSimilarity(dim=0)  
+
+        # Encode all observed states 
+        if self.observed_states & len(self.observed_states) > 0:
+            str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
+            self.str_states_encoded = self.enc.encode(str_states)
         
 
     def search(self, action_cap:int=100):
@@ -115,7 +120,9 @@ class elsciRLSearch:
         # Extract visited states from env
         self.observed_states = sample_env.elsciRL.observed_states
         # ---------------------------
-        
+        str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
+        self.str_states_encoded = self.enc.encode(str_states)
+                
         return self.observed_states
     
     def match(self, action_cap:int=5, instructions:list=[''], instr_descriptions:list=['']):
@@ -208,9 +215,9 @@ class elsciRLSearch:
                     max_sim = -1
                     # all states that are above threshold 
                     sub_goal_list = []
-                    for obs_state in tqdm(self.observed_states):
-                        str_state = self.observed_states[obs_state][:self.context_length]
-                        t_state = self.enc.encode(str_state)
+                    for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states)):
+                        #str_state = self.observed_states[obs_state][:self.context_length]
+                        t_state = self.str_states_encoded[obs_state_idx] #self.enc.encode(str_state)
                         # ---
                         total_sim = 0
                         dim_count = 0 # For some reason encoder here is adding extra dimension                                        
@@ -238,9 +245,9 @@ class elsciRLSearch:
                         sub_goal = sub_goal_max
                         #sub_goal_t = sub_goal_max_t                                    
                         # Find all states that have same sim as max
-                        for obs_state in tqdm(self.observed_states):
-                            str_state = self.observed_states[obs_state][:self.context_length]
-                            t_state = self.enc.encode(str_state)
+                        for obs_state_idx,obs_state in tqdm(enumerate(self.observed_states)):
+                            #str_state = self.observed_states[obs_state][:self.context_length]
+                            t_state = self.str_states_encoded[obs_state_idx] #self.enc.encode(str_state)
                             # ---
                             total_sim = 0
                             # Average sim across each sentence in instruction vs state

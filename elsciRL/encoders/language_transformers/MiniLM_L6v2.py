@@ -40,7 +40,7 @@ class LanguageEncoder(StateEncoder):
                 
         to_encode = [sent for sent in state if sent not in LanguageEncoder._cached_enc]
         if (to_encode):
-            encoded = self.sentence_model.encode(to_encode, convert_to_tensor=True, show_progress_bar = False)
+            encoded = self.sentence_model.encode(to_encode, batch_size=256, convert_to_tensor=True, show_progress_bar = False)
             LanguageEncoder._cached_enc.update({to_encode[i]: encoded[i] for i in range(len(to_encode))})
         
         LanguageEncoder._cached_freq.update(state)
