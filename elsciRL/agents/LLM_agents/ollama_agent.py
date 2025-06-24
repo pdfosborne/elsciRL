@@ -20,7 +20,9 @@ logger.setLevel(logging.INFO)
 
 
 class LLMAgent(LLMAgentAbstract):
-    def __init__(self, epsilon:float=0.2, epsilon_step:float=0.01, model_name: str = "llama3.2", system_prompt: str = None, context_length: int = 1000):
+    def __init__(self, epsilon:float=0.2, epsilon_step:float=0.01, model_name: str = "llama3.2", 
+                 system_prompt: str = None, context_length: int = 1000, previous_state_action_history_length: int = 10,
+                 action_language_mapping: bool = False):
         """
         Initialize the Ollama LLM model for policy-based action selection.
         
@@ -38,7 +40,6 @@ class LLMAgent(LLMAgentAbstract):
         
         # Set of actions that result in null outcome and so random is taken instead (all lowercase)
         self.null_actions = ['none', 'non', 'null', 'no', 'n', 'na', 'n/a']
-
         if not model_exists:
             logger.info(f"Model {model_name} not found locally. Please check your model name and try again.")
             print(f"\n ---- \n Available models: {[model['model'] for model in models['models']]}")
@@ -82,6 +83,7 @@ class LLMAgent(LLMAgentAbstract):
         self.epsilon = epsilon
         self.epsilon_step = epsilon_step
         self.epsilon_reset = epsilon
+        self.previous_state_action_history_length = previous_state_action_history_length
 
         # Diary is used to improve the LLM's decision making based on previous states, actions and rewards
         # TODO: RENAME THE TERM 'DIARY' TO SOMETHING BETTER BECAUSE LLM THINKS ITS WRITING AN ACTUAL DIARY
@@ -109,6 +111,22 @@ class LLMAgent(LLMAgentAbstract):
         # Initial empty value for trajectory history used by LLM to create diary
         self.state_action_history_current = ''
 
+        self.action_language_mapping = action_language_mapping
+        self.action_language_mapping_encoder = {}
+        self.action_language_mapping_decoder = {}
+        self.action_language_mapping_reset = True
+        self.action_language_mapping_system_prompt = """
+            You are a language mapping agent that maps a single action to a language that the LLM can understand.
+            You are given a list of actions and you need to map each action to a language that the LLM can understand.
+            The language should be a single phrase that is a common language that the LLM can understand.
+            You need to return a JSON object with the following structure:
+            {{
+                "action": "action",
+                "language": "language"
+            }}
+        """
+        self.action_language_mapping_system_prompt += f"Here is some information on the problem: {self.system_prompt}"
+
     def _LLM_prompt_adjustment(self, state_action_history: str) -> str:
         """
         Adjust the prompt to be more suitable for the LLM based on states, actions and outcomes.
@@ -117,7 +135,7 @@ class LLMAgent(LLMAgentAbstract):
         diary = f"""
                 Previous log: {self.diary}
 
-                State action history with rewards: {state_action_history}
+                State action history with rewards: {str(state_action_history.split('.')[-self.previous_state_action_history_length:])}
 
                 Please write or update the log entry based on the knowledge obtained from the states, actions and rewards to maximise the reward obtained.
             """
@@ -134,6 +152,63 @@ class LLMAgent(LLMAgentAbstract):
         self.diary = response['message']['content']
 
         return self.diary
+    
+    def _action_language_mapping(self, state:str, legal_actions:list[str], state_action_history:str) -> str:
+        """
+        Map the action to a language that the LLM can understand.
+        """
+        
+        # Use previous state action history if available and long enough
+        if (state_action_history) and (len(state_action_history.split('.')) >= self.previous_state_action_history_length):
+            action_mapping_system_prompt = self.action_language_mapping_system_prompt + f"""Here is the a recent history of states, actions and resulting outcome states, use this to understand the problem:
+                {str(state_action_history.split('.')[-self.previous_state_action_history_length:])}"""
+            # Reset knowledge after first time it is available
+            if self.action_language_mapping_reset:
+                print(f"----> Using previous state action history, action language mapping knowledge reset.")
+                self.action_language_mapping_reset = False
+                self.action_language_mapping_encoder = {}
+                self.action_language_mapping_decoder = {}
+        else:
+            action_mapping_system_prompt = self.action_language_mapping_system_prompt
+        # ------------------------------------------------------------
+        legal_actions_mapped = []
+        for action in legal_actions:
+            if action not in self.action_language_mapping_encoder:
+                # Convert action to language
+                action_mapping = ollama.chat(
+                    model=self.model_name,
+                    messages=[{'role': 'system', 'content': action_mapping_system_prompt},
+                            {'role': 'user', 'content': str(action)}]
+                )['message']['content']
+                try:
+                    # Convert to JSON object
+                    action_mapping = json.loads(action_mapping)
+                    action_mapping = action_mapping['language']
+                except:
+                    action_mapping = action_mapping.split('"language":')[1]
+                    if 'explanation' in action_mapping:
+                        action_mapping = action_mapping.split('explanation')[0]
+
+                # Remove all special characters from action mapping
+                action_mapping = action_mapping.replace('json','').replace('thinking','').replace('think','')
+                action_mapping = action_mapping.translate(str.maketrans(' ', ' ', string.punctuation))
+                action_mapping = action_mapping.replace('"', '').replace('\n', '').replace('\\n','').replace('\\', '')
+                action_mapping = action_mapping.replace('  ', ' ').replace('   ', ' ').replace('    ', ' ')
+                action_mapping = action_mapping.strip()
+                action_mapping = action_mapping.lower()
+                # Use original action in mapping as fallback incase mapping is poor
+                action_mapping = 'Original action code was [' + str(action) + '], mapped to language is [' + action_mapping + ']'
+                # Store action mapping
+                self.action_language_mapping_encoder[action] = action_mapping
+                # Decoder used to convert language back to action
+                self.action_language_mapping_decoder[action_mapping] = action
+                print(f"----> Mapped action {action} to language {action_mapping}")
+                legal_actions_mapped.append(action_mapping)
+            else:
+                # If action already mapped, use existing mapping
+                legal_actions_mapped.append(self.action_language_mapping_encoder[action])
+
+        return legal_actions_mapped
 
     def save(self) -> dict:
         return self.model
@@ -167,6 +242,10 @@ class LLMAgent(LLMAgentAbstract):
                 if self.epsilon < 0:
                     self.epsilon = 0         
         else:
+            if self.action_language_mapping:
+                print(f"----> Action language mapping enabled, mapping actions to language.")
+                legal_actions = self._action_language_mapping(state, legal_actions, self.state_action_history_current)
+
             prompt = f"""
                         Current state: {state}
                         
@@ -217,7 +296,7 @@ class LLMAgent(LLMAgentAbstract):
                 print(f"Action {action} not in legal actions, trying to find best match.")
                 # 1. Check if action is a cross-reference to legal actions
                 cross_reference = False
-                for term in content_action.split(' '):
+                for term in action.split(' '):
                     if term.strip() in legal_actions:
                         action = term.strip()
                         cross_reference = True
@@ -229,7 +308,7 @@ class LLMAgent(LLMAgentAbstract):
                     # 2. CHECK IF LEGAL ACTION IN ACTION TEXT
                     action_match_found = False
                     for legal_a in legal_actions:
-                        if str(legal_a) in content:
+                        if str(legal_a) in action:
                             print(f"Action {action} found in legal moves as {legal_a}.")
                             action = legal_a
                             action_match_found = True
@@ -263,9 +342,11 @@ class LLMAgent(LLMAgentAbstract):
                     else:
                         print(f"Null action taken: {action} - using random instead.")
                         action = random.choice(legal_actions)
-            # except Exception as e:
-            #     action = random.choice(legal_actions)
-            #     logger.error(f"Error getting LLM action: {e}, using random choice: {action}")
+            
+            # Convert action back to language if action language mapping is enabled
+            if self.action_language_mapping:
+                action = self.action_language_mapping_decoder[action]
+
         return action
 
     # We now break agent into a policy choice, action is taken in game_env then next state is used in learning function

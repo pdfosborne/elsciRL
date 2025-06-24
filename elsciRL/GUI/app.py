@@ -89,6 +89,8 @@ class WebApp:
                     "model_name": {"label": "Model Name", "type": "text", "default": "qwen3:0.6b"},
                     "context_length":{"label": "Context Length", "type": "text", "default":"1000"},
                     "system_prompt": {"label": "System Prompt", "type": "textarea", "rows": 4, "placeholder": "Enter system prompt...", "default": ""},
+                    "previous_state_action_history_length": {"label": "Previous State Action History Length", "type": "number", "min": 1, "step": 1, "default": 10},
+                    "action_language_mapping": {"label": "Action Mapping", "type": "checkbox", "default": False}
                 }
             },
             # Add other agents like DQN, SB3_DQN, SB3_PPO, SB3_A2C here if they are re-enabled
@@ -563,14 +565,33 @@ class WebApp:
             local_config['model_name'] = adapter_LLM_model
 
             if 'LLM_Ollama' in selected_agents:
+                LLM_Ollama_action_mapping = data.get('LLM_Ollama_action_language_mapping', False)
                 if 'LLM_Ollama' not in ExperimentConfig['agent_parameters']:
                     ExperimentConfig['agent_parameters']['LLM_Ollama'] = {}
                 ExperimentConfig['agent_parameters']['LLM_Ollama'].update({
                     "epsilon": float(data.get('LLM_Ollama_epsilon', 0.2)),
                     'model_name': str(data.get('LLM_Ollama_model_name', 'llama3.2')).lower(),
                     'context_length': int(data.get('LLM_Ollama_context_length', '1000')),
-                    'system_prompt': str(data.get('LLM_Ollama_system_prompt', ''))
+                    'system_prompt': str(data.get('LLM_Ollama_system_prompt', '')),
+                    'previous_state_action_history_length': int(data.get('LLM_Ollama_previous_state_action_history_length', 10)),
+                    'action_language_mapping': LLM_Ollama_action_mapping
                 })
+
+                if LLM_Ollama_action_mapping:
+                    # Add engine source code to Agent's system prompt
+                    try:
+                        source = self.pull_app_data[application]['source']
+                        root_url = list(source.keys())[0]
+                        engine_folder = source[root_url]['engine_folder']
+                        engine_filename = source[root_url]['engine_filename']
+
+                        # Get the engine source code as text from the URL
+                        engine_url = f"{root_url.rstrip('/')}/{engine_folder.strip('/')}/{engine_filename}.py"
+                        response = requests.get(engine_url)
+                        engine_source_code = response.text
+                        ExperimentConfig['agent_parameters']['LLM_Ollama']['system_prompt'] += f"\n Engine source code:\n{engine_source_code}...\n" 
+                    except Exception as e:
+                        print(f"Error fetching engine source code from {root_url}: {e}")
 
             selected_adapters = data.get('selectedAdapters', [])
             agent_adapter_dict = data.get('agent_adapter_dict', {})
