@@ -89,7 +89,8 @@ class OllamaAdapter(LLMAdapter):
     def process_ollama_response(self, response):
         """Process the response from Ollama API."""
         if response and 'message' in response:
-            return response['message']['content']
+            output_response = response['message']['content'].split('\n')[-1].strip()
+            return output_response
         return None
 
     def adapter(self, state: any, legal_moves: list = None, episode_action_history: list = None, encode: bool = True, indexed: bool = False) -> Tensor:

@@ -185,18 +185,8 @@ class LLMAgent(LLMAgentAbstract):
                     action_mapping = json.loads(action_mapping)
                     action_mapping = action_mapping['language']
                 except:
-                    if '"language":' in action_mapping:
-                        action_mapping = action_mapping.split('"language":')[1]
-                    if 'explanation' in action_mapping:
-                        action_mapping = action_mapping.split('explanation')[0]
-
-                # Remove all special characters from action mapping
-                action_mapping = action_mapping.replace('json','').replace('thinking','').replace('think','')
-                action_mapping = action_mapping.translate(str.maketrans(' ', ' ', string.punctuation))
-                action_mapping = action_mapping.replace('"', '').replace('\n', '').replace('\\n','').replace('\\', '')
-                action_mapping = action_mapping.replace('  ', ' ').replace('   ', ' ').replace('    ', ' ')
-                action_mapping = action_mapping.strip()
-                action_mapping = action_mapping.lower()
+                    pass
+                action_mapping = action_mapping.split('\n')[-1].strip()  # Take last line of response
                 # Use original action in mapping as fallback incase mapping is poor
                 action_mapping = 'Original action code was [' + str(action) + '], mapped to language is [' + action_mapping + ']'
                 # Store action mapping
@@ -272,29 +262,11 @@ class LLMAgent(LLMAgentAbstract):
             
             # Result not always ending content with brackets
             # - limit output length to save time, use end of content as action is usually given at the end
-            content = response['message']['content'].strip().replace('json','').replace('\n', ' ').replace('```', ' ')
+            action = response['message']['content'].split('\n')[-1].strip()
             print("\n ----------------------------------------------------")
-            # Try to parse as JSON object
-            try:
-                content_split = content.split('"action":')
-                content_action = content_split[1].strip().replace(':', '').replace('\"', ' ').replace('\'', ' ').replace('"','').translate(str.maketrans(' ', ' ', string.punctuation))
-                for term in content_action.split(' '):
-                    if term.strip() in legal_actions:
-                        content_action = term.strip()
-                        break
-            except:
-                content_action = content.strip().replace('\n', ' ').replace('```', ' ').replace('\"', ' ').replace('\'', ' ').translate(str.maketrans(' ', ' ', string.punctuation))
-                content_action = content_action.replace('  ', ' ')
-                print('Action result not standard format.')
-                if '"explanation"' in content_action:
-                    content_action = content_action.split('"explanation"')[0]
-                    content_action = content_action.replace('json','').strip()
-                if 'explanation' in content_action:
-                    content_action = content_action.split('explanation')[0]
-                    content_action = content_action.replace('json','').strip()
-            action = content_action
+            # Validate Action against Legal Actions
             if (action in legal_actions) and (action is not None):
-                print(f"LLM response content: {content_action} in LEGAL ACTIONS")
+                print(f"LLM response content: {action} in LEGAL ACTIONS")
                 action = action
             else:
                 print(f"Action {action} not in legal actions, trying to find best match.")
@@ -307,8 +279,6 @@ class LLMAgent(LLMAgentAbstract):
                         break
 
                 if cross_reference is False:
-                    action = content.strip().replace('\n', ' ').replace('```', ' ').replace('\"', ' ').replace('\'', ' ').translate(str.maketrans(' ', ' ', string.punctuation))
-                    action = action.replace('  ', ' ')
                     # 2. CHECK IF LEGAL ACTION IN ACTION TEXT
                     action_match_found = False
                     for legal_a in legal_actions:
