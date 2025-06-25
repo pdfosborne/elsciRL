@@ -89,7 +89,7 @@ class OllamaAdapter(LLMAdapter):
     def process_ollama_response(self, response):
         """Process the response from Ollama API."""
         if response and 'message' in response:
-            output_response = response['message']['content'].split('\n')[-1].strip()
+            output_response = response['message']['content']
             return output_response
         return None
 
