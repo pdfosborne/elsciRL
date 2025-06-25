@@ -29,6 +29,7 @@ class elsciRLInfo:
         """Tracks adapted form of state from engine observation for unsupervised approaches."""
         if engine_observation not in self.observed_states:
             self.observed_states[engine_observation] = language_state
+        return self.observed_states
 
     def experience_sampling_add(
         self,

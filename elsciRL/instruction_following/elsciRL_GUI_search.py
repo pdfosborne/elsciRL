@@ -4,7 +4,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
-from elsciRL.interaction_loops.state_search import StateSearchInteractionLoop
+from elsciRL.interaction_loops.state_search import episode_loop
+from joblib import Parallel, delayed, cpu_count
 # ------ Agent Imports -----------------------------------------
 from elsciRL.agents.table_q_agent import TableQLearningAgent
 from elsciRL.agents.DQN import DQNAgent
@@ -37,7 +38,7 @@ class elsciRLSearch:
         
         self.engine = Engine
         self.adapters = Adapters
-        self.env = StateSearchInteractionLoop
+        self.env = StandardInteractionLoop
         self.setup_info:dict = self.ExperimentConfig | self.ProblemConfig  
         self.training_setups: dict = {}
         self.instruction_results:dict = {}
@@ -114,12 +115,16 @@ class elsciRLSearch:
         # Environment now init here and called directly in experimental setup loop
         # - setup elsciRL info
         # Train on Live system for limited number of total episodes
-        explore_results = sample_env.episode_loop()
-        train_setup_info['training_results'] = explore_results
-        train_setup_info['observed_states'] = sample_env.elsciRL.observed_states
-        train_setup_info['experience_sampling'] = sample_env.elsciRL.experience_sampling
+        # Parallel processing for faster episode runs
+        parallel = Parallel(n_jobs=cpu_count(True), prefer="processes", verbose=0)
+        self.observed_states =  parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
+                                                                local_setup_info=train_setup_info, 
+                                                                number_episodes=10) for i in range(int(self.number_exploration_episodes/10)))[0]
+
+        train_setup_info['training_results'] = None
+        train_setup_info['observed_states'] = self.observed_states
+        train_setup_info['experience_sampling'] = None
         # Extract visited states from env
-        self.observed_states = sample_env.elsciRL.observed_states
         # ---------------------------
         str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
         self.str_states_encoded = self.enc.encode(str_states)
