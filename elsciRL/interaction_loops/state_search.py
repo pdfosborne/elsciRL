@@ -147,8 +147,5 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
                 agent_results[0],
                 agent_results[1],
             )
-        # Check if action language mapping is working
-        if agent_type.split("_")[0] == "LLM":
-            print(f"\n ++++++++++++ \n Action language mapping knowledge: {agent.action_language_mapping_encoder}")
     # Output GIF image of all episode frames
     return observed_states
