@@ -3,10 +3,16 @@ from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.import_tool import PullApplications
 
 # Get search method
+from elsciRL.experiments.archive import observed_states
 from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
 import os
 import json
+import torch
+from torch import Tensor
 from datetime import datetime
+
+# Get language encoder
+from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
 
 class Prerender:
     def __init__(self) -> None:
@@ -17,62 +23,65 @@ class Prerender:
         self.pull_app_data = pull_data.pull(problem_selection=self.possible_applications)
         self.ExperimentConfig = pull_data.setup()
 
-        
 
     def get_observed_states(self, engine, 
-                            selected_application:str='', selected_config:str='', selected_adapter:list=[''],
-                            local_config:dict={}, 
-                            adapters:dict={},  
-                            num_explor_episodes:int=1000):
+            selected_application:str='', selected_config:str='', selected_adapter:list=[''],
+            local_config:dict={}, 
+            adapters:dict={},  
+            num_explor_episodes:int=1000):
             
-            # Search Save Directory
-            if not os.path.exists('./prerender-data'):
-                os.mkdir('./prerender-data')
+        # Search Save Directory
+        if not os.path.exists('./prerender-data'):
+            os.mkdir('./prerender-data')
                             
-            time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            save_dir = './prerender-data/' #+ str('search') + '_' + time
-            if not os.path.exists(save_dir):                
-                os.mkdir(save_dir)
-            # UPDATE EXPERIMENT CONFIG FOR SEARCH
-            # - only use q learn tab agent
-            selected_agents =  ['Qlearntab']
-            self.ExperimentConfig.update({
-                'number_training_episodes': int(num_explor_episodes),
-                'agent_select': selected_agents         
-            })
-            local_config.update({   
-                'adapter_select': selected_adapter    
-            })
+        time = datetime.now().strftime("%d-%m-%Y_%H-%M")
+        save_dir = './prerender-data/' #+ str('search') + '_' + time
+        if not os.path.exists(save_dir):                
+            os.mkdir(save_dir)
+        # UPDATE EXPERIMENT CONFIG FOR SEARCH
+        # - only use q learn tab agent
+        selected_agents =  ['Qlearntab']
+        self.ExperimentConfig.update({
+            'number_training_episodes': int(num_explor_episodes),
+            'agent_select': selected_agents         
+        })
+        local_config.update({   
+            'adapter_select': selected_adapter    
+        })
 
-            elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                        LocalConfig=local_config,
-                                        Engine=engine, Adapters=adapters,
-                                        save_dir=save_dir,
-                                        number_exploration_episodes=num_explor_episodes,
-                                        match_sim_threshold=0.9,
-                                        observed_states=None)
-            observed_states = elsci_run.search()
-            print(f"\nNumber of observed states: {len(observed_states)}")
-            # Create save directory structure if not exists
-            if not os.path.exists(save_dir):
-                os.mkdir(save_dir)
+        elsci_run = elsci_search(Config=self.ExperimentConfig,
+                                    LocalConfig=local_config,
+                                    Engine=engine, Adapters=adapters,
+                                    save_dir=save_dir,
+                                    number_exploration_episodes=num_explor_episodes,
+                                    match_sim_threshold=0.9,
+                                    observed_states=None)
+        observed_states = elsci_run.search()
+        print(f"\nNumber of observed states: {len(observed_states)}")
+        # Create save directory structure if not exists
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
 
-            if not os.path.exists(os.path.join(save_dir, selected_application)):
-                os.mkdir(os.path.join(save_dir, selected_application))
+        if not os.path.exists(os.path.join(save_dir, selected_application)):
+            os.mkdir(os.path.join(save_dir, selected_application))
 
-            if not os.path.exists(os.path.join(save_dir, selected_application, selected_adapter[0])):
-                os.mkdir(os.path.join(save_dir, selected_application, selected_adapter[0]))
-            # Add problem name to save_dir
-            save_dir = os.path.join(save_dir, selected_application, selected_adapter[0])
+        if not os.path.exists(os.path.join(save_dir, selected_application, selected_adapter[0])):
+            os.mkdir(os.path.join(save_dir, selected_application, selected_adapter[0]))
+        # Add problem name to save_dir
+        save_dir = os.path.join(save_dir, selected_application, selected_adapter[0])
 
 
-            # Update file name to include problem name, number of episodes, and timestamp
-            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
-            file_path = os.path.join(save_dir, file_name)
+        # Update file name to include problem name, number of episodes, and timestamp
+        file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
+        file_path = os.path.join(save_dir, file_name)
 
-            # Save observed states only
-            with open(file_path, 'w') as f:
-                json.dump(observed_states, f)
+        # Save observed states only
+        with open(file_path, 'w') as f:
+            json.dump(observed_states, f)
+            f.close()
+        
+        return observed_states
+            
 
 
     def run(self):
@@ -117,8 +126,72 @@ class Prerender:
         print(f"-- Number of exploration episodes: {num_explor_episodes}")
         print("--------------------------------")
 
-        self.get_observed_states(engine, 
+        self.observed_states = self.get_observed_states(engine, 
                                 selected_application, config_input, selected_adapter,
                                 local_config, 
                                 adapters, 
                                 num_explor_episodes)
+        
+    def encode_prerender_data(observed_states:dict|str=None,
+                        directory_search:bool=False,
+                        save_dir:str=None,
+                        encoder:str ='MiniLM_L6v2') -> Tensor:
+        """    Encodes the observed states using a language encoder.
+        Args:
+            observed_states (dict or str): The observed states to encode, can be the dictionary or the directory path string.
+            directory_search (bool): Whether to search for the observed states in a directory. Defaults to False.
+            save_dir (str): The directory where the encoded states will be saved. If None, defaults to './encoded-prerender-data'.
+            encoder (str): The name of the encoder to use. Defaults to 'MiniLM_L6v2', options include:
+                - 'MiniLM_L6v2': A lightweight language model suitable for encoding text.
+                - ~~Other encoders can be added in the future.~~
+        Returns:
+            Tensor: The encoded representation of the observed states.
+        """
+        # ------------------------------------------------------------------
+        # Define the available encoders
+        # Currently only MiniLM_L6v2 is available, but can be extended in the future.
+        ENCODERS = {'MiniLM_L6v2': MiniLM_L6v2}
+        encoder = ENCODERS[encoder]()
+        # ------------------------------------------------------------------
+        if observed_states is None:
+            if (self.observed_states is not None) and (not directory_search):
+                observed_states = self.observed_states
+            else:
+                print("\n ----------------------------------------------------")
+                print(" No observed states provided. Please select a file to encode.")
+                print(" ----------------------------------------------------\n")
+                file_names = [file for file in os.listdir('./') if file.endswith('.txt')]
+                for n, file in enumerate(file_names):
+                    print(f"- {n}: {file}")
+                selection = input("\n Select the file to encode (by number): ")
+                observed_states_filename = file_names[int(selection)]
+                observed_states_path = os.path.join('./', observed_states_filename)
+                with open(observed_states_path, 'r') as f:
+                    observed_states = json.loads(f.read())
+
+                save_dir = './encoded-prerender-data'
+        else:
+            if isinstance(observed_states, str):
+                observed_states_filename = observed_states.split('/')[-1].split('.')[0]
+                if not save_dir:
+                    save_dir = os.path.dirname(observed_states)
+                with open(observed_states, 'r') as f:
+                    observed_states = json.loads(f.read())
+            else:
+                observed_states_filename = 'observed_states'
+                if not save_dir:
+                    save_dir = './encoded-prerender-data'
+
+        # Encode the observed states
+        print(f"\n Encoding observed state file {observed_states_filename} using {encoder.name}...")
+        str_states = [str_state for str_state in observed_states.values()]
+        observed_states_encoded = encoder.encode(str_states)
+
+
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.pt')
+        torch.save(observed_states_encoded, file_path)
+        print(f"Encoded states saved to {file_path}")
+
+        return observed_states_encoded
