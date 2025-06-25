@@ -126,10 +126,8 @@ class elsciRLSearch:
         if self.observed_states is None:
             self.observed_states = {}
         for batch in observed_state_output:
-            for key, value in batch.items():
-                if key not in self.observed_states:
-                    self.observed_states[key] = value
-                    
+            self.observed_states.update(batch)
+
         train_setup_info['training_results'] = None
         train_setup_info['observed_states'] = self.observed_states
         train_setup_info['experience_sampling'] = None
