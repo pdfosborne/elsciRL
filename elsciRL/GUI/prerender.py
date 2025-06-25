@@ -156,6 +156,7 @@ class Prerender:
         if observed_states is None:
             if (self.observed_states is not None) and (not directory_search):
                 observed_states = self.observed_states
+                save_dir  = './prerender-data/encoded-prerender-data'
             else:
                 print("\n ----------------------------------------------------")
                 print(" No observed states provided. Please select a file to encode.")
@@ -168,7 +169,6 @@ class Prerender:
                 observed_states_path = os.path.join('./', observed_states_filename)
                 with open(observed_states_path, 'r') as f:
                     observed_states = json.loads(f.read())
-
                 save_dir = './encoded-prerender-data'
         else:
             if isinstance(observed_states, str):
