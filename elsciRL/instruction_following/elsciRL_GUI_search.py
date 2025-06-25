@@ -133,8 +133,6 @@ class elsciRLSearch:
         train_setup_info['experience_sampling'] = None
         # Extract visited states from env
         # ---------------------------
-        str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
-        self.str_states_encoded = self.enc.encode(str_states)
                 
         return self.observed_states
     

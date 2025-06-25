@@ -80,7 +80,7 @@ class Prerender:
             json.dump(observed_states, f)
             f.close()
         
-        return observed_states
+        return observed_states, file_name
             
 
 
@@ -126,13 +126,13 @@ class Prerender:
         print(f"-- Number of exploration episodes: {num_explor_episodes}")
         print("--------------------------------")
 
-        self.observed_states = self.get_observed_states(engine, 
+        self.observed_states, self.observed_states_file_name = self.get_observed_states(engine, 
                                 selected_application, config_input, selected_adapter,
                                 local_config, 
                                 adapters, 
                                 num_explor_episodes)
         
-    def encode(observed_states:dict|str=None,
+    def encode(self, observed_states:dict|str=None,
                         directory_search:bool=False,
                         save_dir:str=None,
                         encoder:str ='MiniLM_L6v2') -> Tensor:
@@ -157,6 +157,7 @@ class Prerender:
             if (self.observed_states is not None) and (not directory_search):
                 observed_states = self.observed_states
                 save_dir  = './prerender-data/encoded-prerender-data'
+                observed_states_filename = self.observed_states_file_name
             else:
                 print("\n ----------------------------------------------------")
                 print(" No observed states provided. Please select a file to encode.")
