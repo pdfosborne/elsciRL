@@ -11,7 +11,7 @@ from elsciRL.environment_setup.results_table import ResultsTable
 from elsciRL.environment_setup.elsciRL_info import elsciRLInfo
 
 
-def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes: int = 1000):
+def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes: int = 1000, batch_number: int = 0):
     # --- INIT state space from engine
     agent_adapter_name = local_setup_info['agent_type'] + "_" + local_setup_info['adapter_select']
     engine = Engine(local_setup_info)
@@ -45,8 +45,7 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
     elsciRL = elsciRLInfo(observed_states)
     # RENDER AND SUB-GOALS REMOVED COMPLETELY SO SAVE RUN-TIME
     
-    print("\n Episode Interaction Loop: ")
-    for episode in tqdm(range(0, number_episodes)):
+    for episode in (range(0, number_episodes)):
         action_history = []
         # ---
         # Start observation is used instead of .reset()  fn so that this can be overridden for repeat analysis from the same start pos

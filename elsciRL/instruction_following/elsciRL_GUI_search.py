@@ -119,9 +119,11 @@ class elsciRLSearch:
         parallel = Parallel(n_jobs=cpu_count(True), prefer="processes", verbose=0)
         number_episodes_per_parallel = 100
         number_parallel_batches = int(self.number_exploration_episodes / number_episodes_per_parallel) if self.number_exploration_episodes > number_episodes_per_parallel else 1
-        self.observed_states =  parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
+        self.observed_states = {}
+        self.observed_states =  self.observed_states | parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
                                                                 local_setup_info=train_setup_info, 
-                                                                number_episodes=number_episodes_per_parallel) for i in range(number_parallel_batches))[0]
+                                                                number_episodes=number_episodes_per_parallel,
+                                                                batch_number=i) for i in tqdm(range(number_parallel_batches)))[0]
 
         train_setup_info['training_results'] = None
         train_setup_info['observed_states'] = self.observed_states

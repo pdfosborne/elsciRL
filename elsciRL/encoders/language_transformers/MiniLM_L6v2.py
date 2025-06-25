@@ -11,6 +11,8 @@ from elsciRL.encoders.encoder_abstract import StateEncoder
 # Language Encoder
 from sentence_transformers import SentenceTransformer
 
+
+
 class LanguageEncoder(StateEncoder):
     """Required Language Model included in requisite packages."""
     _cached_enc: Dict[str, Tensor] = dict()
@@ -40,7 +42,8 @@ class LanguageEncoder(StateEncoder):
                 
         to_encode = [sent for sent in state if sent not in LanguageEncoder._cached_enc]
         if (to_encode):
-            encoded = self.sentence_model.encode(to_encode, batch_size=256, convert_to_tensor=True, show_progress_bar = False)
+            # Show progress bar if state is a list of strings
+            encoded = self.sentence_model.encode(to_encode, batch_size=256, convert_to_tensor=True, show_progress_bar=False)
             LanguageEncoder._cached_enc.update({to_encode[i]: encoded[i] for i in range(len(to_encode))})
         
         LanguageEncoder._cached_freq.update(state)
