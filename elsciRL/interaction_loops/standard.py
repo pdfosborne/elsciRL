@@ -77,8 +77,8 @@ class StandardInteractionLoop:
         # Enable sub-goals
         if (
             (local_setup_info["sub_goal"] is not None)
-            & (local_setup_info["sub_goal"] != ["None"])
-            & (local_setup_info["sub_goal"] != "None")
+            and (local_setup_info["sub_goal"] != ["None"])
+            and (local_setup_info["sub_goal"] != "None")
         ):
             self.sub_goal: list = local_setup_info["sub_goal"]
         else:

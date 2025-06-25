@@ -4,6 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
+from elsciRL.interaction_loops.state_search import StateSearchInteractionLoop
 # ------ Agent Imports -----------------------------------------
 from elsciRL.agents.table_q_agent import TableQLearningAgent
 from elsciRL.agents.DQN import DQNAgent
@@ -36,7 +37,7 @@ class elsciRLSearch:
         
         self.engine = Engine
         self.adapters = Adapters
-        self.env = StandardInteractionLoop
+        self.env = StateSearchInteractionLoop
         self.setup_info:dict = self.ExperimentConfig | self.ProblemConfig  
         self.training_setups: dict = {}
         self.instruction_results:dict = {}
