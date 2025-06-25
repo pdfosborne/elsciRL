@@ -1,6 +1,7 @@
 import os
 import torch
 from tqdm import tqdm
+from torch import Tensor
 import matplotlib.pyplot as plt
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
@@ -27,10 +28,10 @@ class elsciRLSearch:
                  save_dir:str, 
                  number_exploration_episodes:int = 10000,
                  match_sim_threshold:float=0.9,
-                 observed_states:dict = {}, context_length:int=1000):
+                 observed_states:dict = None, observed_states_encoded:Tensor = None,
+                 context_length:int=1000):
         
         # ----- Configs
-        self.observed_states = observed_states
         # Meta parameters
         self.ExperimentConfig = Config
         # Local Parameters
@@ -59,10 +60,20 @@ class elsciRLSearch:
         self.sim_threshold: float = match_sim_threshold
         self.cos = torch.nn.CosineSimilarity(dim=1)  
 
+        # Initialize observed states
+        if (observed_states is not None) and (len(observed_states) > 0):
+            self.observed_states = observed_states
+        else:
+            self.observed_states = {}
         # Encode all observed states 
-        if (self.observed_states is not None) and (len(self.observed_states) > 0):
-            str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
-            self.str_states_encoded = self.enc.encode(str_states)
+        if (observed_states_encoded is not None) and (len(observed_states_encoded) > 0):
+            self.str_states_encoded = observed_states_encoded
+        else:
+            if self.observed_states is None:
+                self.str_states_encoded = None
+            else:
+                str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
+                self.str_states_encoded = self.enc.encode(str_states)
         
 
     def search(self, action_cap:int=100):
@@ -123,8 +134,6 @@ class elsciRLSearch:
                                                                 local_setup_info=train_setup_info, 
                                                                 number_episodes=number_episodes_per_parallel,
                                                                 batch_number=i) for i in tqdm(range(number_parallel_batches)))
-        if self.observed_states is None:
-            self.observed_states = {}
         for batch in observed_state_output:
             self.observed_states.update(batch)
 
@@ -171,6 +180,9 @@ class elsciRLSearch:
         train_setup_info['sub_goal'] = None 
         sample_env = self.env(Engine=self.engine, Adapters=self.adapters, local_setup_info=train_setup_info)
             
+        if self.str_states_encoded is None:
+            str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
+            self.str_states_encoded = self.enc.encode(str_states)
         # New: user input here
         #instructions, instr_descriptions = self.elsciRL_input.user_input()
         # DEMO SETS THIS AS FUNCTION INPUT

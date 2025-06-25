@@ -28,6 +28,7 @@ class Applications:
                 "local_analysis_filenames": {"sailing_graphs":"sailing_graphs"},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states": "observed_states_Sailing_easy_LLM_1000epi.txt"},
+                "prerender_data_encoded_filenames":{"observed_states":"encoded_observed_states.txt"},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"}
                 },
             "Classroom":{
@@ -45,6 +46,7 @@ class Applications:
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Classroom_classroom_A_LLM_100epi.txt"},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"}
                 },
             "Gym-FrozenLake":{
@@ -62,6 +64,7 @@ class Applications:
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_100epi.txt"},
+                "prerender_data_encoded_filenames": {},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
                 },
             "Chess":{
@@ -83,6 +86,7 @@ class Applications:
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states_active_pieces_language":"observed_states_active_pieces_language_50000_29-05-2025_16-13.txt",
                                              "observed_states_LLM_generation": "observed_states_Chess_Osborne2024_env_LLM_Generator_1000.txt"},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 },
             "TextWorldExpress":{
@@ -111,6 +115,7 @@ class Applications:
                         "observed_states_TextWorldExpress_twc-easy_language_default_10000_29-05-2025_15-53.txt",
                     "cookingworld-easy_observed_states":
                         "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {}
                 },
             "Maze":{
@@ -133,6 +138,7 @@ class Applications:
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {'observed_states_umaze_language':'observed_states_Maze_umaze_language_default_10000.txt',
                                              'observed_states_umaze_LLM':'observed_states_Maze_default_LLM_100.txt'},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {}
                 }
         }

@@ -1,4 +1,5 @@
 # Get application data
+import numpy as np
 from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.import_tool import PullApplications
 
@@ -156,7 +157,7 @@ class Prerender:
         if observed_states is None:
             if (self.observed_states is not None) and (not directory_search):
                 observed_states = self.observed_states
-                save_dir  = './prerender-data/encoded-prerender-data'
+                save_dir  = './prerender-data/'
                 observed_states_filename = self.observed_states_file_name
             else:
                 print("\n ----------------------------------------------------")
@@ -170,7 +171,7 @@ class Prerender:
                 observed_states_path = os.path.join('./', observed_states_filename)
                 with open(observed_states_path, 'r') as f:
                     observed_states = json.loads(f.read())
-                save_dir = './encoded-prerender-data'
+                save_dir = './'
         else:
             if isinstance(observed_states, str):
                 observed_states_filename = observed_states.split('/')[-1].split('.')[0]
@@ -181,7 +182,7 @@ class Prerender:
             else:
                 observed_states_filename = 'observed_states'
                 if not save_dir:
-                    save_dir = './encoded-prerender-data'
+                    save_dir = './'
 
         # Encode the observed states
         print(f"\n Encoding observed state file {observed_states_filename} using {encoder.name}...")
@@ -191,8 +192,8 @@ class Prerender:
 
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.pt')
-        torch.save(observed_states_encoded, file_path)
+        file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.txt')
+        np.savetxt(file_path, observed_states_encoded.numpy())
         print(f"Encoded states saved to {file_path}")
 
         return observed_states_encoded

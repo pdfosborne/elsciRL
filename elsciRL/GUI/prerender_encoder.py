@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import Tensor
 from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
 
@@ -39,7 +40,7 @@ def encode_prerender_data(observed_states:dict|str=None,
         observed_states_path = os.path.join('./', observed_states_filename)
         with open(observed_states_path, 'r') as f:
             observed_states = json.loads(f.read())
-        save_dir = './encoded-prerender-data'
+        save_dir = './'
     else:
         if isinstance(observed_states, str):
             observed_states_filename = observed_states.split('/')[-1].split('.')[0]
@@ -50,7 +51,7 @@ def encode_prerender_data(observed_states:dict|str=None,
         else:
             observed_states_filename = 'observed_states'
             if not save_dir:
-                save_dir = './encoded-prerender-data'
+                save_dir = './'
 
     # Encode the observed states
     print(f"\n Encoding observed state file {observed_states_filename} using {encoder.name}...")
@@ -59,8 +60,8 @@ def encode_prerender_data(observed_states:dict|str=None,
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.pt')
-    torch.save(observed_states_encoded, file_path)
+    file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.txt')
+    np.savetxt(file_path, observed_states_encoded.numpy())
     print(f"Encoded states saved to {file_path}")
 
     return observed_states_encoded

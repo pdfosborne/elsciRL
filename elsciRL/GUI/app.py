@@ -324,13 +324,16 @@ class WebApp:
         if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
             print("Pre-rendered data found...")
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
+            observed_states_encoded = self.pull_app_data[application]['prerender_data_encoded'][observed_states_filename] if observed_states_filename in self.pull_app_data[application]['prerender_data_encoded'] else None
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
                                           LocalConfig=local_config,
                                           Engine=engine, Adapters=adapters,
                                           save_dir=self.global_save_dir,
                                           number_exploration_episodes=self.num_explor_epi,
                                           match_sim_threshold=0.9,
-                                          observed_states=observed_states)
+                                          observed_states=observed_states,
+                                          observed_states_encoded=observed_states_encoded,
+                                          context_length=1000)
         else:
             print("No pre-rendered data found...")
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
@@ -339,7 +342,9 @@ class WebApp:
                                           save_dir=self.global_save_dir,
                                           number_exploration_episodes=self.num_explor_epi,
                                           match_sim_threshold=0.9,
-                                          observed_states=None)
+                                          observed_states=None,
+                                          observed_states_encoded=None,
+                                          context_length=1000)
             observed_states = self.elsci_run.search()
             with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)

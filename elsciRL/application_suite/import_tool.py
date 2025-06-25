@@ -1,7 +1,9 @@
 from datetime import datetime
 import os
+import torch
 import urllib.request
 import json 
+import numpy as np
 import httpimport
 import subprocess
 import sys
@@ -120,6 +122,7 @@ class PullApplications:
             # ------------------------------------------------
             # Pull prerender data
             self.current_test[problem]['prerender_data'] = {}
+            self.current_test[problem]['prerender_data_encoded'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
@@ -131,10 +134,20 @@ class PullApplications:
                     print(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
                     print("No prerender data found.")
                     self.current_test[problem]['prerender_data'] = {}
+                try:
+                    for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
+                        if prerender.endswith(('.txt', '.json', '.xml')):
+                            map_location= 'cpu' if torch.cuda.is_available() else 'cpu'
+                            data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
+                            self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
+                except:
+                    print("No prerender encoded data found.")
+                    self.current_test[problem]['prerender_data_encoded'] = {}
             else:
                 print("No prerender data found.")
                 self.current_test[problem]['prerender_data'] = {}
-
+                self.current_test[problem]['prerender_data_encoded'] = {}
+            # ------------------------------------------------
             # Pull prerender images
             self.current_test[problem]['prerender_images'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
