@@ -132,7 +132,7 @@ class Prerender:
                                 adapters, 
                                 num_explor_episodes)
         
-    def encode_prerender_data(observed_states:dict|str=None,
+    def encode(observed_states:dict|str=None,
                         directory_search:bool=False,
                         save_dir:str=None,
                         encoder:str ='MiniLM_L6v2') -> Tensor:
