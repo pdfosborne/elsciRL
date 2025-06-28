@@ -28,8 +28,8 @@ class Applications:
                 "local_analysis_filenames": {"sailing_graphs":"sailing_graphs"},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"observed_states":"observed_states_language_1000000.txt", 
-                                                "LLM_observed_states": "observed_states_Sailing_easy_LLM_1000epi_v2.txt"},
-                "prerender_data_encoded_filenames":{"LLM_observed_states":"encoded_observed_states_Sailing_easy_LLM_1000epi_v2.txt"},
+                                            "LLM_observed_states": "observed_states_Sailing_easy_LLM_1000_v2.txt"},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"}
                 },
             "Classroom":{
@@ -86,8 +86,8 @@ class Applications:
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"active_pieces_language":"observed_states_active_pieces_language_50000.txt",
-                                             "LLM_observed_states": "observed_states_Chess_Osborne2024_env_LLM_Generator_1000_v2.txt"},
-                "prerender_data_encoded_filenames":{},
+                                             "LLM_observed_states": "observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
+                "prerender_data_encoded_filenames":{"LLM_observed_states": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 },
             "TextWorldExpress":{
