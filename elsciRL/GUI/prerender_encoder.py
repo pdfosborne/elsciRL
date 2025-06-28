@@ -63,5 +63,6 @@ def encode_prerender_data(observed_states:dict|str=None,
     file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.txt')
     np.savetxt(file_path, observed_states_encoded.numpy())
     print(f"Encoded states saved to {file_path}")
+    print(f"Number of States: {len(observed_states_encoded)}")
 
     return observed_states_encoded
