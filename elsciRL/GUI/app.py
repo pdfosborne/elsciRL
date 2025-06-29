@@ -772,6 +772,10 @@ class WebApp:
             job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Ended, See Results Tab")
             job_queue.put("EVENT: JOB_COMPLETE")
 
+            # Save Insruction Results
+            if self.instruction_results_validated:
+                json.dump(self.instruction_results_validated, os.path.join(self.uploads_dir, 'instruction_results.json'), indent=4)
+
         except Exception as e:
             error_msg = f"Error during training: {str(e)}"
             print(error_msg)

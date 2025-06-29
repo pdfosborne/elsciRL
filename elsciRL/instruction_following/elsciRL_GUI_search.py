@@ -130,6 +130,7 @@ class elsciRLSearch:
         parallel = Parallel(n_jobs=cpu_count(True), prefer="processes", verbose=0)
         number_episodes_per_parallel = 100
         number_parallel_batches = int(self.number_exploration_episodes / number_episodes_per_parallel) if self.number_exploration_episodes > number_episodes_per_parallel else 1
+        print("Encoding observed states...")
         observed_state_output = parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
                                                                 local_setup_info=train_setup_info, 
                                                                 number_episodes=number_episodes_per_parallel,
@@ -198,11 +199,13 @@ class elsciRLSearch:
             instr_description = instr_descriptions[i]
             print(f"\nFinding match for instruction: {instruction}")
             
-            if type(instr_description) == type(''):
-                instr_description = instr_description
-                instr_description = list(filter(None, instr_description))
+            if (type(instr_description)) == type(''):
+                if (len(instr_description.split('.')) > 1):
+                    instr_description = instr_description
+                    instr_description = list(filter(None, instr_description))
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
+            print(f"Instruction vector initalized: {instruction_vector.shape} - {instruction_vector.size()}")
             # Default fedeback layer - DEMO wont currently updated this 
             feedback_layer = torch.zeros(instruction_vector.size()).to(device)
             # EXPLORE TO FIND LOCATION OF SUB-GOAL
@@ -218,14 +221,12 @@ class elsciRLSearch:
                         sim = self.instruction_results[instruction][self.agent_adapter]['sim_score']
                 else:
                     self.instruction_results[instruction][self.agent_adapter] = {}
-                    feedback_layer = torch.zeros(instruction_vector.size()).to(device)
                 self.instruction_results[instruction][self.agent_adapter]['count'] = self.instruction_results[instruction][self.agent_adapter]['count']+1
             else:
                 self.instruction_results[instruction] = {}    
                 self.instruction_results[instruction][self.agent_adapter] = {} 
                 self.instruction_results[instruction][self.agent_adapter]['count'] = 1
                 self.instruction_results[instruction][self.agent_adapter]['action_cap'] = action_cap
-                feedback_layer = torch.zeros(instruction_vector.size()).to(device)
                 self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             # ---------------------------
             while not sub_goal:
@@ -313,25 +314,34 @@ class elsciRLSearch:
             instruction = list(self.instruction_results.keys())[i]
             print(f"\nFinding match for instruction: {instruction}")
             
-            if type(instr_description) == type(''):
-                instr_description = instr_description.split('.')
-                instr_description = list(filter(None, instr_description))
+            if (type(instr_description)) == type(''):
+                if (len(instr_description.split('.')) > 1):
+                    instr_description = instr_description.split('.')
+                    instr_description = list(filter(None, instr_description))
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             # Get sub-goal vector
             sub_goal = self.instruction_results[instruction][self.agent_adapter]['sub_goal'][0]
-            sub_goal_t = self.enc.encode(sub_goal)
+            sub_goal_t = self.enc.encode(sub_goal.replace(".", "")) # We cannot parse multiple sentences from sub-goal for feedback layer update
             # Get feedback layer vector
             feedback_layer = self.instruction_results[instruction][self.agent_adapter]['feedback_layer']
 
-            if feedback_type == 'positive':
-                # Positive feedback - add to feedback layer
-                feedback_layer = torch.add(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t))) 
-            elif feedback_type == 'negative':
-                feedback_layer = torch.sub(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t)))
-            else:
-                raise ValueError(f"Invalid feedback type: {feedback_type}")
-            
+            try:
+                if feedback_type == 'positive':
+                    # Positive feedback - add to feedback layer
+                    feedback_layer = torch.add(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t))) 
+                elif feedback_type == 'negative':
+                    feedback_layer = torch.sub(feedback_layer, feedback_increment*(torch.sub(instruction_vector, sub_goal_t)))
+                else:
+                    raise ValueError(f"Invalid feedback type: {feedback_type}")
+            except:
+                print(f"Error updating feedback layer for instruction: {instruction}")
+                print(f"Feedback type: {feedback_type}")
+                print(f"Feedback increment: {feedback_increment}")
+                print(f"Instruction vector: {instruction_vector.shape} - {instruction_vector.size()}")
+                print(f"Sub-goal vector: {sub_goal_t.shape} - {sub_goal_t.size()}")
+                print(f"Feedback layer: {feedback_layer.shape} - {feedback_layer.size()}")
+                
             self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             
             # Average sim across each sentence in instruction vs state

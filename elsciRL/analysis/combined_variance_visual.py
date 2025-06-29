@@ -18,6 +18,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
         instr_id = instr_folder_dir.split('/')[-1]
         if instr_id not in variance_results.keys():
             variance_results[instr_id] = {}
+        print(f"Processing {instr_id} for {analysis_type} analysis.")
         problem_folders = [name for name in os.listdir(instr_folder_dir) if os.path.isdir(os.path.join(instr_folder_dir, name))]
         # Find experiment folders
         # - Capture case where there is only one experiment type

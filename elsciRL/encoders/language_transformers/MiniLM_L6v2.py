@@ -30,16 +30,16 @@ class LanguageEncoder(StateEncoder):
         self.output_type = "tensor"
         self.output_dim = 384
 
-    def encode(self, state: List[str], legal_actions:list = None, episode_action_history:list = None, 
+    def encode(self, state: str|List[str], legal_actions:list = None, episode_action_history:list = None, 
                indexed: bool = False) -> Tensor:
         
         # I think typing is overriding the input type anyway -> need to ensure sentences are split up
-        if type(state) == type(''):
-            state = state.split(".") 
-            state = [s for s in state if s.strip()]
-        elif (len(state) == 0):
+        if type(state) == str:
+            state = [state]
+        #     state = state.split(".") 
+        #     state = [s for s in state if s.strip()]
+        if (len(state) == 0):
             state = [""]
-                
         to_encode = [sent for sent in state if sent not in LanguageEncoder._cached_enc]
         if (to_encode):
             # Show progress bar if state is a list of strings

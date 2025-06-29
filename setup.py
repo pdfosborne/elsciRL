@@ -7,7 +7,7 @@ setup(
     packages=[
         'elsciRL', 
         'elsciRL.adapters',
-        'elsciRL.adapters.LLM_generators',
+        'elsciRL.adapters.LLM_state_generators',
         'elsciRL.agents',
         'elsciRL.agents.stable_baselines',
         'elsciRL.agents.LLM_agents',
@@ -24,8 +24,10 @@ setup(
         'elsciRL.GUI.templates',
         'elsciRL.experiments',
         'elsciRL.instruction_following',
+        'elsciRL.instruction_following.LLM_instr_planner',
         'elsciRL.interaction_loops',
         'elsciRL.application_suite',
+        'elsciRL.published_experiments',
         ],
     package_data={
         'elsciRL.GUI.templates': ['index.html'],
