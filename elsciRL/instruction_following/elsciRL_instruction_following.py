@@ -174,6 +174,10 @@ class elsciRLOptimize:
         # Extract sub-goal completion for each instruction based on search results
         agent_adapter_i = None
         for instr in self.known_instructions:
+            # Remove instruction description from path
+            if 'instr_description' in self.instruction_path[instr]:
+                self.instruction_path[instr].pop('instr_description', None)
+            # Extract start and end from instruction
             start = instr.split("---")[0]
             end = instr.split("---")[1]
             for n, agent_type in enumerate(self.setup_info['agent_select']):

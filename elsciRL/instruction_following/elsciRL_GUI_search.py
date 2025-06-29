@@ -224,6 +224,7 @@ class elsciRLSearch:
                 self.instruction_results[instruction][self.agent_adapter]['count'] = self.instruction_results[instruction][self.agent_adapter]['count']+1
             else:
                 self.instruction_results[instruction] = {}    
+                self.instruction_results[instruction]['instr_description'] = instr_description
                 self.instruction_results[instruction][self.agent_adapter] = {} 
                 self.instruction_results[instruction][self.agent_adapter]['count'] = 1
                 self.instruction_results[instruction][self.agent_adapter]['action_cap'] = action_cap
@@ -378,7 +379,10 @@ class elsciRLSearch:
         pred_vec = [pred_x.item(), pred_y.item()]
         
         # Calculate updated vector after feedback
-        new_angle = torch.arccos(torch.tensor(sim + sim_delta))
+        if pred_x > instruction_vec[0]:
+            new_angle = torch.arccos(torch.tensor(sim + sim_delta))
+        else:
+            new_angle = torch.arccos(torch.tensor(sim - sim_delta))
       
         new_x = torch.cos(new_angle)
         new_y = torch.sin(new_angle)

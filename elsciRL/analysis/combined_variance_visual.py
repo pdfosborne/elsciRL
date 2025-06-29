@@ -15,7 +15,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
     instruction_folders = [os.path.join(results_dir, instr) for instr in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, instr))]
     variance_results = {}
     for instr_folder_dir in instruction_folders:
-        instr_id = instr_folder_dir.split('/')[-1]
+        instr_id = instr_folder_dir.split('/')[-1].split('//')[-1].split('\\')[-1].split('\\\\')[-1]
         if instr_id not in variance_results.keys():
             variance_results[instr_id] = {}
         print(f"Processing {instr_id} for {analysis_type} analysis.")

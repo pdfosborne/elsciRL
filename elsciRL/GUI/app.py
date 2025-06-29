@@ -10,7 +10,7 @@ import uuid
 from flask import Response # Added Response for SSE
 import requests
 from markdown import markdown
-
+import torch
 # App tools
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
@@ -627,6 +627,32 @@ class WebApp:
                     # Remove feedback plot before using rest of results for training process
                     self.instruction_results_validated[application].pop('feedback_plot', None)
 
+                # ------------------------
+                # Save Insruction Results
+                # Feedback layer and sim score is always Tensor so cannot be saved as JSON
+                instructions_results_save = self.instruction_results_validated[application].copy()
+                for instr_key,instr_dict in instructions_results_save.items():
+                    for sub_instr_key, sub_instr_dict in instr_dict.items():
+                        for a_a_key, instr_agent_adapter_dict in sub_instr_dict.items():
+                            # Convert data to list if it exists
+                            if 'feedback_layer' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['feedback_layer'], torch.Tensor):
+                                job_queue.put(f"EVENT: Converting feedback layer for {a_a_key} to list for JSON serialization.")
+                                instr_agent_adapter_dict['feedback_layer'] = instr_agent_adapter_dict['feedback_layer'].cpu().numpy().tolist()
+                            if 'sub_goal' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sub_goal'], torch.Tensor):
+                                job_queue.put(f"EVENT: Converting sub_goal for {a_a_key} to list for JSON serialization.")
+                                instr_agent_adapter_dict['sub_goal'] = instr_agent_adapter_dict['sub_goal'].cpu().numpy().tolist()
+                            if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
+                                job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
+                                instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist()     
+                # ---         
+                if not os.path.exists(self.uploads_dir):
+                    os.makedirs(self.uploads_dir, exist_ok=True)
+                instr_results_path = os.path.join(app_save_dir, f'instruction_results_{application}.json')  
+                print(f"Saving instruction results: {instructions_results_save}")
+                with open(instr_results_path, 'w') as f:
+                    json.dump(instructions_results_save, f, indent=4)                
+                job_queue.put(f"EVENT: Saved instruction results to {instr_results_path}")
+                # ------------------------
                 # Instruction keys can skip numbers which miss-aligns lookup of correct instructions from list
                 # TODO: Make self.correct_instructions a dictionary with keys as instr_key and values as instruction text
                 instr_key_lookup = {}
@@ -772,10 +798,7 @@ class WebApp:
             job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Ended, See Results Tab")
             job_queue.put("EVENT: JOB_COMPLETE")
 
-            # Save Insruction Results
-            if self.instruction_results_validated:
-                json.dump(self.instruction_results_validated, os.path.join(self.uploads_dir, 'instruction_results.json'), indent=4)
-
+            
         except Exception as e:
             error_msg = f"Error during training: {str(e)}"
             print(error_msg)
