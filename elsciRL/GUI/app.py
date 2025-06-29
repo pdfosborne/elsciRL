@@ -396,11 +396,13 @@ class WebApp:
 
                             # Check if instruction is complete
                             if not instr_complete:
-                                if confidence > 0.5:
-                                    self.validated_LLM_instructions = False
-                                else:
-                                    print("Confidence too low, assuming instructions as valid")
-                                    self.validated_LLM_instructions = True
+                                self.validated_LLM_instructions = False
+                                # if confidence > 0.5:
+                                #     self.validated_LLM_instructions = False
+                                # else:
+                                    
+                                #     print("Confidence too low, assuming instructions as valid")
+                                #     self.validated_LLM_instructions = True
                             
                             if self.validated_LLM_instructions:
                                 feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=False)
@@ -648,7 +650,7 @@ class WebApp:
                 if not os.path.exists(self.uploads_dir):
                     os.makedirs(self.uploads_dir, exist_ok=True)
                 instr_results_path = os.path.join(app_save_dir, f'instruction_results_{application}.json')  
-                print(f"Saving instruction results: {instructions_results_save}")
+                #print(f"Saving instruction results: {instructions_results_save}")
                 with open(instr_results_path, 'w') as f:
                     json.dump(instructions_results_save, f, indent=4)                
                 job_queue.put(f"EVENT: Saved instruction results to {instr_results_path}")

@@ -203,6 +203,8 @@ class elsciRLSearch:
                 if (len(instr_description.split('.')) > 1):
                     instr_description = instr_description
                     instr_description = list(filter(None, instr_description))
+                else:
+                    instr_description = [instr_description]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             print(f"Instruction vector initalized: {instruction_vector.shape} - {instruction_vector.size()}")
@@ -319,6 +321,8 @@ class elsciRLSearch:
                 if (len(instr_description.split('.')) > 1):
                     instr_description = instr_description.split('.')
                     instr_description = list(filter(None, instr_description))
+                else:
+                    instr_description = [instr_description]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             # Get sub-goal vector
