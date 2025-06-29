@@ -350,7 +350,7 @@ class elsciRLSearch:
             self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
             
             # Average sim across each sentence in instruction vs state
-            sim =self.cos(torch.add(sub_goal_t, feedback_layer), instruction_vector).mean()            
+            sim = self.cos(torch.add(sub_goal_t, feedback_layer), instruction_vector).mean()            
             sim_delta = sim-self.instruction_results[instruction][self.agent_adapter]['sim_score']
             print(f"--- Change in sim results with {feedback_type} reinforcement of correct state match = {sim_delta:.2f}")
             print(f"--- New Sim Value = {sim:.2f}") 
@@ -372,6 +372,8 @@ class elsciRLSearch:
     
     def sim_plot(self, sim_delta:float, sim:float, feedback_type:str='positive'):
         # Plot sim delta and sim value
+        if type(sim) == torch.Tensor:
+            sim = sim.item()
 
         # Create arbitrary 2D vectors for visualization
         instruction_vec = [1, 1]  # Unit vector along x-axis
