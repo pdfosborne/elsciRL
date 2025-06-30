@@ -131,8 +131,11 @@ class elsciRLSearch:
         # Train on Live system for limited number of total episodes
         # Parallel processing for faster episode runs
         parallel = Parallel(n_jobs=cpu_count(True), prefer="processes", verbose=0)
-        number_episodes_per_parallel = 100
-        number_parallel_batches = int(self.number_exploration_episodes / number_episodes_per_parallel) if self.number_exploration_episodes > number_episodes_per_parallel else 1
+        number_parallel_batches = 10
+        if self.number_exploration_episodes > number_parallel_batches:
+            number_episodes_per_parallel = int(self.number_exploration_episodes / number_parallel_batches)
+        else:
+            number_episodes_per_parallel
         observed_state_output = parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
                                                                 local_setup_info=train_setup_info, 
                                                                 number_episodes=number_episodes_per_parallel,

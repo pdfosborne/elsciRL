@@ -11,7 +11,8 @@ from elsciRL.environment_setup.results_table import ResultsTable
 from elsciRL.environment_setup.elsciRL_info import elsciRLInfo
 
 
-def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes: int = 1000, batch_number: int = 0):
+def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes: int = 1000, 
+                 batch_number: int = 0, observed_states: dict = {}) -> dict:
     # --- INIT state space from engine
     agent_adapter_name = local_setup_info['agent_type'] + "_" + local_setup_info['adapter_select']
     engine = Engine(local_setup_info)
@@ -35,7 +36,7 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
 
     # Mode selection (already initialized)
     # --- elsciRL
-    live_env, observed_states = (
+    live_env, observed_states_flag = (
         Imports.live_env_flag()
     )
     # Results formatting
@@ -45,7 +46,7 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
     elsciRL = elsciRLInfo(observed_states)
     # RENDER AND SUB-GOALS REMOVED COMPLETELY SO SAVE RUN-TIME
     
-    for episode in (range(0, number_episodes)):
+    for episode in tqdm(range(0, number_episodes)):
         action_history = []
         # ---
         # Start observation is used instead of .reset()  fn so that this can be overridden for repeat analysis from the same start pos
@@ -90,32 +91,34 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
                 if reward == 0:
                     reward = reward_signal[1]
 
-                legal_moves = engine.legal_move_generator(next_obs)
-                # LLM agents need to pass the state as a string
-                if agent_type.split("_")[0] == "LLM":
-                    next_state = agent_state_adapter.adapter(
-                    state=next_obs,
-                    legal_moves=legal_moves,
-                    episode_action_history=action_history,
-                    encode=False,
-                )
-                else:
-                    next_state = agent_state_adapter.adapter(
-                        state=next_obs,
-                        legal_moves=legal_moves,
-                        episode_action_history=action_history,
-                        encode=True,
-                    )
-                # elsciRL trackers
-                observed_states = elsciRL.observed_state_tracker(
-                    engine_observation=next_obs,
-                    language_state=agent_state_adapter.adapter(
+                # Only update observed states if not already observed
+                if next_obs not in observed_states:
+                    legal_moves = engine.legal_move_generator(next_obs)
+                    # LLM agents need to pass the state as a string
+                    if agent_type.split("_")[0] == "LLM":
+                        next_state = agent_state_adapter.adapter(
                         state=next_obs,
                         legal_moves=legal_moves,
                         episode_action_history=action_history,
                         encode=False,
-                    ),
-                )
+                    )
+                    else:
+                        next_state = agent_state_adapter.adapter(
+                            state=next_obs,
+                            legal_moves=legal_moves,
+                            episode_action_history=action_history,
+                            encode=True,
+                        )
+                    # elsciRL trackers
+                    observed_states = elsciRL.observed_state_tracker(
+                        engine_observation=next_obs,
+                        language_state=agent_state_adapter.adapter(
+                            state=next_obs,
+                            legal_moves=legal_moves,
+                            episode_action_history=action_history,
+                            encode=False,
+                        ),
+                    )
 
             episode_reward += reward
             if terminated:
