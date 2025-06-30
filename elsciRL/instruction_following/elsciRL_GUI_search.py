@@ -73,10 +73,11 @@ class elsciRLSearch:
             if self.observed_states is None:
                 self.str_states_encoded = None
             else:
-                print("\n -------------------------------\n")
-                str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
-                print(f"Encoding {len(str_states)} observed states in {int(len(str_states)/256)} batches of size {256}.")
-                self.str_states_encoded = self.enc.encode(state=str_states, progress_bar=True)
+                if len(self.observed_states) > 0:
+                    print("\n -------------------------------\n")
+                    str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
+                    print(f"Encoding {len(str_states)} observed states in {int(len(str_states)/256)} batches of size {256}.")
+                    self.str_states_encoded = self.enc.encode(state=str_states, progress_bar=True)
         
 
     def search(self, action_cap:int=100):
