@@ -12,6 +12,7 @@ import torch
 from torch import Tensor
 from datetime import datetime
 import ollama
+from tqdm import tqdm
 
 # Get language encoder
 from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
@@ -196,12 +197,20 @@ class Prerender:
             local_config['model_name'] = select_ollama_model
             print(f"-- Selected ollama model: {select_ollama_model}")
 
+        with open(selected_file, 'r') as f:
+            observed_data_in = json.load(f)
+        number_episodes = len(observed_data_in)
+        # Save the transformed data
+        time = datetime.now().strftime("%d-%m-%Y_%H-%M")
         print("--------------------------------")
         print("-Selected options-")
         print(f"-- Selected application: {selected_application}")
         print(f"-- Selected adapter: {selected_adapter}")
         if selected_adapter.split('_')[0] == 'LLM':
             print(f"-- Selected ollama model: {select_ollama_model}")
+            file_name = 'observed_states_'+selected_application+'_'+config_input+'_'+selected_adapter+'_'+select_ollama_model+'_'+str(number_episodes)+'_'+time+'.txt'
+        else:
+            file_name = 'observed_states_'+selected_application+'_'+config_input+'_'+selected_adapter+'_'+str(number_episodes)+'_'+time+'.txt'
         print("--------------------------------")
 
         ENGINE_APPLY = engine(local_setup_info=local_config)
@@ -209,18 +218,13 @@ class Prerender:
         print(f"Using engine: {ENGINE_APPLY} to generate legal moves.")
         print(f"Using adapter: {ADAPTER_APPLY}")
 
-        with open(selected_file, 'r') as f:
-            observed_data_in = json.load(f)
-            
+        print(f"\n Transforming {len(observed_data_in)} observed states from {selected_file}...\n")
         observed_data_out = {}
-        for key in observed_data_in.keys():
+        for key in tqdm(observed_data_in.keys(), desc="Transforming observed states with adapter", total=len(observed_data_in)):
             legal_moves_sampled = ENGINE_APPLY.legal_move_generator(obs=key)
             observed_data_out[key] = ADAPTER_APPLY.adapter(state=key, legal_moves=legal_moves_sampled, encode=False)
 
-        # Save the transformed data
-        time = datetime.now().strftime("%d-%m-%Y_%H-%M")
-        number_episodes = len(observed_data_in)
-        with open('observed_states_'+selected_application+'_'+config_input+'_'+selected_adapter+'_'+str(number_episodes)+'_'+time+'.txt', 'w') as f:
+        with open(file_name, 'w') as f:
             json.dump(observed_data_out, f)
 
 
