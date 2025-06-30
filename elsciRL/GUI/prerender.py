@@ -146,6 +146,84 @@ class Prerender:
                                 adapters, 
                                 num_explor_episodes)
         
+    def adapter_apply(self):
+        file_names = [file for file in os.listdir('./') if file.endswith('.txt')]
+        for n, file in enumerate(file_names):
+            print(f"- {n}: {file}")
+        selection = input("\n Select the file to transform with the adapter (by number): ")
+        selected_file = file_names[int(selection)]
+
+        # Get application name from file name
+        selected_application = selected_file.split('_')[2]
+        if selected_application not in self.possible_applications:
+            # Allow terminal input to select application
+            print("Application name not found, please confirm the application name from the following options:")
+            for i, app in enumerate(self.possible_applications):
+                print(f"{i + 1}: {app}")
+
+            selected_index = int(input("Enter the number of the application you want to select: ")) - 1
+            selected_application = self.possible_applications[selected_index]
+
+        # Allow terminal input to select configuration
+        print("Select a configuration from the following options:")
+        for i, config in enumerate(self.pull_app_data[selected_application]['local_configs']):
+            print(f"{i + 1}: {config}")
+
+        config_input_index = int(input("Enter the number of the configuration you want to select: ")) - 1
+        config_input = list(self.pull_app_data[selected_application]['local_configs'].keys())[config_input_index]
+        
+        # Allow terminal input to select adapter
+        adapter_list = self.pull_app_data[selected_application]['adapters']
+        print("Select an adapter from the following options:")
+        for i, adapter in enumerate(adapter_list):
+            print(f"{i + 1}: {adapter}")
+
+        selected_adapter_index = int(input("Enter the number of the adapter you want to select: ")) - 1
+        selected_adapter = list(adapter_list.keys())[selected_adapter_index]
+
+        # Get data for the selected application
+        engine = self.pull_app_data[selected_application]['engine']
+        local_config = self.pull_app_data[selected_application]['local_configs'][config_input]
+        adapters = self.pull_app_data[selected_application]['adapters']
+
+        if selected_adapter.split('_')[0] == 'LLM':
+            ollama_models = ollama.list()
+            print("Select an ollama model from the following options:")
+            for i, model in enumerate(ollama_models['models']):
+                print(f"{i + 1}: {model['model']}")
+            select_ollama_model_index = int(input("Enter the number of the ollama model you want to select: ")) - 1
+            select_ollama_model = ollama_models['models'][select_ollama_model_index]['model']
+            local_config['model_name'] = select_ollama_model
+            print(f"-- Selected ollama model: {select_ollama_model}")
+
+        print("--------------------------------")
+        print("-Selected options-")
+        print(f"-- Selected application: {selected_application}")
+        print(f"-- Selected adapter: {selected_adapter}")
+        if selected_adapter.split('_')[0] == 'LLM':
+            print(f"-- Selected ollama model: {select_ollama_model}")
+        print("--------------------------------")
+
+        ENGINE_APPLY = engine(local_setup_info=local_config)
+        ADAPTER_APPLY = adapters[selected_adapter](setup_info=local_config)
+        print(f"Using engine: {ENGINE_APPLY} to generate legal moves.")
+        print(f"Using adapter: {ADAPTER_APPLY}")
+
+        with open(selected_file, 'r') as f:
+            observed_data_in = json.load(f)
+            
+        observed_data_out = {}
+        for key in observed_data_in.keys():
+            legal_moves_sampled = ENGINE_APPLY.legal_move_generator(obs=key)
+            observed_data_out[key] = ADAPTER_APPLY.adapter(state=key, legal_moves=legal_moves_sampled, encode=False)
+
+        # Save the transformed data
+        time = datetime.now().strftime("%d-%m-%Y_%H-%M")
+        number_episodes = len(observed_data_in)
+        with open('observed_states_'+selected_application+'_'+config_input+'_'+selected_adapter+'_'+str(number_episodes)+'_'+time+'.txt', 'w') as f:
+            json.dump(observed_data_out, f)
+
+
     def encode(self, observed_states:dict|str=None,
                         directory_search:bool=False,
                         save_dir:str=None,

@@ -110,6 +110,8 @@ def episode_loop(Engine, Adapters: dict, local_setup_info: dict, number_episodes
                             encode=True,
                         )
                     # elsciRL trackers
+                    # TODO: Consider adding prior action history to the tracker so that we can 
+                    #  transform observed data across adapters without loss of information
                     observed_states = elsciRL.observed_state_tracker(
                         engine_observation=next_obs,
                         language_state=agent_state_adapter.adapter(
