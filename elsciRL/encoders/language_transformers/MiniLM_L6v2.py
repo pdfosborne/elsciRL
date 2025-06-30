@@ -31,7 +31,7 @@ class LanguageEncoder(StateEncoder):
         self.output_dim = 384
 
     def encode(self, state: str|List[str], legal_actions:list = None, episode_action_history:list = None, 
-               indexed: bool = False) -> Tensor:
+               indexed: bool = False, progress_bar:bool=False) -> Tensor:
         
         # I think typing is overriding the input type anyway -> need to ensure sentences are split up
         if type(state) == str:
@@ -43,7 +43,7 @@ class LanguageEncoder(StateEncoder):
         to_encode = [sent for sent in state if sent not in LanguageEncoder._cached_enc]
         if (to_encode):
             # Show progress bar if state is a list of strings
-            encoded = self.sentence_model.encode(to_encode, batch_size=256, convert_to_tensor=True, show_progress_bar=False)
+            encoded = self.sentence_model.encode(to_encode, batch_size=256, convert_to_tensor=True, show_progress_bar=progress_bar)
             LanguageEncoder._cached_enc.update({to_encode[i]: encoded[i] for i in range(len(to_encode))})
         
         LanguageEncoder._cached_freq.update(state)

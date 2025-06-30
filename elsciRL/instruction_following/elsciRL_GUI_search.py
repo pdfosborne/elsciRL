@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 from torch import Tensor
 import matplotlib.pyplot as plt
+import string
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
 from elsciRL.interaction_loops.state_search import episode_loop
@@ -72,8 +73,10 @@ class elsciRLSearch:
             if self.observed_states is None:
                 self.str_states_encoded = None
             else:
+                print("\n -------------------------------\n")
                 str_states = [str_state[:self.context_length] for str_state in self.observed_states.values()]
-                self.str_states_encoded = self.enc.encode(str_states)
+                print(f"Encoding {len(str_states)} observed states in {int(len(str_states)/256)} batches of size {256}.")
+                self.str_states_encoded = self.enc.encode(state=str_states, progress_bar=True)
         
 
     def search(self, action_cap:int=100):
@@ -130,7 +133,6 @@ class elsciRLSearch:
         parallel = Parallel(n_jobs=cpu_count(True), prefer="processes", verbose=0)
         number_episodes_per_parallel = 100
         number_parallel_batches = int(self.number_exploration_episodes / number_episodes_per_parallel) if self.number_exploration_episodes > number_episodes_per_parallel else 1
-        print("Encoding observed states...")
         observed_state_output = parallel(delayed(episode_loop)(Engine=self.engine, Adapters=self.adapters, 
                                                                 local_setup_info=train_setup_info, 
                                                                 number_episodes=number_episodes_per_parallel,
@@ -201,13 +203,19 @@ class elsciRLSearch:
             
             if (type(instr_description)) == type(''):
                 if (len(instr_description.split('.')) > 1):
-                    instr_description = instr_description
-                    instr_description = list(filter(None, instr_description))
+                    instr_description = instr_description.split('.')
+                    # Remove punctuation from description
+                    instr_description = [s.translate(str.maketrans('', '', string.punctuation)) for s in instr_description]
+                    # Remove empty strings from description
+                    instr_description = [s.strip() for s in instr_description if s.strip()]
+                    instr_description = ' '.join(instr_description)
                 else:
-                    instr_description = [instr_description]
+                    instr_description = [instr_description.translate(None, string.punctuation).strip()]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
-            print(f"Instruction vector initalized: {instruction_vector.shape} - {instruction_vector.size()}")
+            if instruction_vector.size()[0] > 1:
+                print(f"Instruction vector size: {instruction_vector.size()}")
+                print(f"\n Instruction vector: {instr_description} \n")
             # Default fedeback layer - DEMO wont currently updated this 
             feedback_layer = torch.zeros(instruction_vector.size()).to(device)
             # EXPLORE TO FIND LOCATION OF SUB-GOAL
@@ -310,8 +318,7 @@ class elsciRLSearch:
         # Get instruction vector
         instructions = self.instructions
         instr_descriptions = self.instr_descriptions
-        
-         
+
         sim_total_delta = 0
         for i,instr_description in enumerate(instr_descriptions):
             instruction = list(self.instruction_results.keys())[i]
@@ -320,9 +327,13 @@ class elsciRLSearch:
             if (type(instr_description)) == type(''):
                 if (len(instr_description.split('.')) > 1):
                     instr_description = instr_description.split('.')
-                    instr_description = list(filter(None, instr_description))
+                    # Remove punctuation from description
+                    instr_description = [s.translate(str.maketrans('', '', string.punctuation)) for s in instr_description]
+                    # Remove empty strings from description
+                    instr_description = [s.strip() for s in instr_description if s.strip()]
+                    instr_description = ' '.join(instr_description)
                 else:
-                    instr_description = [instr_description]
+                    instr_description = [instr_description.translate(None, string.punctuation).strip()]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             # Get sub-goal vector
@@ -330,7 +341,6 @@ class elsciRLSearch:
             sub_goal_t = self.enc.encode(sub_goal.replace(".", "")) # We cannot parse multiple sentences from sub-goal for feedback layer update
             # Get feedback layer vector
             feedback_layer = self.instruction_results[instruction][self.agent_adapter]['feedback_layer']
-
             try:
                 if feedback_type == 'positive':
                     # Positive feedback - add to feedback layer
@@ -348,9 +358,8 @@ class elsciRLSearch:
                 print(f"Feedback layer: {feedback_layer.shape} - {feedback_layer.size()}")
                 
             self.instruction_results[instruction][self.agent_adapter]['feedback_layer'] = feedback_layer
-            
             # Average sim across each sentence in instruction vs state
-            sim = self.cos(torch.add(sub_goal_t, feedback_layer), instruction_vector).mean()            
+            sim = self.cos(torch.add(sub_goal_t, feedback_layer), instruction_vector).mean() # bounds: [0,1]       
             sim_delta = sim-self.instruction_results[instruction][self.agent_adapter]['sim_score']
             print(f"--- Change in sim results with {feedback_type} reinforcement of correct state match = {sim_delta:.2f}")
             print(f"--- New Sim Value = {sim:.2f}") 

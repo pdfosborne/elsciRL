@@ -263,7 +263,7 @@ class WebApp:
         except Exception as e:
             print(f"Error fetching engine source code from {root_url}: {e}")
         # ---
-
+        instruction_reflection = True
         # Set LLM Instruction Planner state
         self.LLM_INSTUCTION_PLANNER = enable_llm_planner
         if self.LLM_INSTUCTION_PLANNER:
@@ -277,6 +277,15 @@ class WebApp:
                                                            input_prompt = input_prompt,
                                                            observed_states=observed_states_data)
                 self.LLM_validation = LLMInstructionValidator()
+                if instruction_reflection:
+                    reflection_prompt = f"""Update the instruction to increase the similarity to the environment's language structure.
+The environment cannot be changed so you must only try to edit the instruction, you will be given an example of the environment's language to align to.
+Here is information about the environment and the task: {input_prompt}
+"""
+                    self.LLM_reflection_plan_generator = LLMTaskBreakdown(model_name=llm_model_name,
+                                                           context_length=llm_context_length,
+                                                           input_prompt = reflection_prompt,
+                                                           observed_states=observed_states_data)
             except Exception as e:
                 print(f"Error initializing LLM validator: {e}")
                 self.LLM_INSTUCTION_PLANNER = False
@@ -321,6 +330,9 @@ class WebApp:
         engine = self.pull_app_data[application]['engine']
         local_config = self.pull_app_data[application]['local_configs'][config_input]
         adapters = self.pull_app_data[application]['adapters']
+        # Instruction search uses the observed input for the the adapter
+        self.ExperimentConfig["adapter_select"] = [observed_states_filename.split('-')[0]]
+
         if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
             print("Pre-rendered data found...")
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
@@ -349,112 +361,144 @@ class WebApp:
             with open(os.path.join(self.uploads_dir, 'observed_states.txt'), 'w') as f:
                 json.dump(observed_states, f)
 
+        print("\n ====================================================================================================================")
+        print("Matching instructions...")
+        best_match_dict, instruction_results_data = self.elsci_run.match(
+            instructions=instructions,
+            instr_descriptions=instruction_descriptions
+        )
+        results[application] = best_match_dict.copy()
         # Match is completed then checked by LLM method
         # If LLM method not selected then will only complete the match and allow user to confirm
-        feedback_counter = 0
-        self.validated_LLM_instructions = False 
-        while not self.validated_LLM_instructions:
-            best_match_dict, instruction_results_data = self.elsci_run.match(
-                action_cap=5,
-                instructions=instructions,
-                instr_descriptions=instruction_descriptions
-            )
-            results[application] = best_match_dict.copy()
-            if application not in self.instruction_results:
-                self.instruction_results[application] = {}
-            if enable_llm_planner:
-                self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
-            else:
-                self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
-                
-            try:       
+        if self.LLM_INSTUCTION_PLANNER:
+            self.validated_LLM_instructions = [] 
+            instruction_descriptions_reflection = []
+            instruction_descriptions_current = instruction_descriptions
+            feedback_counter = 1
+            feedback_limit = 10 # Currently applies all instr, not per instr limit
+            while (len(self.validated_LLM_instructions) == 0) or (False in self.validated_LLM_instructions):            
+                self.validated_LLM_instructions = [] # Reset validated instructions for next search
+                print("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
                 for n, instr in enumerate(list(results[application].keys())):
-                    
-                    # LLM Validation checks all instructions to confirm they are complete
-                    if (self.LLM_INSTUCTION_PLANNER) and (self.LLM_validation is not None) and (results[application][instr] is not None):
-                        # Loop until instructions are validated positive
-                        try:
-                            validation_result = self.LLM_validation.validate_instruction_completion(
-                                instruction_descriptions[n], results[application][instr]['sub_goal']
-                                )
-                            instr_complete = validation_result['is_complete']
-                            confidence = validation_result['confidence']
-                            print("++++++++++++++++++++++++")
-                            print(validation_result)
-                            print(instr_complete)
-                            print("TYPE CHECK", type(instr_complete))
-                            print("++++++++++++++++++++++++")
-                            # TYPE CHECKING
-                            if isinstance(instr_complete, str):
-                                instr_complete = instr_complete.strip().lower() == 'true'
-                            if isinstance(confidence, str):
-                                try:
-                                    confidence = float(confidence)
-                                except ValueError:
-                                    print(f"Invalid confidence value: {confidence}, defaulting to 0.75")
-                                    confidence = 0.75
-
-                            # Check if instruction is complete
-                            if not instr_complete:
-                                self.validated_LLM_instructions = False
-                                # if confidence > 0.5:
-                                #     self.validated_LLM_instructions = False
-                                # else:
-                                    
-                                #     print("Confidence too low, assuming instructions as valid")
-                                #     self.validated_LLM_instructions = True
-                            
-                            if self.validated_LLM_instructions:
-                                feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=False)
-                            else:
-                                feedback_update = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.1, plot=False)
-
-                            feedback_counter += 1
-                            if feedback_counter > 10:
-                                print("LLM validation failed after 10 attempts, assuming instructions as valid")
-                                self.validated_LLM_instructions = True
-                                break
+                    print("---")
+                    print("\t - ",instruction_descriptions_current)
+                    print("---")
+                    # LLM Validation checks current instructions to confirm they are complete
+                    validation_result = self.LLM_validation.validate_instruction_completion(
+                        instruction_descriptions_current[n], results[application][instr]['sub_goal']
+                        )
+                    instr_complete = validation_result['is_complete']
+                    confidence = validation_result['confidence']
+                    print("\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+                    print(f"Validation Result for instruction {n+1}:")
+                    print(f"\t - {validation_result}")
+                    print(f"INSTRUCTION: {instruction_descriptions_current[n]}")
+                    print(f"|---> INSTRUCTION COMPLETE:  {instr_complete}")
+                    print(f"|---> CONFIDENCE: {confidence}")
+                    print(f"|---> REASONING: {validation_result['reasoning']}")
+                    print(f"|---> BEST MATCH: {results[application][instr]['sub_goal']}")
                         
-                            if abs(feedback_update)<=0.01:
-                                print("Feedback update is too small, assuming instructions as valid")
-                                self.validated_LLM_instructions = True
-                                break
-                            
-                        except Exception as e:
-                            print(f"Error in LLM validation, assuming instructions as valid: {e}")
-                            self.validated_LLM_instructions = True
-                    else:
-                        # If LLM validation is not enabled, default to user validation as first check
-                        self.validated_LLM_instructions = True
+                    # TYPE CHECKING
+                    if isinstance(instr_complete, str):
+                        instr_complete = instr_complete.strip().lower() == 'true'
+                    if isinstance(confidence, str):
+                        try:
+                            confidence = float(confidence)
+                        except ValueError:
+                            print(f"Invalid confidence value: {confidence}, defaulting to 0.75")
+                            confidence = 0.75
 
-            except Exception as e:
-                print(f"Error in process_input: {str(e)}")
-                raise
+                    # Check if instruction is complete
+                    if instr_complete:
+                        feedback_update = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.01, plot=False)
+                        self.validated_LLM_instructions.append(True)
+                    else:
+                        feedback_update = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.001, plot=False)
+                        self.validated_LLM_instructions.append(False)
+              
+                    
+
+                    # Provide reflection prompt back to matching algorithm to let it try again
+                    if instruction_reflection:
+                        if not instr_complete:
+                            instr_reflection = f"""Update the instruction {instruction_descriptions_current[n]} as a match could not be found in the environment.
+The reason given was: {validation_result['reasoning']} 
+Example of environment language structure: {results[application][instr]['sub_goal']}"""
+                            print("\n --------------------------------")
+                            print("LLM REFLECTION ENEABLED - UPDATING INSTRUCTIONS")
+                            print(instr_reflection)
+                            print("--------------------------------")
+                            llm_breakdown = self.LLM_reflection_plan_generator.break_down_task(instr_reflection, max_subgoals=1)
+                            if llm_breakdown and isinstance(llm_breakdown, list) and len(llm_breakdown) > 0:
+                                instruction_descriptions_reflection.append(llm_breakdown[0]) # Only one instruction returned
+                                print(f"LLM reflection enabled as instruction \n |---> {instruction_descriptions_current[n]} \nis not complete, updated instruction: \n |---> {llm_breakdown}")
+                                print("--------------------------------")
+                            else:
+                                print("LLM breakdown failed or returned empty, using original input")
+                                instruction_descriptions_reflection.append(instruction_descriptions_current[n])
+                        else:
+                            # Dont need to reflect if instruction is complete
+                            instruction_descriptions_reflection.append(instruction_descriptions_current[n])
+                    print("\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+                feedback_counter += 1 
+                # Provide reflection back to matching algorithm to let it try again
+                if len(instruction_descriptions_reflection) > 0:
+                    # Check if the instruction is complete by matching the best match
+                    best_match_dict, instruction_results_data = self.elsci_run.match(
+                        instructions=instructions,
+                        instr_descriptions=instruction_descriptions_reflection
+                    )
+                # Update results                    
+                results[application] = best_match_dict.copy()
+                # Exit if feedback is complete or converged
+                if feedback_counter >= feedback_limit:
+                    print("LLM validation failed after 10 attempts, assuming instructions as valid")
+                    self.validated_LLM_instructions.append(True)
+                    break
+            
+                if abs(feedback_update)<=0.01:
+                    print("Feedback update has converged to small update, assuming instructions as valid")
+                    self.validated_LLM_instructions.append(True)
+                    break
+                # Update current instructions to the reflection instructions for next validation
+                instruction_descriptions_current = instruction_descriptions_reflection.copy()
+                instruction_descriptions_reflection = [] # Reset reflection instructions for current search
+                print("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+        # Store validated instructions
+        if application not in self.instruction_results:
+            self.instruction_results[application] = {}
+        if enable_llm_planner:
+            self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
+        else:
+            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
+
+        if len(instruction_descriptions_reflection) > 0:
+            # If LLM reflection is enabled and instructions are not complete, use the reflection instructions
+            instruction_descriptions = instruction_descriptions_reflection
+            instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+            print(f"LLM reflection enabled as initial instructions do not complete, using updated reflection instructions: {instruction_descriptions}")
 
         console_output += f'<br><b>Results for {application}:</b><br>'
         for n, instr in enumerate(list(results[application].keys())):
-            try:
-                if results[application][instr] is None:
-                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
-                else:
-                    console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
+            if results[application][instr] is None:
+                console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>No match found</i><br>'
+            else:
+                console_output += '<b>' + str(n + 1) + ' - ' + instruction_descriptions[n] + ':</b> <i>' + results[application][instr]['sub_goal'] + '</i><br>'
 
-                    engine_dummy = engine(local_config)
-                    engine_dummy.reset() # Reset required by gym environments
-                    
-                    instr_match_plot = engine_dummy.render(results[application][instr]['best_match'])
-                    instr_match_plot_filename = f'current_state_plot_{n}.png'
-                    instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
-                    instr_match_plot.savefig(instr_match_plot_path)
-            
-                    if os.path.exists(instr_match_plot_path):
-                        print(f"Current state plot created successfully at {instr_match_plot_path}")
-                        print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
-                        match_plots.append(f'uploads/{instr_match_plot_filename}')
-                    else:
-                        print(f"Error: Current state plot not created at {instr_match_plot_path}")
-            except:
-                pass
+                engine_dummy = engine(local_config)
+                engine_dummy.reset() # Reset required by gym environments
+                
+                instr_match_plot = engine_dummy.render(results[application][instr]['best_match'])
+                instr_match_plot_filename = f'current_state_plot_{n}.png'
+                instr_match_plot_path = os.path.abspath(os.path.join(self.uploads_dir, instr_match_plot_filename))
+                instr_match_plot.savefig(instr_match_plot_path)
+        
+                if os.path.exists(instr_match_plot_path):
+                    print(f"Current state plot created successfully at {instr_match_plot_path}")
+                    print(f"File size: {os.path.getsize(instr_match_plot_path)} bytes")
+                    match_plots.append(f'uploads/{instr_match_plot_filename}')
+                else:
+                    print(f"Error: Current state plot not created at {instr_match_plot_path}")
 
         prerender_image = self.get_prerender_image(application)
 
@@ -600,7 +644,7 @@ class WebApp:
                     except Exception as e:
                         print(f"Error fetching engine source code from {root_url}: {e}")
 
-            selected_adapters = data.get('selectedAdapters', [])
+            # Adapters are now selected per agent and output into agent_adapter_dict, so if none then use all adapters
             agent_adapter_dict = data.get('agent_adapter_dict', {})
             if not agent_adapter_dict:
                 # Fallback to all adapters if new format not provided
@@ -877,7 +921,7 @@ class WebApp:
                     print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                     return jsonify({'status': 'error', 'message': message}), 500
                 # Add feedback to the instruction results
-                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.01, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
@@ -893,7 +937,7 @@ class WebApp:
 
             # Add feedback to the instruction results
             if application in self.instruction_results:
-                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.1, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.001, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             
 

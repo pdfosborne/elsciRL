@@ -91,6 +91,9 @@ class LLMInstructionValidator:
         """
         prompt = f"""
 Please evaluate whether the "Best Match" text completes or fulfills the given "Instruction".
+You only need to confirm that the language match well and do not need to check if the best match would update the environment.
+The language structure from the environment is fixed and does not change, so do not expect a 'Best Match' that is better structured than what is given.
+You need to determine if the current 'Best Match' is likely to be the best match for the instruction given the language structure of the environment, do not expect more detail than what is given.
 
 INSTRUCTION:
 {instruction}

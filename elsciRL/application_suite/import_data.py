@@ -9,6 +9,9 @@
 # - Experiment configs are defined in the experiment_configs folder
 #   |-----> NOTE: AT LEAST TWO EXPERIMENT CONFIGS MUST BE DEFINED
 #       |-----> This is so that it triggers the selection swap on the server side
+# - OBSERVED STATES MUST MATCH ADAPTER SELECTION NAMING
+#    |-----> ENCODED STATES MUST MATCH OBSERVED STATES NAMING
+#    |-----> For multiple versions from same adapter, use -v2, -v3, etc.
 class Applications:
     def __init__(self):
         self.data ={
@@ -27,8 +30,9 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {"sailing_graphs":"sailing_graphs"},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states_language_1000000.txt", 
-                                            "LLM_observed_states": "observed_states_Sailing_easy_LLM_1000_v2.txt"},
+                
+                "prerender_data_filenames": {"language-v1":"observed_states_language_1000000.txt", 
+                                            "LLM-v1": "observed_states_Sailing_easy_LLM_1000_v2.txt"},
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"}
                 },
@@ -46,7 +50,7 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Classroom_classroom_A_LLM_100epi.txt"},
+                "prerender_data_filenames": {"classroom_A_language-v1":"observed_states.txt", "LLM-v1":"observed_states_Classroom_classroom_A_LLM_100epi.txt"},
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"}
                 },
@@ -64,7 +68,7 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"observed_states":"observed_states.txt", "LLM_observed_states":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_100epi.txt"},
+                "prerender_data_filenames": {"language-v1":"observed_states.txt", "LLM-v1":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_100epi.txt"},
                 "prerender_data_encoded_filenames": {},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
                 },
@@ -85,9 +89,9 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"active_pieces_language":"observed_states_active_pieces_language_50000.txt",
-                                             "LLM_observed_states": "observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
-                "prerender_data_encoded_filenames":{"LLM_observed_states": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
+                "prerender_data_filenames": {"active_pieces_language-v1":"observed_states_active_pieces_language_50000.txt",
+                                             "LLM-v1": "observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
+                "prerender_data_encoded_filenames":{"LLM-v1": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 },
             "TextWorldExpress":{
@@ -112,9 +116,9 @@ class Applications:
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {
-                    "twc-easy_observed_states":
+                    "language-v1":
                         "observed_states_TextWorldExpress_twc-easy_language_default_10000_29-05-2025_15-53.txt",
-                    "cookingworld-easy_observed_states":
+                    "LLM-v1":
                         "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {}
@@ -137,8 +141,8 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {'observed_states_umaze_language':'observed_states_Maze_umaze_language_default_10000.txt',
-                                             'observed_states_umaze_LLM':'observed_states_Maze_default_LLM_100.txt'},
+                "prerender_data_filenames": {'language-v1':'observed_states_Maze_umaze_language_default_10000.txt',
+                                             'LLM-v1':'observed_states_Maze_default_LLM_100.txt'},
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {}
                 }

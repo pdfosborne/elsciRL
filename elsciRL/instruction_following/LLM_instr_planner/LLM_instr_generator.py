@@ -127,15 +127,16 @@ class OllamaTaskBreakdown:
             List of sub-goal strings
         """
         system_prompt = f"""You are an expert task planner. Your job is to break down complex tasks into smaller, manageable sub-goals.
-
+Your instructions will be used to help an agent that interacts with the environment.
+You do not interact with the environment directly, but your output will be used to plan actions.
+DO NOT return any steps that are not actionable, exclude any 'gather information' 'generate' 'think', 'assess', 'look around', 'determine', 'research', 'analyze', 'review', 'explore', 'investigate', 'identify', 'understand', 'examine', 'evaluate', 'plan', 'decide'.
+You must generate actionable steps based on the task description provided that an agent can complete.
 INSTRUCTIONS:
 1. Analyze the given task and break it down into {max_subgoals} or fewer concrete sub-goals
 2. Each sub-goal should be specific, actionable, and measurable
 3. List each sub-goal on a separate line, numbered (1., 2., 3., etc.)
 4. Focus on creating logical, sequential sub-goals that when completed will achieve the main objective
-5. Keep each sub-goal description clear and concise
-6. Do not include any additional commentary or explanations, just the sub-goals
-7. You do not need any sub-goals that are not actually actionable, for example, do not include "Determinge the best approach" or "Research the topic" as sub-goals.
+5. Do not include any additional commentary or explanations, just the sub-goals
 
 Example format:
 1. First sub-goal description
@@ -155,8 +156,7 @@ Example format:
 Please analyze this task and break it down into manageable sub-goals. Consider:
 - What are the key components needed?
 - What is the logical sequence of steps?
-- Are there any prerequisites or dependencies?
-- What can be done in parallel vs sequentially?
+- Sub-goals must be defined sequentially?
 
 Provide your response as a numbered list of sub-goals."""
 
@@ -212,8 +212,11 @@ Provide your response as a numbered list of sub-goals."""
                 f"Given the following actionable sub-goals:\n"
                 + "\n".join([f"- {g}" for g in actionable_sub_goals])
                 + f"\n\nSummarise and combine them into exactly {max_subgoal} clear, actionable, and non-overlapping steps. "
-                    "Do not include any steps about thinking, assessing, looking around, or planning. "
-                    "Return only a numbered list of actionable steps."
+"The steps are to interact with the environment and the final output used to plan, not to think, refine or plan or as inputs for a model so do not include text like 'generate' or 'produce'."
+"Do not include any steps about thinking, assessing, looking around, creating a plan, or planning. "
+"Return only a numbered list of actionable steps."
+"Do not include any additional commentary or explanations, just the sub-goals. "
+"Do not include any text that is not a sub-goal, such as 'Here are the sub-goals:' or 'The sub-goals are:' or 'These are the steps to take:' or 'Write an instruction:'. "
             )
             try:
                 summary_response = self.chat(summarise_prompt)
@@ -254,36 +257,6 @@ Provide your response as a numbered list of sub-goals."""
             # Return a fallback sub-goal
             return [f"Complete the task: {response[:self.context_length]}..."]
     
-    def refine_subgoals(self, sub_goals: List[str], feedback: str) -> List[str]:
-        """
-        Refine existing sub-goals based on feedback.
-        
-        Args:
-            sub_goals: Current list of sub-goals
-            feedback: User feedback for refinement
-            
-        Returns:
-            Updated list of sub-goals
-        """
-        current_goals = "\n".join([f"{i+1}. {goal}" for i, goal in enumerate(sub_goals)])
-        
-        system_prompt = """You are an expert task planner. You will be given a set of sub-goals and feedback to refine them.
-Your job is to update the sub-goals based on the feedback while maintaining the numbered list format."""
-
-        user_prompt = f"""Current sub-goals:
-{current_goals}
-
-Feedback for refinement: {feedback}
-
-Please update the sub-goals based on this feedback and return the refined version as a numbered list."""
-
-        try:
-            response = self.chat(user_prompt, system_prompt)
-            return self._parse_subgoals_response(response)
-            
-        except Exception as e:
-            logger.error(f"Error refining sub-goals: {e}")
-            return sub_goals  # Return original sub-goals if refinement fails
     
     def clear_conversation(self):
         """Clear the conversation history."""
