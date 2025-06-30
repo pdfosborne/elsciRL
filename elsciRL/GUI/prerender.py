@@ -11,6 +11,7 @@ import json
 import torch
 from torch import Tensor
 from datetime import datetime
+import ollama
 
 # Get language encoder
 from elsciRL.encoders.language_transformers.MiniLM_L6v2 import LanguageEncoder as MiniLM_L6v2
@@ -119,12 +120,24 @@ class Prerender:
         
         num_explor_episodes = int(input("Enter the number of the exploration episodes: "))
 
+        if selected_adapter[0].split('_')[0] == 'LLM':
+            ollama_models = ollama.list()
+            print("Select an ollama model from the following options:")
+            for i, model in enumerate(ollama_models['models']):
+                print(f"{i + 1}: {model['model']}")
+            select_ollama_model_index = int(input("Enter the number of the ollama model you want to select: ")) - 1
+            select_ollama_model = ollama_models['models'][select_ollama_model_index]['model']
+            local_config['model_name'] = select_ollama_model
+            print(f"-- Selected ollama model: {select_ollama_model}")
+
         print("--------------------------------")
         print("-Selected options-")
         print(f"-- Selected application: {selected_application}")
         print(f"-- Selected configuration: {config_input}")
         print(f"-- Selected adapter: {selected_adapter[0]}")
         print(f"-- Number of exploration episodes: {num_explor_episodes}")
+        if selected_adapter[0].split('_')[0] == 'LLM':
+            print(f"-- Selected ollama model: {select_ollama_model}")
         print("--------------------------------")
 
         self.observed_states, self.observed_states_file_name = self.get_observed_states(engine, 
