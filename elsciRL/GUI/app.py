@@ -548,8 +548,6 @@ Example of environment language structure: {results[application][instr]['sub_goa
                     job_queue.put("EVENT: JOB_FAILED")
                     return
             
-
-
             engine_class = self.pull_app_data[application]['engine']
             local_config = self.pull_app_data[application]['local_configs'][config_input]
             adapters = self.pull_app_data[application]['adapters']
@@ -575,7 +573,8 @@ Example of environment language structure: {results[application][instr]['sub_goa
             selected_agents = data.get('selectedAgents', ['Qlearntab'])
             training_episodes = data.get('trainingEpisodes', 1000)
             training_repeats = data.get('trainingRepeats', 5)
-            training_seeds = data.get('trainingSeeds', 1)
+            # training_seeds = data.get('trainingSeeds', 1)
+            training_seeds = 1
             test_episodes = data.get('testEpisodes', 200)
             test_repeats = data.get('testRepeats', 10)
 

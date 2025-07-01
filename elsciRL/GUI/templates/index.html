@@ -331,13 +331,13 @@
                                 <input type="number" id="trainingEpisodes" min="10" max="10000" value="1000" step="500">
                             </div>
                             <div class="training-params">
-                                <label for="trainingRepeats" title="Number of times to repeat training with the same starting position.">Training Repeats (fixed starting position):</label>
+                                <label for="trainingRepeats" title="Number of times to repeat training with the same starting position.">Training Repeats:</label>
                                 <input type="number" id="trainingRepeats" min="1" max="100" value="5">
                             </div>
-                            <div class="training-params">
+                            <!-- <div class="training-params">
                                 <label for="trainingSeeds" title="Number of random seeds for training (random starting positions).">Training Seeds (random starting position):</label>
                                 <input type="number" id="trainingSeeds" min="1" max="100" value="1">
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="config-group" style="flex: 1;">
@@ -718,7 +718,7 @@
                                     // Update training parameters
                                     document.getElementById('trainingEpisodes').value = data.config.number_training_episodes || 1000;
                                     document.getElementById('trainingRepeats').value = data.config.number_training_repeats || 5;
-                                    document.getElementById('trainingSeeds').value = data.config.number_training_seeds || 1;
+                                    // document.getElementById('trainingSeeds').value = data.config.number_training_seeds || 1;
                                     document.getElementById('testEpisodes').value = data.config.number_test_episodes || 200;
                                     document.getElementById('testRepeats').value = data.config.number_test_repeats || 10;
 
@@ -1111,7 +1111,7 @@
 
             const trainingEpisodes = parseInt(document.getElementById('trainingEpisodes').value);
             const trainingRepeats = parseInt(document.getElementById('trainingRepeats').value);
-            const trainingSeeds = parseInt(document.getElementById('trainingSeeds').value);
+            // const trainingSeeds = parseInt(document.getElementById('trainingSeeds').value);
             const testEpisodes = parseInt(document.getElementById('testEpisodes').value);
             const testRepeats = parseInt(document.getElementById('testRepeats').value);
 
@@ -1135,7 +1135,7 @@
                 userInput: document.getElementById('userInput').value,
                 trainingEpisodes: trainingEpisodes,
                 trainingRepeats: trainingRepeats,
-                trainingSeeds: trainingSeeds,
+                // trainingSeeds: trainingSeeds,
                 testEpisodes: testEpisodes,
                 testRepeats: testRepeats,
                 selectedAgents: selectedAgents,
@@ -1543,7 +1543,7 @@
                 selected_plot: document.getElementById('plotSelect').value,
                 training_episodes: parseInt(document.getElementById('trainingEpisodes').value),
                 training_repeats: parseInt(document.getElementById('trainingRepeats').value),
-                training_seeds: parseInt(document.getElementById('trainingSeeds').value),
+                // training_seeds: parseInt(document.getElementById('trainingSeeds').value),
                 test_episodes: parseInt(document.getElementById('testEpisodes').value),
                 test_repeats: parseInt(document.getElementById('testRepeats').value),
                 selected_agents: Array.from(document.querySelectorAll('input[name="agentType"]:checked')).map(cb => cb.value),
@@ -1632,7 +1632,7 @@
                     // Set training parameters
                     if (config.training_episodes) document.getElementById('trainingEpisodes').value = config.training_episodes;
                     if (config.training_repeats) document.getElementById('trainingRepeats').value = config.training_repeats;
-                    if (config.training_seeds) document.getElementById('trainingSeeds').value = config.training_seeds;
+                    // if (config.training_seeds) document.getElementById('trainingSeeds').value = config.training_seeds;
                     if (config.test_episodes) document.getElementById('testEpisodes').value = config.test_episodes;
                     if (config.test_repeats) document.getElementById('testRepeats').value = config.test_repeats;
 
