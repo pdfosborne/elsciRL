@@ -75,7 +75,10 @@ class Prerender:
 
 
         # Update file name to include problem name, number of episodes, and timestamp
-        file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
+        if selected_adapter[0].split('_')[0] == 'LLM':
+            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{local_config['model_name']}_{time}.txt"
+        else:
+            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
         file_path = os.path.join(save_dir, file_name)
 
         # Save observed states only
@@ -118,8 +121,6 @@ class Prerender:
         engine = self.pull_app_data[selected_application]['engine']
         local_config = self.pull_app_data[selected_application]['local_configs'][config_input]
         adapters = self.pull_app_data[selected_application]['adapters']
-        
-        num_explor_episodes = int(input("Enter the number of the exploration episodes: "))
 
         if selected_adapter[0].split('_')[0] == 'LLM':
             ollama_models = ollama.list()
@@ -130,15 +131,18 @@ class Prerender:
             select_ollama_model = ollama_models['models'][select_ollama_model_index]['model']
             local_config['model_name'] = select_ollama_model
             print(f"-- Selected ollama model: {select_ollama_model}")
+        
+        num_explor_episodes = int(input("Enter the number of the exploration episodes: "))
+
 
         print("--------------------------------")
         print("-Selected options-")
         print(f"-- Selected application: {selected_application}")
         print(f"-- Selected configuration: {config_input}")
         print(f"-- Selected adapter: {selected_adapter[0]}")
-        print(f"-- Number of exploration episodes: {num_explor_episodes}")
         if selected_adapter[0].split('_')[0] == 'LLM':
             print(f"-- Selected ollama model: {select_ollama_model}")
+        print(f"-- Number of exploration episodes: {num_explor_episodes}")
         print("--------------------------------")
 
         self.observed_states, self.observed_states_file_name = self.get_observed_states(engine, 
