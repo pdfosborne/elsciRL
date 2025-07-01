@@ -399,9 +399,9 @@ class elsciRLSearch:
         
         # Calculate updated vector after feedback
         if pred_x > instruction_vec[0]:
-            new_angle = torch.arccos(torch.tensor(sim + sim_delta))
-        else:
             new_angle = torch.arccos(torch.tensor(sim - sim_delta))
+        else:
+            new_angle = torch.arccos(torch.tensor(sim + sim_delta))
       
         new_x = torch.cos(new_angle)
         new_y = torch.sin(new_angle)
