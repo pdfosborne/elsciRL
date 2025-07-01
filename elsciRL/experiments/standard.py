@@ -111,7 +111,7 @@ class Experiment:
                         train_setup_info['adapter_select'] = adapter
                         train_setup_info['train'] = True
                         # Neural agent input size
-                        player = self.agent_factory.create(agent_type, agent_parameters, adapter)
+                        player = self.agent_factory.create(agent_type, agent_parameters, engine, adapter)
                         train_setup_info['agent'] = player
                         train_setup_info['live_env'] = True
                         number_training_repeats = self.ExperimentConfig["number_training_repeats"]

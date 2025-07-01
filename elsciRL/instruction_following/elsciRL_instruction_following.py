@@ -305,17 +305,39 @@ class elsciRLOptimize:
                     # ----- Neural Agent Setup
                     # Get the input dim from the adapter or the encoder's output dim
                     if agent_type == "DQN":
+                        adapter_sample = self.adapters[adapter](setup_info=self.setup_info)
+                        # Set input_size from adapter
                         try:
-                            agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).output_dim
-                        except:
+                            input_size = adapter_sample.input_dim
+                            print(f"Using input_dim from adapter {adapter}: {input_size}")
+                        except Exception:
                             try:
-                                agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).encoder.output_dim
-                            except:
+                                input_size = adapter_sample.encoder.output_dim
+                                print(f"Using encoder output_dim from encoder {adapter_sample.encoder}: {input_size}")
+                            except Exception:
                                 try:
-                                    agent_parameters['input_size'] = self.adapters[adapter](setup_info=train_setup_info).LLM_adapter.encoder.output_dim
-                                except:
-                                    print(f"No input dim found in the specified adapter: {adapter}. Please provide this as self.input_dim in the adapter class.")
-                                    raise ValueError(f"No output dim size found in adapter: {adapter}")
+                                    input_size = adapter_sample.LLM_adapter.encoder.output_dim
+                                    print(f"Using LLM_adapter encoder output_dim from LLM adapter {adapter_sample.LLM_adapter}: {input_size}")
+                                except Exception:
+                                    print(f"Adapter {adapter} does not have input_dim specified.")
+                                    raise ValueError(f"No input dim size found in adapter: {adapter}")
+
+                        engine_sample = self.engine(local_setup_info=self.setup_info)
+                        try:
+                            output_size = engine_sample.output_size
+                        except Exception:
+                            try:
+                                output_size = engine_sample.output_dim
+                            except Exception:
+                                try:
+                                    output_size = engine_sample.output_dim_size
+                                except Exception:
+                                    print(f"Engine {engine_sample} does not contain output dim size for DQN agent, using default 1,000.")
+                                    output_size = 1000
+                        # Order must match DQN input
+                        temp_dict = {'input_size': input_size, 'output_size': output_size}
+                        temp_dict.update(agent_parameters)
+                        agent_parameters = temp_dict.copy()
                     # ----- Sub-Goal
                     # - If we have setup dict to include agent_adapter specific location of sub-goals
                     #   i.e. {instr:{env_code:{agent_adapter:{sub_goal:'ENV_CODE', sim_score:0.8}}, action_cap:5}}

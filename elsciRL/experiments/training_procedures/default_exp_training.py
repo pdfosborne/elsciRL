@@ -42,7 +42,7 @@ def run_training_loop(
             if number_training_repeats > 1:
                 print("------\n- Repeat Num: ", training_repeat)
             setup_num += 1
-            agent = agent_factory.create(agent_type, train_setup_info['agent_parameters'][agent_type], adapter)
+            agent = agent_factory.create(agent_type, train_setup_info['agent_parameters'][agent_type], engine, adapter)
             train_setup_info['agent'] = agent
             # Create the environment, use gym_env if specified
             if gym_env:

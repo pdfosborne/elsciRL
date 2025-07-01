@@ -27,6 +27,7 @@ class DQNAgent(QLearningAgent):
     def __init__(self, 
                  input_size: int,
                  output_size: int,
+                 hidden_size: int = None,
                  learning_rate: float = 0.001,
                  gamma: float = 0.99,
                  epsilon: float = 1.0,
@@ -35,7 +36,7 @@ class DQNAgent(QLearningAgent):
                  memory_size: int = 10000,
                  batch_size: int = 64,
                  target_update: int = 10,
-                 hidden_size: int = None):
+                 ):
         
         self.input_size = input_size
         self.output_size = output_size

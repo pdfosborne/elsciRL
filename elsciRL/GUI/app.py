@@ -70,16 +70,17 @@ class WebApp:
             "DQN": {
                 "display_name": "Deep Q-Network",
                 "params": {
-                    "output_size": {"label": "Output Size", "type": "number", "min": 1, "step": 1, "default": 1},
+                    "hidden_size": {"label": "Hidden Layer Size", "type": "number", "min": 32, "step": 32, "default": 128},
                     "learning_rate": {"label": "Learning Rate", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.001},
                     "gamma": {"label": "Discount Factor (Gamma)", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.99},
                     "epsilon": {"label": "Initial Exploration Rate", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 1.0},
-                    "epsilon_min": {"label": "Minimum Exploration Rate", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0.01},
+                    "epsilon_min": {"label": "Minimum Exploration Rate", "type": "number", "min": 0, "max": 1, "step": 0.01, "default": 0},
                     "epsilon_decay": {"label": "Epsilon Decay Rate", "type": "number", "min": 0, "max": 1, "step": 0.001, "default": 0.995},
                     "memory_size": {"label": "Replay Memory Size", "type": "number", "min": 1000, "step": 1000, "default": 10000},
                     "batch_size": {"label": "Batch Size", "type": "number", "min": 1, "step": 1, "default": 64},
                     "target_update": {"label": "Target Network Update Frequency", "type": "number", "min": 1, "step": 1, "default": 10},
-                    "hidden_size": {"label": "Hidden Layer Size", "type": "number", "min": 32, "step": 32, "default": 128}
+                    #"output_size": {"label": "Output Size", "type": "number", "min": 1, "step": 1, "default": 1},
+
                 }
             },
             "LLM_Ollama": {

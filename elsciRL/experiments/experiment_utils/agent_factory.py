@@ -15,20 +15,43 @@ class AgentFactory:
     def register_agent(self, name, agent_class):
         self.agent_types[name] = agent_class
 
-    def create(self, agent_type, agent_parameters, adapter=None):
-        if agent_type == "DQN" and adapter:
-            # Set input_size from adapter
-            try:
-                agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).input_dim
-            except Exception:
+    def create(self, agent_type, agent_parameters, engine=None, adapter=None):
+        if agent_type == "DQN":
+            if adapter:
+                adapter_sample = self.adapters[adapter](setup_info=self.setup_info)
+                # Set input_size from adapter
                 try:
-                    agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).encoder.output_dim
+                    input_size = adapter_sample.input_dim
+                    print(f"Using input_dim from adapter {adapter}: {input_size}")
                 except Exception:
                     try:
-                        agent_parameters['input_size'] = self.adapters[adapter](setup_info=self.setup_info).LLM_adapter.encoder.output_dim
+                        input_size = adapter_sample.encoder.output_dim
+                        print(f"Using encoder output_dim from encoder {adapter_sample.encoder}: {input_size}")
                     except Exception:
-                        print(f"Adapter {adapter} does not have input_dim specified.")
-                        raise ValueError(f"No input dim size found in adapter: {adapter}")
+                        try:
+                            input_size = adapter_sample.LLM_adapter.encoder.output_dim
+                            print(f"Using LLM_adapter encoder output_dim from LLM adapter {adapter_sample.LLM_adapter}: {input_size}")
+                        except Exception:
+                            print(f"Adapter {adapter} does not have input_dim specified.")
+                            raise ValueError(f"No input dim size found in adapter: {adapter}")
+
+            if engine:
+                print(engine)
+                engine_sample = engine(local_setup_info=self.setup_info)
+                try:
+                    output_size = engine_sample.output_size
+                except Exception:
+                    try:
+                        output_size = engine_sample.output_dim
+                    except Exception:
+                        try:
+                            output_size = engine_sample.output_dim_size
+                        except Exception:
+                            print(f"Engine {engine} does not contain output dim size for DQN agent, using default 1,000.")
+                            output_size = 1000
+            # Order must match DQN input
+            temp_dict = {'input_size': input_size, 'output_size': output_size}
+            temp_dict.update(agent_parameters)
         if agent_type not in self.agent_types:
             raise ValueError(f"Unknown agent type: {agent_type}")
-        return self.agent_types[agent_type](**agent_parameters)
+        return self.agent_types[agent_type](**temp_dict)

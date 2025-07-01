@@ -24,5 +24,16 @@ class DefaultAgentConfig:
                     "epsilon": 1,
                     "epsilon_step":0
                     },
+                "DQN":{
+                    "learning_rate": 0.001,
+                    "gamma": 0.99,
+                    "epsilon": 1.0,
+                    "epsilon_min": 0.01,
+                    "epsilon_decay": 0.995,
+                    "memory_size": 10000,
+                    "batch_size": 64,
+                    "target_update": 10,
+                    "hidden_size": 128
+                },
             }
         }
