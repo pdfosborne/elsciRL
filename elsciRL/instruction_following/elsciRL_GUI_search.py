@@ -214,7 +214,7 @@ class elsciRLSearch:
                     instr_description = [s.strip() for s in instr_description if s.strip()]
                     instr_description = ' '.join(instr_description)
                 else:
-                    instr_description = [instr_description.translate(None, string.punctuation).strip()]
+                    instr_description = [s.translate(str.maketrans('', '', string.punctuation)).strip()]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             if instruction_vector.size()[0] > 1:
@@ -337,7 +337,7 @@ class elsciRLSearch:
                     instr_description = [s.strip() for s in instr_description if s.strip()]
                     instr_description = ' '.join(instr_description)
                 else:
-                    instr_description = [instr_description.translate(None, string.punctuation).strip()]
+                    instr_description = [s.translate(str.maketrans('', '', string.punctuation)).strip()]
             # Create tensor vector of description
             instruction_vector = self.enc.encode(instr_description)
             # Get sub-goal vector

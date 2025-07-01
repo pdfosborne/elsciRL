@@ -96,7 +96,7 @@ class OllamaAdapter(LLMAdapter):
             return output_response
         return None
 
-    def adapter(self, state: any, legal_moves: list = None, episode_action_history: list = None, encode: bool = True, indexed: bool = False) -> Tensor:
+    def adapter(self, state: any, legal_moves: list = [], episode_action_history: list = [], encode: bool = True, indexed: bool = False) -> Tensor:
         """Returns the adapted form, may require input flag for encoded or non-encoded output.
         
         Args:
@@ -140,16 +140,22 @@ class OllamaAdapter(LLMAdapter):
                 context_parts.append(f"The current state to describe is: {str(state)}")
             # Add legal moves if provided
             # TODO: ADD ACTION MAPPER TO ALL ADAPTERS AS STANDARD FUNCTIONALITY
-            if (legal_moves is not None) and (len(legal_moves) > 0):
+            if len(legal_moves) > 0:
                 context_parts.append(f"Legal moves: {str(legal_moves)}")
             
             # Add action history if provided
-            context_parts.append("The following is a history of the states and actions taken in the current episode.")
-            if (episode_action_history is not None) and (len(episode_action_history) > 0):
+            if len(episode_action_history) > 0:
+                context_parts.append("The following is a history of the states and actions taken in the current episode.")
                 recent_actions = episode_action_history[-self.action_history_length:]  # Last N actions
                 for n,prior_action in enumerate(recent_actions):
-                    context_parts.append(f"Prior state {n}: {str(self.state_history[len(self.state_history)-len(recent_actions)-1+n])}")
-                    context_parts.append(f"Action {n}: {str(prior_action)}")
+                    try:
+                        context_parts.append(f"Prior state {n}: {str(self.state_history[len(self.state_history)-len(recent_actions)-1+n])}")
+                        context_parts.append(f"Action {n}: {str(prior_action)}")
+                    except:
+                        print("\nError accessing state history or action history.\n")
+                        print(episode_action_history)
+                        print("----------------------\n")
+                        print(recent_actions)
             
             # Combine all context into a single prompt
             full_prompt = " | ".join(context_parts)

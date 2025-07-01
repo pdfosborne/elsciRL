@@ -50,8 +50,10 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"classroom_A_language-v1":"observed_states.txt", "LLM-v1":"observed_states_Classroom_classroom_A_LLM_100epi.txt"},
-                "prerender_data_encoded_filenames":{},
+                "prerender_data_filenames": {"classroom_A_language-v1":"observed_states_Classroom_classroom_A_classroom_A_language_100.txt", 
+                                            "LLM-v1":"observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
+                "prerender_data_encoded_filenames":{"classroom_A_language-v1":"encoded_observed_states_Classroom_classroom_A_classroom_A_language_100.txt",
+                                                    "LLM-v1":"encoded_observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"}
                 },
             "Gym-FrozenLake":{
@@ -68,8 +70,10 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {"language-v1":"observed_states.txt", "LLM-v1":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_100epi.txt"},
-                "prerender_data_encoded_filenames": {},
+                "prerender_data_filenames": {"language-v1":"observed_states_Gym-FrozenLake_Osborne2024_env_language_100.txt", 
+                                            "LLM-v1":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_llama32_100.txt"},
+                "prerender_data_encoded_filenames": {"language-v1":"encoded_observed_states_Gym-FrozenLake_Osborne2024_env_language_100.txt",
+                                            "LLM-v1":"encoded_observed_states_Gym-FrozenLake_Osborne2024_env_LLM_llama32_100.txt"},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
                 },
             "Chess":{
@@ -94,35 +98,35 @@ class Applications:
                 "prerender_data_encoded_filenames":{"LLM-v1": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"}
                 },
-            "TextWorldExpress":{
-                "github_user": "pdfosborne",
-                "repository": "elsciRL-App-TextWorldExpress",
-                "commit_id": "*",
-                "engine_folder": "environment",
-                "engine_filename": "engine",
-                "config_folder": "configs",
-                "experiment_config_filenames": {"Osborne2024_agent":"config.json"},
-                "local_config_filenames": {"twc-easy":"twc-easy.json", 
-                                            "twc-medium":"twc-medium.json",
-                                            "twc-hard":"twc-hard.json", 
-                                            "cookingworld-easy":"cookingworld-easy.json",
-                                            "cookingworld-medium":"cookingworld-medium.json",
-                                            "cookingworld-hard":"cookingworld-hard.json", 
-                                            "coincollector":"coincollector.json",
-                                            "mapreader":"mapreader.json"},
-                "local_adapter_folder": "adapters",
-                "adapter_filenames": {"language_default":"language", "LLM":"LLM_adapter"},
-                "local_analysis_folder": "analysis",
-                "local_analysis_filenames": {},
-                "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {
-                    "language-v1":
-                        "observed_states_TextWorldExpress_twc-easy_language_default_10000_29-05-2025_15-53.txt",
-                    "LLM-v1":
-                        "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
-                "prerender_data_encoded_filenames":{},
-                "prerender_image_filenames": {}
-                },
+            # "TextWorldExpress":{
+            #     "github_user": "pdfosborne",
+            #     "repository": "elsciRL-App-TextWorldExpress",
+            #     "commit_id": "*",
+            #     "engine_folder": "environment",
+            #     "engine_filename": "engine",
+            #     "config_folder": "configs",
+            #     "experiment_config_filenames": {"Osborne2024_agent":"config.json"},
+            #     "local_config_filenames": {"twc-easy":"twc-easy.json", 
+            #                                 "twc-medium":"twc-medium.json",
+            #                                 "twc-hard":"twc-hard.json", 
+            #                                 "cookingworld-easy":"cookingworld-easy.json",
+            #                                 "cookingworld-medium":"cookingworld-medium.json",
+            #                                 "cookingworld-hard":"cookingworld-hard.json", 
+            #                                 "coincollector":"coincollector.json",
+            #                                 "mapreader":"mapreader.json"},
+            #     "local_adapter_folder": "adapters",
+            #     "adapter_filenames": {"language_default":"language", "LLM":"LLM_adapter"},
+            #     "local_analysis_folder": "analysis",
+            #     "local_analysis_filenames": {},
+            #     "prerender_data_folder": "prerender",
+            #     "prerender_data_filenames": {
+            #         "language-v1":
+            #             "observed_states_TextWorldExpress_twc-easy_language_default_10000_29-05-2025_15-53.txt",
+            #         "LLM-v1":
+            #             "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
+            #     "prerender_data_encoded_filenames":{},
+            #     "prerender_image_filenames": {}
+            #     },
             "Maze":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Maze",
@@ -135,15 +139,31 @@ class Applications:
                                            "double_t_maze":"double_t_maze.json",
                                            "medium":"medium.json",
                                            "large":"large.json",
-                                           "random":"random.json"},
+                                           #"random":"random.json"
+                                           },
                 "local_adapter_folder": "adapters",
                 "adapter_filenames": {"language_default":"language", "LLM":"LLM_adapter"},
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
-                "prerender_data_filenames": {'language-v1':'observed_states_Maze_umaze_language_default_10000.txt',
-                                             'LLM-v1':'observed_states_Maze_default_LLM_100.txt'},
-                "prerender_data_encoded_filenames":{},
+                "prerender_data_filenames": {'language-umaze-v1':'observed_states_Maze_umaze_language_default_1000.txt',
+                                            'LLM-umaze-v1':'observed_states_Maze_umaze_LLM_llama32_100.txt',
+                                            'language-double_t_maze-v1':'observed_states_Maze_double_t_maze_language_default_1000.txt',
+                                            'LLM-double_t_maze-v1':'observed_states_Maze_double_t_maze_LLM_llama32_1000.txt',
+                                            'language-medium-v1':'observed_states_Maze_medium_language_default_1000.txt',
+                                            'LLM-medium-v1':'observed_states_Maze_medium_LLM_llama32_1000.txt',
+                                            'language-large-v1':'observed_states_Maze_large_language_default_1000.txt',
+                                            'LLM-large-v1':'observed_states_Maze_large_LLM_llama32_1000.txt'
+                                            },
+                "prerender_data_encoded_filenames":{'language-umaze-v1':'encoded_observed_states_Maze_umaze_language_default_1000.txt',
+                                            'LLM-umaze-v1':'encoded_observed_states_Maze_umaze_LLM_llama32_100.txt',
+                                            'language-double_t_maze-v1':'encoded_observed_states_Maze_double_t_maze_language_default_1000.txt',
+                                            'LLM-double_t_maze-v1':'encoded_observed_states_Maze_double_t_maze_LLM_llama32_1000.txt',
+                                            'language-medium-v1':'encoded_observed_states_Maze_medium_language_default_1000.txt',
+                                            'LLM-medium-v1':'encoded_observed_states_Maze_medium_LLM_llama32_1000.txt',
+                                            'language-large-v1':'encoded_observed_states_Maze_large_language_default_1000.txt',
+                                            'LLM-large-v1':'encoded_observed_states_Maze_large_LLM_llama32_1000.txt'
+                                            },
                 "prerender_image_filenames": {}
                 }
         }

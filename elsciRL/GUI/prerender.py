@@ -25,6 +25,7 @@ class Prerender:
         pull_data = PullApplications()
         self.pull_app_data = pull_data.pull(problem_selection=self.possible_applications)
         self.ExperimentConfig = pull_data.setup()
+        self.observed_states = None
 
 
     def get_observed_states(self, engine, 
@@ -76,7 +77,12 @@ class Prerender:
 
         # Update file name to include problem name, number of episodes, and timestamp
         if selected_adapter[0].split('_')[0] == 'LLM':
-            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{local_config['model_name']}_{time}.txt"
+            # i.e. if the model name is 'llama3.2', we want to shorten it to 'llama32'
+            if len({local_config['model_name'].split('.')}) > 2:
+                mod_name_short = {local_config['model_name'].split('.')[0]}+{local_config['model_name'].split('.')[1]}
+            else:
+                mod_name_short = local_config['model_name'].split('.')[0]
+            file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{mod_name_short}_{num_explor_episodes}_{time}.txt"
         else:
             file_name = f"observed_states_{selected_application}_{selected_config}_{selected_adapter[0]}_{num_explor_episodes}_{time}.txt"
         file_path = os.path.join(save_dir, file_name)
