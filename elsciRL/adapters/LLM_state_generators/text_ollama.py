@@ -57,6 +57,9 @@ class OllamaAdapter(LLMAdapter):
         self.action_history_length = action_history_length
         self.state_history = []
         self.prior_action_count = -1  # Track the number of actions taken in the current episode
+
+        self.cache = {}  # Cache for storing previous responses
+        self.encoder_cache = {}  # Cache for storing encoded states
         
     
     def _read(self, raw_state) -> list:
@@ -107,60 +110,80 @@ class OllamaAdapter(LLMAdapter):
 
         In order to convert numeric information to text we track recent states and actions as a means to establish a context for the current state.
         """
-
-        # Build the full context prompt including legal moves and action history
-        context_parts = []
-        
-        
-        # Add state information
-        if state:
-            # We can call the adapter multiple times for the same state so we only add the state
-            # to history if it is new
-            if len(episode_action_history) > self.prior_action_count:
-                self.state_history.append(str(state))
-                self.prior_action_count = len(episode_action_history)
-        
-            context_parts.append(f"The current state to describe is: {str(state)}")
-
-        # Add legal moves if provided
-        # TODO: ADD ACTION MAPPER TO ALL ADAPTERS AS STANDARD FUNCTIONALITY
-        if (legal_moves is not None) and (len(legal_moves) > 0):
-            context_parts.append(f"Legal moves: {str(legal_moves)}")
-        
-        # Add action history if provided
-        context_parts.append("The following is a history of the states and actions taken in the current episode.")
-        if (episode_action_history is not None) and (len(episode_action_history) > 0):
-            recent_actions = episode_action_history[-self.action_history_length:]  # Last N actions
-            for n,prior_action in enumerate(recent_actions):
-                context_parts.append(f"Prior state {n}: {str(self.state_history[len(self.state_history)-len(recent_actions)-1+n])}")
-                context_parts.append(f"Action {n}: {str(prior_action)}")
-        
-        # Combine all context into a single prompt
-        full_prompt = " | ".join(context_parts)
-        
-        # Get LLM response
-        adapted_state = self.call_ollama_api(full_prompt)
-        processed_response = self.process_ollama_response(adapted_state)
-        
-        if processed_response is None:
-            processed_response = str(state) if state is not None else "No state available"
-    
-        # Handle encoding
-        if encode:
-            if self.encoder is not None:
-                # Use the LanguageEncoder to encode the response
-                state_encoded = self.encoder.encode(
-                    state=processed_response,
-                    legal_actions=legal_moves,
-                    episode_action_history=episode_action_history,
-                    indexed=indexed
-                )
-                return state_encoded
-            else:
-                print("Warning: Encoder not available, returning processed response as string")
-                return processed_response
+        # Check cache for previously processed state
+        if state in self.cache:
+            processed_response = self.cache[state]
+            if encode:
+                encoded_response = self.encoder_cache.get(state, None)
+                if not encoded_response:
+                    # If we have a cached response but not an encoded one, encode it
+                    encoded_response = self.encoder.encode(
+                        state=processed_response,
+                        legal_actions=legal_moves,
+                        episode_action_history=episode_action_history,
+                        indexed=indexed
+                    )
+                    self.encoder_cache[state] = encoded_response
+            return encoded_response if encode else processed_response
+        # -----------------------------------------------
         else:
-            return processed_response
+            # Build the full context prompt including legal moves and action history
+            context_parts = []
+            # Add state information
+            if state:
+                # We can call the adapter multiple times for the same state so we only add the state
+                # to history if it is new
+                if len(episode_action_history) > self.prior_action_count:
+                    self.state_history.append(str(state))
+                    self.prior_action_count = len(episode_action_history)
+            
+                context_parts.append(f"The current state to describe is: {str(state)}")
+            # Add legal moves if provided
+            # TODO: ADD ACTION MAPPER TO ALL ADAPTERS AS STANDARD FUNCTIONALITY
+            if (legal_moves is not None) and (len(legal_moves) > 0):
+                context_parts.append(f"Legal moves: {str(legal_moves)}")
+            
+            # Add action history if provided
+            context_parts.append("The following is a history of the states and actions taken in the current episode.")
+            if (episode_action_history is not None) and (len(episode_action_history) > 0):
+                recent_actions = episode_action_history[-self.action_history_length:]  # Last N actions
+                for n,prior_action in enumerate(recent_actions):
+                    context_parts.append(f"Prior state {n}: {str(self.state_history[len(self.state_history)-len(recent_actions)-1+n])}")
+                    context_parts.append(f"Action {n}: {str(prior_action)}")
+            
+            # Combine all context into a single prompt
+            full_prompt = " | ".join(context_parts)
+            
+            # Get LLM response
+            adapted_state = self.call_ollama_api(full_prompt)
+            processed_response = self.process_ollama_response(adapted_state)
+            
+            if processed_response is None:
+                processed_response = str(state) if state is not None else "No state available"
+        
+            # Cache the processed response
+            if state not in self.cache:
+                self.cache[state] = processed_response
+
+            # Handle encoding
+            if encode:
+                if self.encoder is not None:
+                    # Use the LanguageEncoder to encode the response
+                    state_encoded = self.encoder.encode(
+                        state=processed_response,
+                        legal_actions=legal_moves,
+                        episode_action_history=episode_action_history,
+                        indexed=indexed
+                    )
+                    # Cache the encoded state
+                    if state_encoded not in self.encoder_cache:
+                        self.encoder_cache[state] = state_encoded
+                    return state_encoded
+                else:
+                    print("Warning: Encoder not available, returning processed response as string")
+                    return processed_response
+            else:
+                return processed_response
         
     def sample(self, state: any=None):
         """Returns a sample of an adapted state form (typically initial position of the environment).
