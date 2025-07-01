@@ -115,7 +115,7 @@ class OllamaAdapter(LLMAdapter):
             processed_response = self.cache[state]
             if encode:
                 encoded_response = self.encoder_cache.get(state, None)
-                if not encoded_response:
+                if encoded_response is not None:
                     # If we have a cached response but not an encoded one, encode it
                     encoded_response = self.encoder.encode(
                         state=processed_response,
