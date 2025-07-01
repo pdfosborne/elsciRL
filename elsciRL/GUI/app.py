@@ -120,6 +120,7 @@ class WebApp:
 
         # Init data here so it reset when page is reloaded
         self.global_input_count = 0
+        self.user_feedback_count = 0
         self.instruction_results = {}
         self.instruction_results_validated = {}
         self.correct_instructions = []
@@ -903,9 +904,17 @@ Example of environment language structure: {results[application][instr]['sub_goa
         data = request.json
         # Check if this is an LLM validation (automatic)
         enable_llm_planner = data.get('enableLLMPlanner', False)        
-        # Use LLM validation if available, otherwise use user input
-        if enable_llm_planner:
-            # Automatic LLM validation
+        is_llm_validation = data.get('isLLMValidation', False)
+        
+        # Use user input if provided, otherwise use LLM validation
+        if enable_llm_planner and is_llm_validation:
+            # User is manually confirming LLM validation result
+            is_correct = data.get('isCorrect')
+            print("++++++++++++++++++++++++++++++++++++++++++++")
+            print(f"User manual confirmation of LLM validation: {is_correct}")
+            print("++++++++++++++++++++++++++++++++++++++++++++")
+        elif enable_llm_planner:
+            # Automatic LLM validation (legacy case)
             print("++++++++++++++++++++++++++++++++++++++++++++")
             print(self.validated_LLM_instructions)
             print("++++++++++++++++++++++++++++++++++++++++++++")
@@ -925,7 +934,10 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 self.correct_instructions.append(user_input)
                 if 'LLM_instr_'+str(self.global_input_count) in self.instruction_results[application]:
                     self.instruction_results_validated[application]['LLM_instr_'+str(self.global_input_count)] = self.instruction_results[application]['LLM_instr_'+str(self.global_input_count)]
-                    message = "<br>LLM validation confirmed: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
+                    if enable_llm_planner and is_llm_validation:
+                        message = "<br>User confirmed LLM validation: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
+                    else:
+                        message = "<br>LLM validation confirmed: Training an agent with this guidance to complete the task... <br> See the results tab once training is complete."
                 elif 'instr_'+str(self.global_input_count) in self.instruction_results[application]:
                     self.instruction_results_validated[application]['instr_'+str(self.global_input_count)] = self.instruction_results[application]['instr_'+str(self.global_input_count)]
                     message = "<br>Great! Training an agent with this as guidance to complete the task... <br> See the results tab once training is complete."
@@ -934,7 +946,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
                     print(f"Error: Could not find instruction data for app {application}, key instr_{self.global_input_count}")
                     return jsonify({'status': 'error', 'message': message}), 500
                 # Add feedback to the instruction results
-                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.01, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='positive', feedback_increment=0.1, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
             else:
                 message = "<br>Error: Original instruction match data not found. Cannot validate."
@@ -943,14 +955,16 @@ Example of environment language structure: {results[application][instr]['sub_goa
             self.global_input_count = len(self.correct_instructions)
         else:
             self.incorrect_instructions.append(user_input)
-            if enable_llm_planner:
+            if enable_llm_planner and is_llm_validation:
+                message = "<br>User disagreed with LLM validation. The model will use this feedback to improve."
+            elif enable_llm_planner:
                 message = "<br>LLM validation indicates instructions may need refinement. The model will use this feedback to improve."
             else:
                 message = "<br>Thanks for the feedback. The model will use this to improve."
 
             # Add feedback to the instruction results
             if application in self.instruction_results:
-                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.001, plot=True, plot_save_dir='uploads')
+                feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.05, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
                 self.user_feedback_count += 1
             

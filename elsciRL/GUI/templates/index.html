@@ -926,28 +926,44 @@
                 // Handle LLM validation if enabled
                 const confirmationBlock = document.getElementById('confirmationBlock');
                 if (enableLLMPlanner) {
-                    // Hide manual confirmation buttons when LLM planner is enabled
-                    confirmationBlock.style.display = 'none';
+                    // Show confirmation buttons even when LLM planner is enabled
+                    confirmationBlock.style.display = 'block';
                     
-                    // Automatically confirm result using LLM validation
+                    // Update button labels and question text for LLM validation
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = confirmationBlock.querySelector('p');
+                    
+                    correctBtn.textContent = 'Agree with LLM';
+                    incorrectBtn.textContent = 'Disagree with LLM';
+                    confirmationQuestion.textContent = 'Do you agree with the LLM assessment?';
+                    
+                    // Display LLM validation result but allow user to override
                     if (data.llm_validation_result !== undefined) {
                         const confirmationResult = document.getElementById('confirmationResult');
                         if (data.llm_validation_result) {
-                            confirmationResult.innerHTML = '<br>✓ LLM validation: Instructions are complete and correct.';
+                            confirmationResult.innerHTML = '<br>✓ LLM validation: Instructions are complete and correct.<br><strong>Please confirm if you agree with this assessment:</strong>';
                             confirmationResult.style.color = 'green';
                         } else {
-                            confirmationResult.innerHTML = '<br>⚠ LLM validation: Instructions may be incomplete or need refinement.';
+                            confirmationResult.innerHTML = '<br>⚠ LLM validation: Instructions may be incomplete or need refinement.<br><strong>Please confirm if you agree with this assessment:</strong>';
                             confirmationResult.style.color = 'orange';
                         }
                         
-                        // Automatically call confirm result with LLM validation
-                        setTimeout(() => {
-                            confirmResultLLM(data.llm_validation_result);
-                        }, 1000);
+                        // Store LLM validation result for later use
+                        window.currentLLMValidationResult = data.llm_validation_result;
                     }
                 } else {
                     // Show manual confirmation buttons when LLM planner is disabled
                     confirmationBlock.style.display = 'block';
+                    
+                    // Reset button labels and question text to default
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = confirmationBlock.querySelector('p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
                 }
             } catch (error) {
                 console.error('Error processing input:', error);
@@ -962,23 +978,32 @@
             const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
             const user_input = document.getElementById('userInput').value;
             const selectedApp = document.getElementById('applicationSelect').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
 
             confirmationResult.innerHTML = '';
             loadingCircleConfirm.style.display = 'block';
             document.getElementById('loadingOverlay').style.display = 'flex';
 
-            console.log(`Sending confirmation: isCorrect=${isCorrect}, userInput=${user_input}`);
+            console.log(`Sending confirmation: isCorrect=${isCorrect}, userInput=${user_input}, enableLLMPlanner=${enableLLMPlanner}`);
+
+            const requestBody = {
+                isCorrect: isCorrect, 
+                userInput: user_input,
+                selectedApps: [selectedApp],
+            };
+
+            // Add LLM planner flag if enabled
+            if (enableLLMPlanner) {
+                requestBody.enableLLMPlanner = true;
+                requestBody.isLLMValidation = true;
+            }
 
             fetch('/confirm_result', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    isCorrect: isCorrect, 
-                    userInput: user_input,
-                    selectedApps: [selectedApp],
-                })    
+                body: JSON.stringify(requestBody)
             })
             .then(response => {
                 if (!response.ok) {
@@ -1003,50 +1028,24 @@
             });
         }
 
-        function confirmResultLLM(isCorrect) {
-            const user_input = document.getElementById('userInput').value;
-            const selectedApp = document.getElementById('applicationSelect').value;
-
-            console.log(`Sending LLM confirmation: isCorrect=${isCorrect}, userInput=${user_input}`);
-
-            fetch('/confirm_result', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    enableLLMPlanner: enableLLMPlanner,
-                    isCorrect: isCorrect, 
-                    userInput: user_input,
-                    selectedApps: [selectedApp],
-                    isLLMValidation: true
-                })    
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('Error response from server:', response);
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('LLM Server response:', data);
-                const confirmationResult = document.getElementById('confirmationResult');
-                confirmationResult.innerHTML += '<br>' + data.message;
-            })
-            .catch(error => {
-                console.error('Error sending LLM confirmation:', error);
-                const confirmationResult = document.getElementById('confirmationResult');
-                confirmationResult.innerHTML += '<br>Error sending LLM confirmation';
-                confirmationResult.style.color = 'red';
-            });
-        }
-
         function newInstruction() {
             document.getElementById('userInput').value = '';
             document.getElementById('consoleOutput').innerHTML = '';
             document.getElementById('instructionMatchPlots').innerHTML = '';
             document.getElementById('confirmationResult').innerHTML = '';
+            
+            // Reset confirmation block to default state
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const confirmationQuestion = document.querySelector('#confirmationBlock p');
+            
+            correctBtn.textContent = 'Correct';
+            incorrectBtn.textContent = 'Incorrect';
+            confirmationQuestion.textContent = 'Was the result correct?';
+            
+            // Hide confirmation block until next input
+            document.getElementById('confirmationBlock').style.display = 'none';
+            
             fetch('/new_instruction', {
                 method: 'POST',
                 headers: {
@@ -1490,6 +1489,19 @@
                     document.getElementById('consoleOutput').innerHTML = '';
                     document.getElementById('instructionMatchPlots').innerHTML = '';
                     document.getElementById('confirmationResult').innerHTML = '<p style="color: green;">All instructions have been reset.</p>';
+                    
+                    // Reset confirmation block to default state
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = document.querySelector('#confirmationBlock p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
+                    
+                    // Hide confirmation block
+                    document.getElementById('confirmationBlock').style.display = 'none';
+                    
                     // Call newInstruction to reset any client-side counters or states related to current input if needed
                     // This will also effectively reset global_input_count on server if new_instruction makes a call that implies it.
                     // However, /reset_all_instructions already resets global_input_count on server.
