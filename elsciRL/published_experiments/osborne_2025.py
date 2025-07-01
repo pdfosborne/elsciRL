@@ -13,22 +13,20 @@ from elsciRL.analysis.combined_variance_visual import combined_variance_analysis
 
 def agent_selection(application:str):
     agent_selection = {
-        'Chess': ['Qlearntab','DQN','LLM_Ollama'],
-        'Sailing': ['Qlearntab','DQN','LLM_Ollama'],
-        'Classroom': ['Qlearntab','DQN','LLM_Ollama'],
-        'Gym-FrozenLake': ['Qlearntab','DQN','LLM_Ollama'],
-        'TextWorldExpress': ['Qlearntab','DQN','LLM_Ollama'],
-        'Maze': ['Qlearntab','DQN','LLM_Ollama'],
+        'Chess': ['Qlearntab','DQN'],
+        'Sailing': ['Qlearntab','DQN'],
+        'Classroom': ['Qlearntab','DQN'],
+        'Gym-FrozenLake': ['Qlearntab','DQN'],
+        'Maze': ['Qlearntab','DQN'],
     }
 
 def adapter_selection(application:str):
     adapter_selection = {
-        'Chess': ['numeric_piece_counter','numeric_piece_counter_language',
+        'Chess': ['numeric_board_mapping','numeric_piece_counter',
                   'active_pieces_language','LLM'],
         'Sailing': ['default','language','LLM'],
         'Classroom': ['default','classroom_A_language','LLM'],
         'Gym-FrozenLake': ['numeric_encoder','language','LLM'],
-        'TextWorldExpress': ['language_default','LLM'],
         'Maze': ['language_default','language','LLM'],
     }
     return adapter_selection[application]
@@ -39,7 +37,6 @@ def local_config(application:str):
         'Sailing': ['easy'],
         'Classroom': ['classroom_A'],
         'Gym-FrozenLake': ['Osborne2024_env'],
-        'TextWorldExpress': ['twc-easy'],
         'Maze': ['umaze', 'double_t_maze', 'medium', 'large'],
     }
     return local_config_selection[application]
@@ -48,12 +45,12 @@ def experiment_config(number_training_episodes:int = 10000):
     # TODO: SET DQN OUTPUT AND HIDDEN SIZE INSIDE ADAPTERS
     experiment_config_selection = {
             'number_training_episodes': number_training_episodes,
-            'number_training_repeats': 1,
+            'number_training_repeats': 40,
             'number_training_seeds': 1,
 
             'number_test_episodes': int(number_training_episodes*0.1),
-            "test_agent_type": "all",
-            "number_test_repeats": 5,
+            "test_agent_type": "best",
+            "number_test_repeats": 20,
 
             "agent_parameters":{
                 "Qlearntab":{
@@ -63,22 +60,16 @@ def experiment_config(number_training_episodes:int = 10000):
                     "epsilon_step":0.01
                     },
                 "DQN":{
-                        "sequence_size": 1,
-                        "input_size": 768,
-                        # "output_size": 1000,
-                        "seq_hidden_dim": 10,
-                        # "hidden_dim": 128,
-                        "num_hidden": 1,
-                        "memory_size": 2000,
-                        "epsilon": 0.2,
-                        "epsilon_step":0.01
+                        "hidden_size": 128,
+                        "learning_rate": 0.001,
+                        "gamma": 0.99,
+                        "epsilon": 1.0,
+                        "epsilon_min": 0.01,
+                        "epsilon_decay": 0.995,
+                        "memory_size": 10000,
+                        "batch_size": 64,
+                        "target_update": 10,
                     },
-                "LLM_Ollama":{
-                    "epsilon": 0.2,
-                    "model_name": "qwen3:0.6b",
-                    "context_length": 1000,
-                    "system_prompt": ""
-                    }   
         }
     }
     return experiment_config_selection
