@@ -374,7 +374,7 @@ Here is information about the environment and the task: {input_prompt}
             self.validated_LLM_instructions = [] 
             instruction_descriptions_reflection = []
             instruction_descriptions_current = instruction_descriptions
-            feedback_counter = 1
+            feedback_counter = [0 for _ in range(0, len(instruction_descriptions_current))]
             feedback_limit = 10 # Currently applies all instr, not per instr limit
             while (len(self.validated_LLM_instructions) == 0) or (False in self.validated_LLM_instructions):            
                 self.validated_LLM_instructions = [] # Reset validated instructions for next search
@@ -440,7 +440,13 @@ Example of environment language structure: {results[application][instr]['sub_goa
                             # Dont need to reflect if instruction is complete
                             instruction_descriptions_reflection.append(instruction_descriptions_current[n])
                     print("\n ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-                feedback_counter += 1 
+                    # Exit if feedback is complete or converged
+                    if feedback_counter[n] >= feedback_limit:
+                        print("LLM validation failed after 10 attempts, assuming instructions as valid")
+                        self.validated_LLM_instructions.append(True)
+                        break
+                    feedback_counter[n] += 1 
+
                 # Provide reflection back to matching algorithm to let it try again
                 if len(instruction_descriptions_reflection) > 0:
                     # Check if the instruction is complete by matching the best match
@@ -450,12 +456,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
                     )
                 # Update results                    
                 results[application] = best_match_dict.copy()
-                # Exit if feedback is complete or converged
-                if feedback_counter >= feedback_limit:
-                    print("LLM validation failed after 10 attempts, assuming instructions as valid")
-                    self.validated_LLM_instructions.append(True)
-                    break
-            
+                
                 if abs(feedback_update)<=0.01:
                     print("Feedback update has converged to small update, assuming instructions as valid")
                     self.validated_LLM_instructions.append(True)
@@ -464,6 +465,10 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 instruction_descriptions_current = instruction_descriptions_reflection.copy()
                 instruction_descriptions_reflection = [] # Reset reflection instructions for current search
                 print("\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+        
+            for n, instr in enumerate(list(results[application].keys())):
+                results[application][instr]['feedback_count'] = feedback_counter[n]
+            
         # Store validated instructions
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
@@ -471,6 +476,10 @@ Example of environment language structure: {results[application][instr]['sub_goa
             self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
         else:
             self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
+
+        for instr_type in self.instruction_results[application].keys():
+            for n,instr in enumerate(list(self.instruction_results[application][instr_type].keys())):
+                self.instruction_results[application][instr_type][instr]['feedback_count'] = feedback_counter[n]
 
         if len(instruction_descriptions_reflection) > 0:
             # If LLM reflection is enabled and instructions are not complete, use the reflection instructions
@@ -671,24 +680,28 @@ Example of environment language structure: {results[application][instr]['sub_goa
                     figures_to_display.append(self.instruction_results_validated[application]['feedback_plot'].split('/')[-1])
                     # Remove feedback plot before using rest of results for training process
                     self.instruction_results_validated[application].pop('feedback_plot', None)
-
                 # ------------------------
                 # Save Insruction Results
                 # Feedback layer and sim score is always Tensor so cannot be saved as JSON
                 instructions_results_save = self.instruction_results_validated[application].copy()
+                ignore_data = ["instr_description", "feedback_count", "feedback_plot"]
                 for instr_key,instr_dict in instructions_results_save.items():
                     for sub_instr_key, sub_instr_dict in instr_dict.items():
-                        for a_a_key, instr_agent_adapter_dict in sub_instr_dict.items():
-                            # Convert data to list if it exists
-                            if 'feedback_layer' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['feedback_layer'], torch.Tensor):
-                                job_queue.put(f"EVENT: Converting feedback layer for {a_a_key} to list for JSON serialization.")
-                                instr_agent_adapter_dict['feedback_layer'] = instr_agent_adapter_dict['feedback_layer'].cpu().numpy().tolist()
-                            if 'sub_goal' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sub_goal'], torch.Tensor):
-                                job_queue.put(f"EVENT: Converting sub_goal for {a_a_key} to list for JSON serialization.")
-                                instr_agent_adapter_dict['sub_goal'] = instr_agent_adapter_dict['sub_goal'].cpu().numpy().tolist()
-                            if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
-                                job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
-                                instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist()     
+                            for a_a_key, instr_agent_adapter_dict in sub_instr_dict.items():
+                                if a_a_key not in ignore_data:
+                                    # Convert data to list if it exists
+                                    if 'feedback_layer' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['feedback_layer'], torch.Tensor):
+                                        job_queue.put(f"EVENT: Converting feedback layer for {a_a_key} to list for JSON serialization.")
+                                        instr_agent_adapter_dict['feedback_layer'] = instr_agent_adapter_dict['feedback_layer'].cpu().numpy().tolist()
+                                    if 'sub_goal' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sub_goal'], torch.Tensor):
+                                        job_queue.put(f"EVENT: Converting sub_goal for {a_a_key} to list for JSON serialization.")
+                                        instr_agent_adapter_dict['sub_goal'] = instr_agent_adapter_dict['sub_goal'].cpu().numpy().tolist()
+                                    if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
+                                        job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
+                                        instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist() 
+                            # Save user feedback count
+                for instr_key in instructions_results_save.keys():
+                    instructions_results_save[instr_key]['user_feedback_count'] = self.user_feedback_count   
                 # ---         
                 if not os.path.exists(self.uploads_dir):
                     os.makedirs(self.uploads_dir, exist_ok=True)
@@ -882,11 +895,11 @@ Example of environment language structure: {results[application][instr]['sub_goa
 
     def new_instruction(self):
         self.global_input_count = len(self.correct_instructions)
+        self.user_feedback_count = 0
         return jsonify({'status': 'success'})
 
     def confirm_result(self):
         data = request.json
-
         # Check if this is an LLM validation (automatic)
         enable_llm_planner = data.get('enableLLMPlanner', False)        
         # Use LLM validation if available, otherwise use user input
@@ -938,6 +951,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
             if application in self.instruction_results:
                 feedback_plot = self.elsci_run.feedback(feedback_type='negative', feedback_increment=0.001, plot=True, plot_save_dir='uploads')
                 self.instruction_results_validated[application]['feedback_plot'] = feedback_plot
+                self.user_feedback_count += 1
             
 
         return jsonify({
@@ -959,6 +973,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
         
         # Clear the instruction results and validated results
         self.global_input_count = 0
+        self.user_feedback_count = 0
         self.instruction_results = {}
         self.instruction_results_validated = {}
         self.correct_instructions = []

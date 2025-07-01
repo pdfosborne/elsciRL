@@ -6,7 +6,7 @@ ExperimentConfigData = {
     "number_training_repeats": 5,
     "number_training_seeds": 1,
 
-    "test_agent_type":"all",
+    "test_agent_type":"best",
     "number_test_episodes": 25,
     "number_test_repeats": 5,
 

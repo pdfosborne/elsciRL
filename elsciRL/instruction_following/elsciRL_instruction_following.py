@@ -169,6 +169,10 @@ class elsciRLOptimize:
             self.instruction_episode_ratio = instruction_episode_ratio
 
         # Instruction Knowledge from Search
+        # - REMOVE FEEDBACK - TODO IMPROVE THIS SO INSTR AREN'T IN SAME LEVEL
+        for key in list(self.instruction_path.keys()):
+            if '---' not in key:
+                self.instruction_path.pop(key, None)
         self.known_instructions = list(self.instruction_path.keys())
         self.known_instructions_dict = {}
         # Extract sub-goal completion for each instruction based on search results
@@ -204,8 +208,9 @@ class elsciRLOptimize:
                         agent_adapter_list = {}
                         i = 0
                         for item in self.instruction_path[instr]:
-                            agent_adapter_list[str(i)] = item
-                            i+=1
+                            if item.split("_")[0] in list(AGENT_TYPES.keys()):
+                                agent_adapter_list[str(i)] = item
+                                i+=1
                         
                         if (i>1)&(agent_adapter_i is None):
                             print("\n Agent + Adapter not used in instruction search, please select the search agent:")
