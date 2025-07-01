@@ -165,8 +165,21 @@ class PullApplications:
                 print("No prerender images found.")
                 self.current_test[problem]['prerender_images'] = {}
             # -----------------------------------------------
+            # Pull instructions
+            if self.imports[problem]['instruction_filenames'] != {}:
+                try:
+                    self.current_test[problem]['instructions'] = {}
+                    for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
+                        instruction_data = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
+                        self.current_test[problem]['instructions'][instruction_name] = instruction_data
+                except:
+                    print("No instruction data found.")
+                    self.current_test[problem]['instructions'] = {}
+            else:
+                print("No instructions found.")
+                self.current_test[problem]['instructions'] = {}
+            # -----------------------------------------------
         print("-----------------------------------------------")
-
         return self.current_test
 
     def setup(self, agent_config:dict={}) -> None:

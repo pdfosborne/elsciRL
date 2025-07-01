@@ -134,8 +134,21 @@ class Osborne2025:
             # Get preset instruction data
             source = self.pull_app_data[application]['source']
             root_url = list(source.keys())[0]
-            prerender_data_folder = source[root_url]['prerender_data_folder']
-            instruction_data_path = source[root_url]+'/'+prerender_data_folder+'/instructions/osborne_2025_instructions.txt'
+            instruction_data_folder = self.pull_app_data[application]['instruction_data_folder']
+            instruction_file_names = self.pull_app_data[application]['instruction_file_names']
+            print("Avilable instruction data files:")
+            n = 0
+            instruction_file_list = []
+            for key,file in instruction_file_names.items():
+                n+=1
+                print(f"{n+1}: {key} - {file}")
+                instruction_file_list.append(file)
+            if n > 1:
+                instruction_selection = input("Enter the instruction data file name (e.g., osborne_2025_instructions.txt): ")
+            else:
+                instruction_selection = '1'
+            instruction_file_name = instruction_file_list[int(instruction_selection)-1]
+            instruction_data_path = source[root_url]+'/'+instruction_data_folder+'/'+instruction_file_name+'.txt'
             instr_data_path = json.loads(urllib.request.urlopen(instruction_data_path).read().decode('utf-8'))
             # ------------------------------------------------
             # Get local config selection

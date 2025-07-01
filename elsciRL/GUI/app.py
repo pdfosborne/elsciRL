@@ -164,6 +164,28 @@ class WebApp:
             print("Error fetching adapters...")
             return []
     
+    def get_available_instructions(self, selected_application: str = ''):
+        if selected_application == '':
+            return []
+        
+        try:
+            instructions = list(self.pull_app_data[selected_application]['instructions'].keys())
+            return instructions
+        except:
+            print("Error fetching instructions...")
+            return []
+    
+    def get_instruction_data(self, selected_application: str = '', instruction_name: str = ''):
+        if selected_application == '' or instruction_name == '':
+            return None
+        
+        try:
+            instruction_data = self.pull_app_data[selected_application]['instructions'][instruction_name]
+            return instruction_data
+        except:
+            print(f"Error fetching instruction data for {instruction_name}...")
+            return None
+    
     def get_observed_states(self, selected_application):
         observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
         return observed_states
@@ -1147,6 +1169,25 @@ def get_adapters_route():
     adapters = WebApp_instance.get_adapters(selected_application)
     return jsonify({
         'adapters': adapters
+    })
+
+@app.route('/get_available_instructions', methods=['POST'])
+def get_available_instructions_route():
+    data = request.get_json()
+    selected_application = data.get('application', '')
+    instructions = WebApp_instance.get_available_instructions(selected_application)
+    return jsonify({
+        'instructions': instructions
+    })
+
+@app.route('/get_instruction_data', methods=['POST'])
+def get_instruction_data_route():
+    data = request.get_json()
+    selected_application = data.get('application', '')
+    instruction_name = data.get('instruction_name', '')
+    instruction_data = WebApp_instance.get_instruction_data(selected_application, instruction_name)
+    return jsonify({
+        'instruction_data': instruction_data
     })
 
 @app.route('/get_experiment_config', methods=['POST'])

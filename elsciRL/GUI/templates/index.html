@@ -451,7 +451,19 @@
             <div id="inputTab" class="tab-content" style="display:block;">
                 <div align="center">   
                     <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
-                    <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="margin-bottom: 15px; padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label for="instructionSelect" style="color: var(--text-color); font-weight: bold;">Import Instructions:</label>
+                            <select id="instructionSelect" class="form-select" style="width: 200px;">
+                                <option value="" disabled selected>Choose instruction set...</option>
+                            </select>
+                            <button id="importInstructionsBtn" onclick="importInstructions()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Import
+                            </button>
+                        </div>
+                        <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                        <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
+                    </div>
                     <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner">
@@ -792,6 +804,36 @@
                             });
                         }
                     });
+
+                    // Fetch and populate available instructions
+                    fetch('/get_available_instructions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ application: selectedApp })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const instructionSelect = document.getElementById('instructionSelect');
+                        instructionSelect.innerHTML = '';
+                        const defaultInstructionOption = document.createElement('option');
+                        defaultInstructionOption.value = '';
+                        defaultInstructionOption.text = 'Choose instruction set...';
+                        defaultInstructionOption.disabled = true;
+                        defaultInstructionOption.selected = true;
+                        instructionSelect.appendChild(defaultInstructionOption);
+                        
+                        if (data.instructions && data.instructions.length > 0) {
+                            data.instructions.forEach(instruction => {
+                                const option = document.createElement('option');
+                                option.value = instruction;
+                                option.text = instruction;
+                                instructionSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Error loading instructions:', error));
                 }, 2000);
 
                 // Fetch and display prerender images
@@ -1678,6 +1720,75 @@
 
             // Clear the file input
             input.value = '';
+        }
+
+        async function importInstructions() {
+            const instructionSelect = document.getElementById('instructionSelect');
+            const selectedInstruction = instructionSelect.value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+            
+            if (!selectedInstruction || !selectedApp) {
+                alert('Please select both an application and an instruction set to import.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/get_instruction_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        application: selectedApp,
+                        instruction_name: selectedInstruction
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.instruction_data) {
+                    // Parse the instruction data and populate the user input
+                    const instructionData = data.instruction_data;
+                    
+                    // Check if the instruction data has the expected structure
+                    if (typeof instructionData === 'string') {
+                        // If it's a simple string, use it directly
+                        document.getElementById('userInput').value = instructionData;
+                    } else if (Array.isArray(instructionData)) {
+                        // If it's an array, join with newlines
+                        document.getElementById('userInput').value = instructionData.join('\n');
+                    } else if (typeof instructionData === 'object') {
+                        // If it's an object, try to extract instructions
+                        if (instructionData.instructions) {
+                            document.getElementById('userInput').value = instructionData.instructions.join('\n');
+                        } else if (instructionData.text) {
+                            document.getElementById('userInput').value = instructionData.text;
+                        } else {
+                            // Try to find any string values in the object
+                            const instructions = [];
+                            for (const key in instructionData) {
+                                if (typeof instructionData[key] === 'string') {
+                                    instructions.push(instructionData[key]);
+                                } else if (Array.isArray(instructionData[key])) {
+                                    instructions.push(...instructionData[key].filter(item => typeof item === 'string'));
+                                }
+                            }
+                            if (instructions.length > 0) {
+                                document.getElementById('userInput').value = instructions.join('\n');
+                            } else {
+                                document.getElementById('userInput').value = JSON.stringify(instructionData, null, 2);
+                            }
+                        }
+                    }
+                    
+                    alert(`Successfully imported instruction set: ${selectedInstruction}`);
+                } else {
+                    alert('No instruction data found for the selected instruction set.');
+                }
+            } catch (error) {
+                console.error('Error importing instructions:', error);
+                alert('Error importing instructions. Please try again.');
+            }
         }
 
     </script>

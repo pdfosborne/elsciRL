@@ -1,4 +1,3 @@
-
 #  Define data through class function so it can be called within package
 # Instead of using a .json file which is hard to load from local install
 # NOTE: MAKE SURE TO TRUST REPOSITORIES BEFORE RUNNING CODE
@@ -30,11 +29,12 @@ class Applications:
                 "local_analysis_folder": "analysis",
                 "local_analysis_filenames": {"sailing_graphs":"sailing_graphs"},
                 "prerender_data_folder": "prerender",
-                
                 "prerender_data_filenames": {"language-v1":"observed_states_language_1000000.txt", 
                                             "LLM-v1": "observed_states_Sailing_easy_LLM_1000_v2.txt"},
                 "prerender_data_encoded_filenames":{},
-                "prerender_image_filenames": {"Setup":"sailing_setup.png"}
+                "prerender_image_filenames": {"Setup":"sailing_setup.png"},
+                "instruction_folder": "instructions",
+                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
                 },
             "Classroom":{
                 "github_user": "pdfosborne",
@@ -54,7 +54,9 @@ class Applications:
                                             "LLM-v1":"observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
                 "prerender_data_encoded_filenames":{"classroom_A_language-v1":"encoded_observed_states_Classroom_classroom_A_classroom_A_language_100.txt",
                                                     "LLM-v1":"encoded_observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
-                "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"}
+                "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"},
+                "instruction_folder": "instructions",
+                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
                 },
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
@@ -74,7 +76,9 @@ class Applications:
                                             "LLM-v1":"observed_states_Gym-FrozenLake_Osborne2024_env_LLM_llama32_100.txt"},
                 "prerender_data_encoded_filenames": {"language-v1":"encoded_observed_states_Gym-FrozenLake_Osborne2024_env_language_100.txt",
                                             "LLM-v1":"encoded_observed_states_Gym-FrozenLake_Osborne2024_env_LLM_llama32_100.txt"},
-                "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"}
+                "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"},
+                "instruction_folder": "instructions",
+                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
                 },
             "Chess":{
                 "github_user": "pdfosborne",
@@ -96,7 +100,9 @@ class Applications:
                 "prerender_data_filenames": {"active_pieces_language-v1":"observed_states_active_pieces_language_50000.txt",
                                              "LLM-v1": "observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
                 "prerender_data_encoded_filenames":{"LLM-v1": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
-                "prerender_image_filenames": {"Board_Setup":"board_start.png"}
+                "prerender_image_filenames": {"Board_Setup":"board_start.png"},
+                "instruction_folder": "instructions",
+                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
                 },
             # "TextWorldExpress":{
             #     "github_user": "pdfosborne",
@@ -125,7 +131,9 @@ class Applications:
             #         "LLM-v1":
             #             "observed_states_TextWorldExpress_cookingworld-easy_language_default_10000_29-05-2025_16-02.txt",},
             #     "prerender_data_encoded_filenames":{},
-            #     "prerender_image_filenames": {}
+            #     "prerender_image_filenames": {},
+            #     "instruction_folder": "instructions",
+            #     "instruction_filenames": {}
             #     },
             "Maze":{
                 "github_user": "pdfosborne",
@@ -164,6 +172,8 @@ class Applications:
                                             'language-large-v1':'encoded_observed_states_Maze_large_language_default_1000.txt',
                                             'LLM-large-v1':'encoded_observed_states_Maze_large_LLM_llama32_1000.txt'
                                             },
-                "prerender_image_filenames": {}
+                "prerender_image_filenames": {},
+                "instruction_folder": "instructions",
+                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
                 }
         }
