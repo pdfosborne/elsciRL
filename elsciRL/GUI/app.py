@@ -125,6 +125,7 @@ class WebApp:
         self.instruction_results_validated = {}
         self.correct_instructions = []
         self.incorrect_instructions = []
+        self.user_input = {}
 
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
@@ -254,6 +255,7 @@ class WebApp:
         application = data.get('selectedApps', [])[0]
         config_input = data.get('localConfigInput', '')
         observed_states_filename = data.get('observedStateInput', '')
+        self.observed_states_filename = observed_states_filename
         enable_llm_planner = data.get('enableLLMPlanner', False)
         # Get user LLM settings from input
         llm_model_name = data.get('llmModelSelect', data.get('LLMModelName', 'llama3.2'))
@@ -510,13 +512,16 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 instruction_descriptions = instruction_descriptions_reflection
                 instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
                 print(f"LLM reflection enabled as initial instructions do not complete, using updated reflection instructions: {instruction_descriptions}")
-        
-            # Add base user input to the results
-            self.instruction_results[application]['user_input'] = user_input
         else:
-            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data     
-
+            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data   
            
+        # Add base user input to the results
+        if application not in self.user_input:
+            self.user_input[application] = {}
+        for instr_type in self.instruction_results[application].keys():
+            if instr_type not in self.user_input[application]:
+                self.user_input[application][instr_type] = {}
+            self.user_input[application][instr_type]['user_input'] = user_input
 
         console_output += f'<br><b>Results for {application}:</b><br>'
         for n, instr in enumerate(list(results[application].keys())):
@@ -736,10 +741,11 @@ Example of environment language structure: {results[application][instr]['sub_goa
                                         if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
                                             job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
                                             instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist()                     
+                    instr_dict['user_input'] = self.user_input[application][instr_key]['user_input'] if instr_key in self.user_input[application] else ''
                 # ---         
                 if not os.path.exists(self.uploads_dir):
                     os.makedirs(self.uploads_dir, exist_ok=True)
-                instr_results_path = os.path.join(app_save_dir, f'instruction_results_{application}.json')  
+                instr_results_path = os.path.join(app_save_dir, f'instruction_results_{application}_{self.observed_states_filename}.json')  
                 #print(f"Saving instruction results: {instructions_results_save}")
                 with open(instr_results_path, 'w') as f:
                     json.dump(instructions_results_save, f, indent=4)                
@@ -933,8 +939,6 @@ Example of environment language structure: {results[application][instr]['sub_goa
         return jsonify({'status': 'success'})
 
     def confirm_result(self):
-        if not os.path.exists(self.uploads_dir):
-            os.makedirs(self.uploads_dir, exist_ok=True)
         data = request.json
         # Check if this is an LLM validation (automatic)
         enable_llm_planner = data.get('enableLLMPlanner', False)        
@@ -1019,6 +1023,9 @@ Example of environment language structure: {results[application][instr]['sub_goa
         self.global_save_dir = './elsciRL-App-output/' + str('results') + '_' + time_str
         if not os.path.exists(self.global_save_dir):                
             os.mkdir(self.global_save_dir)
+        self.uploads_dir = os.path.join(self.global_save_dir, 'uploads')
+        if not os.path.exists(self.uploads_dir):
+            os.makedirs(self.uploads_dir, exist_ok=True)
         
         # Clear the instruction results and validated results
         self.global_input_count = 0
