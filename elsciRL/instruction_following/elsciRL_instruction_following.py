@@ -173,14 +173,16 @@ class elsciRLOptimize:
         for key in list(self.instruction_path.keys()):
             if '---' not in key:
                 self.instruction_path.pop(key, None)
+        ignore_data = ["instr_description", "feedback_count", "feedback_plot", "user_feedback_count", "user_input"]
         self.known_instructions = list(self.instruction_path.keys())
         self.known_instructions_dict = {}
         # Extract sub-goal completion for each instruction based on search results
         agent_adapter_i = None
         for instr in self.known_instructions:
-            # Remove instruction description from path
-            if 'instr_description' in self.instruction_path[instr]:
-                self.instruction_path[instr].pop('instr_description', None)
+            # Remove non-instr data from path
+            for ignore in ignore_data:
+                if ignore in self.instruction_path[instr]:
+                    self.instruction_path[instr].pop(ignore, None)
             # Extract start and end from instruction
             start = instr.split("---")[0]
             end = instr.split("---")[1]

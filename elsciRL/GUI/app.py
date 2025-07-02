@@ -510,8 +510,13 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 instruction_descriptions = instruction_descriptions_reflection
                 instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
                 print(f"LLM reflection enabled as initial instructions do not complete, using updated reflection instructions: {instruction_descriptions}")
+        
+            # Add base user input to the results
+            self.instruction_results[application]['user_input'] = user_input
         else:
-            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data        
+            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data     
+
+           
 
         console_output += f'<br><b>Results for {application}:</b><br>'
         for n, instr in enumerate(list(results[application].keys())):
@@ -710,7 +715,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 # Save Insruction Results
                 # Feedback layer and sim score is always Tensor so cannot be saved as JSON
                 instructions_results_save = self.instruction_results_validated[application].copy()
-                ignore_data = ["instr_description", "feedback_count", "feedback_plot", "user_feedback_count"]
+                ignore_data = ["user_input","instr_description", "feedback_count", "feedback_plot", "user_feedback_count"]
                 for instr_key,instr_dict in instructions_results_save.items():
                     if instr_key not in ignore_data:
                         # Add user feedback count to instruction results
@@ -928,6 +933,8 @@ Example of environment language structure: {results[application][instr]['sub_goa
         return jsonify({'status': 'success'})
 
     def confirm_result(self):
+        if not os.path.exists(self.uploads_dir):
+            os.makedirs(self.uploads_dir, exist_ok=True)
         data = request.json
         # Check if this is an LLM validation (automatic)
         enable_llm_planner = data.get('enableLLMPlanner', False)        
