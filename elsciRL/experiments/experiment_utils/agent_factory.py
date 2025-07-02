@@ -52,6 +52,9 @@ class AgentFactory:
             # Order must match DQN input
             temp_dict = {'input_size': input_size, 'output_size': output_size}
             temp_dict.update(agent_parameters)
+        else:
+            # For other agents, we assume the parameters are already in the correct format
+            temp_dict = agent_parameters
         if agent_type not in self.agent_types:
             raise ValueError(f"Unknown agent type: {agent_type}")
         return self.agent_types[agent_type](**temp_dict)
