@@ -172,6 +172,7 @@ class PullApplications:
                     for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
                         instruction_data = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
                         self.current_test[problem]['instructions'][instruction_name] = instruction_data
+                        print(f"Pulling instruction data for {instruction_name}...")
                 except:
                     print("No instruction data found.")
                     self.current_test[problem]['instructions'] = {}

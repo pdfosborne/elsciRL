@@ -181,6 +181,9 @@ class WebApp:
         
         try:
             instruction_data = self.pull_app_data[selected_application]['instructions'][instruction_name]
+            self.instruction_results_validated[selected_application] = instruction_data
+            print(f"Instruction data fetched for {instruction_name}")
+            print(f"Instruction data: {self.instruction_results_validated}")
             return instruction_data
         except:
             print(f"Error fetching instruction data for {instruction_name}...")
@@ -708,24 +711,27 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 # Save Insruction Results
                 # Feedback layer and sim score is always Tensor so cannot be saved as JSON
                 instructions_results_save = self.instruction_results_validated[application].copy()
-                ignore_data = ["instr_description", "feedback_count", "feedback_plot"]
+                ignore_data = ["instr_description", "feedback_count", "feedback_plot", "user_feedback_count"]
                 for instr_key,instr_dict in instructions_results_save.items():
-                    for sub_instr_key, sub_instr_dict in instr_dict.items():
-                            for a_a_key, instr_agent_adapter_dict in sub_instr_dict.items():
-                                if a_a_key not in ignore_data:
-                                    # Convert data to list if it exists
-                                    if 'feedback_layer' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['feedback_layer'], torch.Tensor):
-                                        job_queue.put(f"EVENT: Converting feedback layer for {a_a_key} to list for JSON serialization.")
-                                        instr_agent_adapter_dict['feedback_layer'] = instr_agent_adapter_dict['feedback_layer'].cpu().numpy().tolist()
-                                    if 'sub_goal' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sub_goal'], torch.Tensor):
-                                        job_queue.put(f"EVENT: Converting sub_goal for {a_a_key} to list for JSON serialization.")
-                                        instr_agent_adapter_dict['sub_goal'] = instr_agent_adapter_dict['sub_goal'].cpu().numpy().tolist()
-                                    if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
-                                        job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
-                                        instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist() 
-                            # Save user feedback count
-                for instr_key in instructions_results_save.keys():
-                    instructions_results_save[instr_key]['user_feedback_count'] = self.user_feedback_count   
+                    if instr_key not in ignore_data:
+                        # Add user feedback count to instruction results
+                        if 'user_feedback_count' not in instr_dict:   
+                            instr_dict['user_feedback_count'] = self.user_feedback_count 
+                        # ---
+                        for sub_instr_key, sub_instr_dict in instr_dict.items():
+                            if sub_instr_key not in ignore_data:
+                                for a_a_key, instr_agent_adapter_dict in sub_instr_dict.items():
+                                    if a_a_key not in ignore_data:
+                                        # Convert data to list if it exists
+                                        if 'feedback_layer' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['feedback_layer'], torch.Tensor):
+                                            job_queue.put(f"EVENT: Converting feedback layer for {a_a_key} to list for JSON serialization.")
+                                            instr_agent_adapter_dict['feedback_layer'] = instr_agent_adapter_dict['feedback_layer'].cpu().numpy().tolist()
+                                        if 'sub_goal' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sub_goal'], torch.Tensor):
+                                            job_queue.put(f"EVENT: Converting sub_goal for {a_a_key} to list for JSON serialization.")
+                                            instr_agent_adapter_dict['sub_goal'] = instr_agent_adapter_dict['sub_goal'].cpu().numpy().tolist()
+                                        if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
+                                            job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
+                                            instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist()                     
                 # ---         
                 if not os.path.exists(self.uploads_dir):
                     os.makedirs(self.uploads_dir, exist_ok=True)

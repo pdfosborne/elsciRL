@@ -464,6 +464,14 @@
                         <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
                         <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
                     </div>
+                    <!-- Instruction preset status indicator -->
+                    <div id="instructionPresetStatus" style="margin-bottom: 15px; display: none; padding: 10px; background-color: #e8f5e8; border: 1px solid #28a745; border-radius: 4px; color: #155724;">
+                        <span style="font-weight: bold;">✓ Instruction Preset Active:</span> 
+                        <span id="activePresetName"></span>
+                        <button id="clearPresetBtn" onclick="clearInstructionPreset()" style="margin-left: 10px; padding: 4px 8px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                            Clear Preset
+                        </button>
+                    </div>
                     <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner">
@@ -491,7 +499,7 @@
                 </div>
 
                 <div class="input-console-container" style="display: flex; gap: 20px;">
-                    <div class="input-section shadow-effect" style="flex: 1;">
+                    <div class="input-section shadow-effect" style="flex: 1; position: relative;">
                         <p>User Input</p>
                         <label for="userInput"></label>
                         <textarea id="userInput" placeholder="Enter your instructions for the agent here. Leave blank to run without instructions."></textarea>
@@ -499,6 +507,12 @@
                             <button id="submitBtn" onclick="processInput()" style="margin-top: 10px;">Submit</button>
                             <div id="loadingCircleSubmit" class="loading-circle" style="display: none;"></div>
                             <button id="newInstructionBtn" onclick="newInstruction()">New Instruction</button>
+                        </div>
+                        <!-- Disabled state overlay -->
+                        <div id="inputDisabledOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.1); border-radius: 4px; pointer-events: none;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                <span style="color: #666; font-style: italic;">Input disabled - Instruction preset active</span>
+                            </div>
                         </div>
                     </div>
                     <div class="console-section shadow-effect" style="flex: 1;">
@@ -535,6 +549,9 @@
                     <div id="experimentInstructions" style="margin-top: 15px;">
                         <p><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
                         <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
+                        <div id="presetExperimentNote" style="display: none; margin-top: 10px; padding: 10px; background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1565c0;">
+                            <strong>Instruction Preset Active:</strong> The experiment will use the imported instruction preset instead of manually entered instructions.
+                        </div>
                     </div>
                     <div id="experimentLoading" style="margin-top: 15px; display: none;">
                         <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
@@ -589,6 +606,7 @@
 
         let jobEventSource = null;
         let currentJobId = null;
+        let instructionPresetActive = false;
 
         fetch('/get_applications')
             .then(response => response.json())
@@ -900,6 +918,12 @@
         });
 
         async function processInput() {
+            // Check if instruction preset is active
+            if (instructionPresetActive) {
+                alert('Cannot process input while an instruction preset is active. Please clear the preset first or use the preset instructions directly.');
+                return;
+            }
+            
             const input = document.getElementById('userInput');
             const submitBtn = document.getElementById('submitBtn');
             const consoleOutput = document.getElementById('consoleOutput');
@@ -1070,39 +1094,7 @@
             });
         }
 
-        function newInstruction() {
-            document.getElementById('userInput').value = '';
-            document.getElementById('consoleOutput').innerHTML = '';
-            document.getElementById('instructionMatchPlots').innerHTML = '';
-            document.getElementById('confirmationResult').innerHTML = '';
-            
-            // Reset confirmation block to default state
-            const correctBtn = document.getElementById('correctBtn');
-            const incorrectBtn = document.getElementById('incorrectBtn');
-            const confirmationQuestion = document.querySelector('#confirmationBlock p');
-            
-            correctBtn.textContent = 'Correct';
-            incorrectBtn.textContent = 'Incorrect';
-            confirmationQuestion.textContent = 'Was the result correct?';
-            
-            // Hide confirmation block until next input
-            document.getElementById('confirmationBlock').style.display = 'none';
-            
-            fetch('/new_instruction', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ instruction: document.getElementById('userInput').value })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('New instruction processed:', data);
-                // Clear the match plots
-                document.getElementById('instructionMatchPlots').innerHTML = '';
-            })
-            .catch(error => console.error('Error processing new instruction:', error));
-        }
+
 
         function clearPreviousJobState() {
             if (jobEventSource) {
@@ -1187,6 +1179,12 @@
                 selectedPlot: selectedPlot,
                 experimentConfigSelect: document.getElementById('experimentConfigSelect').value
             };
+
+            // Add note if instruction preset is active
+            if (instructionPresetActive) {
+                const activePresetName = document.getElementById('activePresetName').textContent;
+                trainingLogOutput.innerHTML += `<p style="color: blue;"><strong>Note:</strong> Using instruction preset: ${activePresetName}</p>`;
+            }
 
             if (agentParameterDefinitions) {
                 selectedAgents.forEach(agentId => {
@@ -1781,6 +1779,9 @@
                         }
                     }
                     
+                    // Enable preset mode
+                    enableInstructionPreset(selectedInstruction);
+                    
                     alert(`Successfully imported instruction set: ${selectedInstruction}`);
                 } else {
                     alert('No instruction data found for the selected instruction set.');
@@ -1788,6 +1789,164 @@
             } catch (error) {
                 console.error('Error importing instructions:', error);
                 alert('Error importing instructions. Please try again.');
+            }
+        }
+
+        function enableInstructionPreset(presetName) {
+            instructionPresetActive = true;
+            
+            // Show preset status indicator
+            const statusDiv = document.getElementById('instructionPresetStatus');
+            const presetNameSpan = document.getElementById('activePresetName');
+            statusDiv.style.display = 'block';
+            presetNameSpan.textContent = presetName;
+            
+            // Show experiment note
+            const experimentNote = document.getElementById('presetExperimentNote');
+            experimentNote.style.display = 'block';
+            
+            // Disable user input
+            const userInput = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const newInstructionBtn = document.getElementById('newInstructionBtn');
+            
+            userInput.disabled = true;
+            submitBtn.disabled = true;
+            newInstructionBtn.disabled = true;
+            
+            // Show disabled overlay
+            const overlay = document.getElementById('inputDisabledOverlay');
+            overlay.style.display = 'block';
+            
+            // Add visual styling to indicate disabled state
+            userInput.style.backgroundColor = '#f5f5f5';
+            userInput.style.color = '#666';
+        }
+
+        function clearInstructionPreset() {
+            instructionPresetActive = false;
+            
+            // Hide preset status indicator
+            const statusDiv = document.getElementById('instructionPresetStatus');
+            statusDiv.style.display = 'none';
+            
+            // Hide experiment note
+            const experimentNote = document.getElementById('presetExperimentNote');
+            experimentNote.style.display = 'none';
+            
+            // Enable user input
+            const userInput = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const newInstructionBtn = document.getElementById('newInstructionBtn');
+            
+            userInput.disabled = false;
+            submitBtn.disabled = false;
+            newInstructionBtn.disabled = false;
+            
+            // Hide disabled overlay
+            const overlay = document.getElementById('inputDisabledOverlay');
+            overlay.style.display = 'none';
+            
+            // Restore normal styling
+            userInput.style.backgroundColor = '';
+            userInput.style.color = '';
+            
+            // Clear the instruction select dropdown
+            const instructionSelect = document.getElementById('instructionSelect');
+            instructionSelect.value = '';
+        }
+
+        // Modify the newInstruction function to also clear preset mode
+        function newInstruction() {
+            // Clear preset mode if active
+            if (instructionPresetActive) {
+                clearInstructionPreset();
+            }
+            
+            document.getElementById('userInput').value = '';
+            document.getElementById('consoleOutput').innerHTML = '';
+            document.getElementById('instructionMatchPlots').innerHTML = '';
+            document.getElementById('confirmationResult').innerHTML = '';
+            
+            // Reset confirmation block to default state
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const confirmationQuestion = document.querySelector('#confirmationBlock p');
+            
+            correctBtn.textContent = 'Correct';
+            incorrectBtn.textContent = 'Incorrect';
+            confirmationQuestion.textContent = 'Was the result correct?';
+            
+            // Hide confirmation block until next input
+            document.getElementById('confirmationBlock').style.display = 'none';
+            
+            fetch('/new_instruction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ instruction: document.getElementById('userInput').value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('New instruction processed:', data);
+                // Clear the match plots
+                document.getElementById('instructionMatchPlots').innerHTML = '';
+            })
+            .catch(error => console.error('Error processing new instruction:', error));
+        }
+
+        // Modify the resetAllInstructions function to also clear preset mode
+        async function resetAllInstructions() {
+            if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset_all_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Clear preset mode if active
+                    if (instructionPresetActive) {
+                        clearInstructionPreset();
+                    }
+                    
+                    document.getElementById('userInput').value = '';
+                    document.getElementById('consoleOutput').innerHTML = '';
+                    document.getElementById('instructionMatchPlots').innerHTML = '';
+                    document.getElementById('confirmationResult').innerHTML = '<p style="color: green;">All instructions have been reset.</p>';
+                    
+                    // Reset confirmation block to default state
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = document.querySelector('#confirmationBlock p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
+                    
+                    // Hide confirmation block
+                    document.getElementById('confirmationBlock').style.display = 'none';
+                    
+                    // Call newInstruction to reset any client-side counters or states related to current input if needed
+                    // This will also effectively reset global_input_count on server if new_instruction makes a call that implies it.
+                    // However, /reset_all_instructions already resets global_input_count on server.
+                    // For simple UI reset:
+                    fetch('/new_instruction', { method: 'POST' }) // This ensures any specific UI state tied to new_instruction is also reset
+                        .then(() => console.log("Client-side new instruction state also reset."))
+                        .catch(err => console.error("Error calling /new_instruction during reset:", err));
+                    
+                    alert(data.message);
+                } else {
+                    alert("Failed to reset instructions: " + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error resetting instructions:', error);
+                alert('An error occurred while trying to reset instructions.');
             }
         }
 

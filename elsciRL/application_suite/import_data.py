@@ -56,7 +56,7 @@ class Applications:
                                                     "LLM-v1":"encoded_observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
+                "instruction_filenames": {"test":"instruction_results_Classroom_test.json"}
                 },
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
