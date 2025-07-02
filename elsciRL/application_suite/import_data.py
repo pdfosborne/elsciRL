@@ -34,7 +34,7 @@ class Applications:
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {}
+                "instruction_filenames": {"osborne2025":"Osborne2025_instruction_results_Sailing_LLM-llama-v1.json"}
                 },
             "Classroom":{
                 "github_user": "pdfosborne",
@@ -99,11 +99,11 @@ class Applications:
                 "local_analysis_filenames": {},
                 "prerender_data_folder": "prerender",
                 "prerender_data_filenames": {"active_pieces_language-v1":"observed_states_active_pieces_language_50000.txt",
-                                             "LLM-v1": "observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
-                "prerender_data_encoded_filenames":{"LLM-v1": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
+                                             "LLM-v1": "observed_states_Chess_Osborne2024_env_LLM_llama32_100000.jsonl",},
+                "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {}
+                "instruction_filenames": {"osborne2025":"Osborne2025_instruction_results_Chess_LLM-v1.json"}
                 },
             # "TextWorldExpress":{
             #     "github_user": "pdfosborne",
