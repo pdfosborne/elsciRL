@@ -61,12 +61,12 @@ def experiment_config_selection_data(number_training_episodes:int = 10000):
     # TODO: SET DQN OUTPUT AND HIDDEN SIZE INSIDE ADAPTERS
     experiment_config_selection = {
             'number_training_episodes': number_training_episodes,
-            'number_training_repeats': 40,
+            'number_training_repeats': 10,
             'number_training_seeds': 1,
 
             'number_test_episodes': int(number_training_episodes*0.1),
             "test_agent_type": "best",
-            "number_test_repeats": 20,
+            "number_test_repeats": 10,
 
             "agent_parameters":{
                 "Qlearntab":{
