@@ -1756,26 +1756,39 @@
                         // If it's an array, join with newlines
                         document.getElementById('userInput').value = instructionData.join('\n');
                     } else if (typeof instructionData === 'object') {
-                        // If it's an object, try to extract instructions
-                        if (instructionData.instructions) {
-                            document.getElementById('userInput').value = instructionData.instructions.join('\n');
-                        } else if (instructionData.text) {
-                            document.getElementById('userInput').value = instructionData.text;
-                        } else {
-                            // Try to find any string values in the object
-                            const instructions = [];
-                            for (const key in instructionData) {
-                                if (typeof instructionData[key] === 'string') {
-                                    instructions.push(instructionData[key]);
-                                } else if (Array.isArray(instructionData[key])) {
-                                    instructions.push(...instructionData[key].filter(item => typeof item === 'string'));
+                        // Handle the nested structure with instruction descriptions
+                        const instructions = [];
+                        const consoleOutput = document.getElementById('consoleOutput');
+                        let consoleHTML = '<br><b>Imported Instruction Set:</b><br>';
+                        
+                        // Parse the nested structure
+                        for (const instrKey in instructionData) {
+                            if (instructionData[instrKey] && typeof instructionData[instrKey] === 'object') {
+                                const instrObj = instructionData[instrKey];
+                                
+                                for (const subInstrKey in instrObj) {
+                                    if (instrObj[subInstrKey] && typeof instrObj[subInstrKey] === 'object') {
+                                        const subInstrObj = instrObj[subInstrKey];
+                                        
+                                        // Extract instruction description
+                                        if (subInstrObj.instr_description) {
+                                            instructions.push(subInstrObj.instr_description);
+                                            consoleHTML += `<b>${subInstrKey}:</b> <i>${subInstrObj.instr_description}</i><br>`;
+                                        }
+                                    }
                                 }
                             }
-                            if (instructions.length > 0) {
-                                document.getElementById('userInput').value = instructions.join('\n');
-                            } else {
-                                document.getElementById('userInput').value = JSON.stringify(instructionData, null, 2);
-                            }
+                        }
+                        
+                        // Update console output with instruction descriptions
+                        consoleOutput.innerHTML = consoleHTML;
+                        
+                        // Set the user input to the extracted instructions
+                        if (instructions.length > 0) {
+                            document.getElementById('userInput').value = instructions.join('\n');
+                        } else {
+                            // Fallback to JSON if no descriptions found
+                            document.getElementById('userInput').value = JSON.stringify(instructionData, null, 2);
                         }
                     }
                     
@@ -1821,6 +1834,14 @@
             // Add visual styling to indicate disabled state
             userInput.style.backgroundColor = '#f5f5f5';
             userInput.style.color = '#666';
+            
+            // Hide confirmation block since preset instructions don't need validation
+            const confirmationBlock = document.getElementById('confirmationBlock');
+            confirmationBlock.style.display = 'none';
+            
+            // Clear any existing confirmation result
+            const confirmationResult = document.getElementById('confirmationResult');
+            confirmationResult.innerHTML = '';
         }
 
         function clearInstructionPreset() {
@@ -1854,6 +1875,23 @@
             // Clear the instruction select dropdown
             const instructionSelect = document.getElementById('instructionSelect');
             instructionSelect.value = '';
+            
+            // Show confirmation block so user can validate new instructions
+            const confirmationBlock = document.getElementById('confirmationBlock');
+            confirmationBlock.style.display = 'block';
+            
+            // Reset confirmation block to default state
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const confirmationQuestion = confirmationBlock.querySelector('p');
+            
+            correctBtn.textContent = 'Correct';
+            incorrectBtn.textContent = 'Incorrect';
+            confirmationQuestion.textContent = 'Was the result correct?';
+            
+            // Clear any existing confirmation result
+            const confirmationResult = document.getElementById('confirmationResult');
+            confirmationResult.innerHTML = '';
         }
 
         // Modify the newInstruction function to also clear preset mode

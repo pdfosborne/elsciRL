@@ -499,20 +499,19 @@ Example of environment language structure: {results[application][instr]['sub_goa
         # Store validated instructions
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
-        if enable_llm_planner:
+        if self.LLM_INSTUCTION_PLANNER:
             self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
+            for instr_type in self.instruction_results[application].keys():
+                for n,instr in enumerate(list(self.instruction_results[application][instr_type].keys())):
+                    self.instruction_results[application][instr_type][instr]['feedback_count'] = feedback_counter[n]
+            
+            if len(instruction_descriptions_reflection) > 0:
+                # If LLM reflection is enabled and instructions are not complete, use the reflection instructions
+                instruction_descriptions = instruction_descriptions_reflection
+                instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
+                print(f"LLM reflection enabled as initial instructions do not complete, using updated reflection instructions: {instruction_descriptions}")
         else:
-            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data
-
-        for instr_type in self.instruction_results[application].keys():
-            for n,instr in enumerate(list(self.instruction_results[application][instr_type].keys())):
-                self.instruction_results[application][instr_type][instr]['feedback_count'] = feedback_counter[n]
-
-        if len(instruction_descriptions_reflection) > 0:
-            # If LLM reflection is enabled and instructions are not complete, use the reflection instructions
-            instruction_descriptions = instruction_descriptions_reflection
-            instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
-            print(f"LLM reflection enabled as initial instructions do not complete, using updated reflection instructions: {instruction_descriptions}")
+            self.instruction_results[application]['instr_' + str(self.global_input_count)] = instruction_results_data        
 
         console_output += f'<br><b>Results for {application}:</b><br>'
         for n, instr in enumerate(list(results[application].keys())):
