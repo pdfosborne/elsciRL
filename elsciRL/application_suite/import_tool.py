@@ -126,21 +126,62 @@ class PullApplications:
             self.current_test[problem]['prerender_data'] = {}
             self.current_test[problem]['prerender_data_encoded'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
+                print("Pulling prerender data...")
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml')):
-                            data = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
+                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
+                            # Load JSON or text file
+                            if prerender.endswith('.jsonl') or prerender.endswith('.json'):
+                                # Load JSONL file
+                                data = {}
+                                with urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
+                                    for line in f:
+                                        row = (json.loads(line.decode('utf-8')))
+                                        data.update(row)
+                            elif prerender.endswith('.txt'):
+                                # Load text file
+                                data = json.loads(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
+                            elif prerender.endswith('.xml'):
+                                # Load XML file (assuming it contains numerical data)
+                                import xml.etree.ElementTree as ET
+                                tree = ET.parse(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
+                                root_xml = tree.getroot()
+                                data = []
+                                for elem in root_xml.findall('.//data'):
+                                    data.append(float(elem.text))
+                            else:
+                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
+                            print(f"Pulling prerender data for {prerender_name}...")
                             self.current_test[problem]['prerender_data'][prerender_name] = data
-                    print("Pulling prerender data...")
                 except:
                     print(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
                     print("No prerender data found.")
                     self.current_test[problem]['prerender_data'] = {}
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml')):
+                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
                             map_location= 'cpu' if torch.cuda.is_available() else 'cpu'
-                            data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
+                            if (prerender.endswith('.jsonl') or prerender.endswith('.json')):
+                                # Load JSONL file
+                                data = []
+                                with urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
+                                    for line in f:
+                                        data.append(json.loads(line.decode('utf-8')))
+                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
+                            elif prerender.endswith('.txt'):
+                                data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
+                            elif prerender.endswith('.xml'):
+                                # Load XML file (assuming it contains numerical data)
+                                import xml.etree.ElementTree as ET
+                                tree = ET.parse(urllib.request.urlopen(root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
+                                root_xml = tree.getroot()
+                                data = []
+                                for elem in root_xml.findall('.//data'):
+                                    data.append(float(elem.text))
+                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
+                            else:
+                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
+                            print(f"Pulling prerender encoded data for {prerender_name}...")
                             self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
                 except:
                     print("No prerender encoded data found.")
