@@ -5,13 +5,15 @@ import json
 import urllib.request
 
 from elsciRL.application_suite.import_tool import Applications
+from elsciRL.application_suite.import_tool import PullApplications
+
 
 from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
-from elsciRL.experiments.standard import StandardExperiment
+from elsciRL.experiments.standard import Experiment as StandardExperiment
 
 from elsciRL.analysis.combined_variance_visual import combined_variance_analysis_graph as COMBINED_VARIANCE_ANALYSIS_GRAPH
 
-def agent_selection(application:str):
+def agent_selection_data(application:str):
     agent_selection = {
         'Chess': ['Qlearntab','DQN'],
         'Sailing': ['Qlearntab','DQN'],
@@ -19,19 +21,33 @@ def agent_selection(application:str):
         'Gym-FrozenLake': ['Qlearntab','DQN'],
         'Maze': ['Qlearntab','DQN'],
     }
+    return agent_selection[application]
 
-def adapter_selection(application:str):
+def adapter_selection_data(application:str):
     adapter_selection = {
-        'Chess': ['numeric_board_mapping','numeric_piece_counter',
-                  'active_pieces_language','LLM'],
-        'Sailing': ['default','language','LLM'],
-        'Classroom': ['default','classroom_A_language','LLM'],
-        'Gym-FrozenLake': ['numeric_encoder','language','LLM'],
-        'Maze': ['language_default','language','LLM'],
+        'Chess': {'numeric_board_mapping','numeric_piece_counter',
+                  'active_pieces_language','LLM'},
+        'Sailing': {'default','language','LLM'},
+        'Classroom': {'default','classroom_A_language','LLM'},
+        'Gym-FrozenLake': {'numeric_encoder','language','LLM'},
+        'Maze': {'language_default','language','LLM'},
     }
     return adapter_selection[application]
 
-def local_config(application:str):
+def instruction_selection_data(application:str):
+    # selection = {'local_config_name':['instruction_name']}
+    instruction_selection = {
+        'Chess': {'Osborne2024_env':['osborne2025']},
+        'Sailing': {'easy':['osborne2025']},
+        'Classroom': {'classroom_A':['osborne2025']},
+        'Gym-FrozenLake': {'Osborne2024_env':['osborne2025']},
+        'Maze': {'umaze':['osborne2025umaze'], 'double_t_maze':['osborne2025double_t_maze'], 
+                'medium':['osborne2025medium'], 'large':['osborne2025large']},
+    }
+    return instruction_selection[application]
+
+
+def local_config_selection_data(application:str):
     local_config_selection = {
         'Chess': ['Osborne2024_env'],
         'Sailing': ['easy'],
@@ -41,7 +57,7 @@ def local_config(application:str):
     }
     return local_config_selection[application]
      
-def experiment_config(number_training_episodes:int = 10000):
+def experiment_config_selection_data(number_training_episodes:int = 10000):
     # TODO: SET DQN OUTPUT AND HIDDEN SIZE INSIDE ADAPTERS
     experiment_config_selection = {
             'number_training_episodes': number_training_episodes,
@@ -83,6 +99,7 @@ class Osborne2025:
         self.application_data = Applications()
         imports = self.application_data.data
         possible_applications = list(imports.keys())
+        self.application_data_import = PullApplications()
 
         # Get chosen applications
         if experiment_name == 'ALL':
@@ -100,8 +117,8 @@ class Osborne2025:
             if application not in possible_applications:
                 raise ValueError(f"Application {application} not found in possible applications: {possible_applications}")
         # Pull application data
-        self.pull_app_data = self.application_data.pull(problem_selection=self.chosen_applications)
-        self.config = self.application_data.setup()
+        self.pull_app_data = self.application_data_import.pull(problem_selection=self.chosen_applications)
+        self.config = self.application_data_import.setup()
         # ------------------------------------------------
         # SET UP SAVE DIRECTORY
         if not os.path.exists('./elsciRL-Published-Experiments'):
@@ -114,71 +131,64 @@ class Osborne2025:
         self.save_dir = save_dir
         # ------------------------------------------------
         # SET UP EXPERIMENT CONFIG
-        self.ExperimentConfig = experiment_config(number_training_episodes=number_training_episodes)
+        self.ExperimentConfig = experiment_config_selection_data(number_training_episodes=number_training_episodes)
         # ------------------------------------------------
 
 
     def run(self):
         for application in self.chosen_applications:
             app_save_dir = os.path.join(self.save_dir, application)
+            if not os.path.exists(app_save_dir):
+                os.mkdir(app_save_dir)
             # Get engine class
             engine_class = self.pull_app_data[application]['engine']
             # ------------------------------------------------
             # Get agent and adapter selection
-            agent_selection = agent_selection(application)
+            agent_selection = agent_selection_data(application)
             self.ExperimentConfig['agent_select'] = agent_selection
-            adapters = adapter_selection(application)
-            agent_adapter_dict = {agent_name: list(adapters) for agent_name in agent_selection}            
+            adapters = adapter_selection_data(application)
+            ADAPTERS_DICT = {}
+            for adapter_name in adapters:
+                ADAPTERS_DICT[adapter_name] = self.pull_app_data[application]['adapters'][adapter_name]
+            # Get agent adapter selection with a complete mapping
+            all_adapters = list(ADAPTERS_DICT.keys())
+            agent_adapter_dict = {agent_name: list(all_adapters) for agent_name in agent_selection}
             self.ExperimentConfig['adapter_input_dict'] = agent_adapter_dict
             # ------------------------------------------------
-            # Get preset instruction data
-            source = self.pull_app_data[application]['source']
-            root_url = list(source.keys())[0]
-            instruction_data_folder = self.pull_app_data[application]['instruction_data_folder']
-            instruction_file_names = self.pull_app_data[application]['instruction_file_names']
-            print("Avilable instruction data files:")
-            n = 0
-            instruction_file_list = []
-            for key,file in instruction_file_names.items():
-                n+=1
-                print(f"{n+1}: {key} - {file}")
-                instruction_file_list.append(file)
-            if n > 1:
-                instruction_selection = input("Enter the instruction data file name (e.g., osborne_2025_instructions.txt): ")
-            else:
-                instruction_selection = '1'
-            instruction_file_name = instruction_file_list[int(instruction_selection)-1]
-            instruction_data_path = source[root_url]+'/'+instruction_data_folder+'/'+instruction_file_name+'.txt'
-            instr_data_path = json.loads(urllib.request.urlopen(instruction_data_path).read().decode('utf-8'))
-            # ------------------------------------------------
             # Get local config selection
-            local_config_list = self.local_config(application)
-            for local_config in local_config_list:
+            local_config_list = local_config_selection_data(application)
+            for local_config_selection in local_config_list:
+                local_config_save_dir = os.path.join(app_save_dir, local_config_selection)
+                if not os.path.exists(local_config_save_dir):
+                    os.mkdir(local_config_save_dir)
+                local_config = self.pull_app_data[application]['local_configs'][local_config_selection]
                 # ------------------------------------------------
-                # Run reinforced experiment
-                reinforced_experiment = elsciRLOptimize(
-                        Config=self.ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=adapters,
-                        save_dir=app_save_dir+'/instr', show_figures='No', window_size=0.1,
-                        instruction_path=instr_data_path, predicted_path=None, instruction_episode_ratio=0.1,
-                        instruction_chain=True, instruction_chain_how='exact')
+                # Get preset instruction data
+                instruction_selection = instruction_selection_data(application)[local_config_selection]
+                for instruction_data_source in instruction_selection:
+                    instr_data = self.pull_app_data[application]['instructions'][instruction_data_source]
+                    # Instruction filename matches a local config
+                    # ------------------------------------------------
+                    # Run reinforced experiment
+                    for instr_key, instr_data_input in instr_data.items():
+                        reinforced_experiment = elsciRLOptimize(
+                                Config=self.ExperimentConfig, LocalConfig=local_config, Engine=engine_class, Adapters=ADAPTERS_DICT,
+                                save_dir=local_config_save_dir+'/instr', show_figures='No', window_size=0.1,
+                                instruction_path=instr_data_input, predicted_path=None, instruction_episode_ratio=0.1,
+                                instruction_chain=True, instruction_chain_how='exact')
+                        reinforced_experiment.train()
+                        reinforced_experiment.test()
                 # ------------------------------------------------
                 # Run standard experiment
                 standard_experiment = StandardExperiment(
-                        Config=self.ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
-                        save_dir=app_save_dir+'/no_instr', show_figures='No', window_size=0.1)
-                # ------------------------------------------------
-                # Run all experiments
-                reinforced_experiment.train()
-                reinforced_experiment.test()
+                        Config=self.ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=ADAPTERS_DICT,
+                        save_dir=local_config_save_dir+'/no_instr', show_figures='No', window_size=0.1)
                 standard_experiment.train()
                 standard_experiment.test()
+                        
                 # ------------------------------------------------
-
-            # ------------------------------------------------
-            # Plot combined variance analysis per application
-            COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=app_save_dir, analysis_type='training', results_to_show='simple')
-            COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=app_save_dir, analysis_type='testing', results_to_show='simple')
-            # ------------------------------------------------
+                COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=local_config_save_dir, analysis_type='training', results_to_show='simple')
+                COMBINED_VARIANCE_ANALYSIS_GRAPH(results_dir=local_config_save_dir, analysis_type='testing', results_to_show='simple')
 
 if __name__ == "__main__":
     args = sys.argv[1:]

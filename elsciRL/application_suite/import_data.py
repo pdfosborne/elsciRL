@@ -34,7 +34,7 @@ class Applications:
                 "prerender_data_encoded_filenames":{},
                 "prerender_image_filenames": {"Setup":"sailing_setup.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
+                "instruction_filenames": {}
                 },
             "Classroom":{
                 "github_user": "pdfosborne",
@@ -56,7 +56,8 @@ class Applications:
                                                     "LLM-v1":"encoded_observed_states_Classroom_classroom_A_LLM_llama32_100.txt"},
                 "prerender_image_filenames": {"Classroom_A_Setup":"Classroom_A_Summary.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"test":"instruction_results_Classroom_test.json"}
+                "instruction_filenames": {"test":"instruction_results_Classroom_test.json",
+                                          "osborne2025":"Osborne2025_instruction_results_Classroom_LLM.json"}
                 },
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
@@ -78,7 +79,7 @@ class Applications:
                                             "LLM-v1":"encoded_observed_states_Gym-FrozenLake_Osborne2024_env_LLM_llama32_100.txt"},
                 "prerender_image_filenames": {"FrozenLake_Setup":"FrozenLake_4x4.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
+                "instruction_filenames": {"osborne2025":"Osborne2025_instruction_results_Gym-FrozenLake_LLM.json"}
                 },
             "Chess":{
                 "github_user": "pdfosborne",
@@ -102,7 +103,7 @@ class Applications:
                 "prerender_data_encoded_filenames":{"LLM-v1": "encoded_observed_states_Chess_Osborne2024_env_LLM_1000_v2.txt"},
                 "prerender_image_filenames": {"Board_Setup":"board_start.png"},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
+                "instruction_filenames": {}
                 },
             # "TextWorldExpress":{
             #     "github_user": "pdfosborne",
@@ -174,6 +175,9 @@ class Applications:
                                             },
                 "prerender_image_filenames": {},
                 "instruction_folder": "instructions",
-                "instruction_filenames": {"osborne2025":"instructions_osborne2025.json"}
+                "instruction_filenames": {"osborne2025umaze":"Osborne2025_instruction_results_Maze_LLM-umaze-v1.json",
+                                          "osborne2025double_t_maze":"Osborne2025_instruction_results_Maze_LLM-double_t_maze-v1.json",
+                                          "osborne2025medium":"Osborne2025_instruction_results_Maze_LLM-medium-v1.json",
+                                          "osborne2025large":"Osborne2025_instruction_results_Maze_LLM-large-v1.json"}
                 }
         }

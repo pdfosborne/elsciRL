@@ -69,7 +69,9 @@ class PullApplications:
                                             'local_analysis_folder': self.imports[problem]['local_analysis_folder'],
                                             'local_analysis_filenames': self.imports[problem]['local_analysis_filenames'],
                                             'prerender_data_folder': self.imports[problem]['prerender_data_folder'],
-                                            'prerender_data_filenames': self.imports[problem]['prerender_data_filenames']}}
+                                            'prerender_data_filenames': self.imports[problem]['prerender_data_filenames'],
+                                            'instruction_folder': self.imports[problem]['instruction_folder'],
+                                            'instruction_filenames': self.imports[problem]['instruction_filenames']}}
 
                 try:
                     self.current_test[problem]['engine'] = engine_module.Engine
