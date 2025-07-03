@@ -111,10 +111,10 @@ class OllamaAdapter(LLMAdapter):
         In order to convert numeric information to text we track recent states and actions as a means to establish a context for the current state.
         """
         # Check cache for previously processed state
-        if state in self.cache:
-            processed_response = self.cache[state]
+        if str(state) in self.cache:
+            processed_response = self.cache[str(state)]
             if encode:
-                encoded_response = self.encoder_cache.get(state, None)
+                encoded_response = self.encoder_cache.get(str(state), None)
                 if encoded_response is not None:
                     # If we have a cached response but not an encoded one, encode it
                     encoded_response = self.encoder.encode(
@@ -123,7 +123,7 @@ class OllamaAdapter(LLMAdapter):
                         episode_action_history=episode_action_history,
                         indexed=indexed
                     )
-                    self.encoder_cache[state] = encoded_response
+                    self.encoder_cache[str(state)] = encoded_response
             return encoded_response if encode else processed_response
         # -----------------------------------------------
         else:
@@ -168,8 +168,8 @@ class OllamaAdapter(LLMAdapter):
                 processed_response = str(state) if state is not None else "No state available"
         
             # Cache the processed response
-            if state not in self.cache:
-                self.cache[state] = processed_response
+            if str(state) not in self.cache:
+                self.cache[str(state)] = processed_response
 
             # Handle encoding
             if encode:
@@ -182,8 +182,8 @@ class OllamaAdapter(LLMAdapter):
                         indexed=indexed
                     )
                     # Cache the encoded state
-                    if state_encoded not in self.encoder_cache:
-                        self.encoder_cache[state] = state_encoded
+                    if str(state) not in self.encoder_cache:
+                        self.encoder_cache[str(state)] = state_encoded
                     return state_encoded
                 else:
                     print("Warning: Encoder not available, returning processed response as string")

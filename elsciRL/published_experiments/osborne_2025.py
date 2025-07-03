@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 import urllib.request
 
-from elsciRL.application_suite.import_tool import Applications
+from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.import_tool import PullApplications
 
 
@@ -30,7 +30,7 @@ def adapter_selection_data(application:str):
         'Sailing': {'default','language','LLM'},
         'Classroom': {'default','classroom_A_language','LLM'},
         'Gym-FrozenLake': {'numeric_encoder','language','LLM'},
-        'Maze': {'language_default','language','LLM'},
+        'Maze': {'language_default','LLM'},
     }
     return adapter_selection[application]
 
@@ -63,6 +63,9 @@ def experiment_config_selection_data(number_training_episodes:int = 10000):
             'number_training_episodes': number_training_episodes,
             'number_training_repeats': 10,
             'number_training_seeds': 1,
+
+            "instruction_chain": True,
+            "instruction_chain_how": "continuous",
 
             'number_test_episodes': int(number_training_episodes*0.1),
             "test_agent_type": "best",
