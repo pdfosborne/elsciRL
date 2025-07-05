@@ -26,34 +26,6 @@
 <div align="left">
 
 
-## What is elsciRL?
-
-**elsciRL (pronounced L-SEE)** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) solutions.
-
-Our novel solution is a framework that uses a combination of Language Adapters and Self-completing Instruction Following (a.k.a. LASIF). 
-
-This approach allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
-
-This work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
-
-### Features
-1. **Accelerates Research** by seperating Reinforcement Learning development into distinct components and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge
-2. **Improve Reproducability** by designing generally applicable alogorithms & applications including configurations to re-create prior experiments
-3. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions
-4. **Enchance New Applications** by making it easier to setup new problems and reduce the amount of data required testing
-
-<div width="75%" align="center">
-	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/Agent-Performance-2.gif?raw=true" />
-</div>
-
-### What is Reinforcement Learning?
-
-Reinforcement Learning is an Artificial Intelligence methodology that teaches machines how to make decisions and perform actions to achieve a goal.
-
-It's based on the idea that machines can learn from their experiences to automate a task without being told exactly what to do, similar to how humans learn through trial and error.
-
-See the [FAQs](https://elsci.org/FAQs) for more information.
-
 ## Install Guide
 
 ### Quick Install
@@ -123,6 +95,37 @@ Please follow the instructions on the Home tab.
 The algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
 
 Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
+
+
+
+## What is elsciRL?
+
+**elsciRL (pronounced L-SEE)** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) solutions.
+
+Our novel solution is a framework that uses a combination of Language Adapters and Self-completing Instruction Following (a.k.a. LASIF). 
+
+This approach allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
+
+This work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
+
+### Features
+1. **Accelerates Research** by seperating Reinforcement Learning development into distinct components and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge
+2. **Improve Reproducability** by designing generally applicable alogorithms & applications including configurations to re-create prior experiments
+3. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions
+4. **Enchance New Applications** by making it easier to setup new problems and reduce the amount of data required testing
+
+<div width="75%" align="center">
+	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/Agent-Performance-2.gif?raw=true" />
+</div>
+
+### What is Reinforcement Learning?
+
+Reinforcement Learning is an Artificial Intelligence methodology that teaches machines how to make decisions and perform actions to achieve a goal.
+
+It's based on the idea that machines can learn from their experiences to automate a task without being told exactly what to do, similar to how humans learn through trial and error.
+
+See the [FAQs](https://elsci.org/FAQs) for more information.
+
 
 ---
 
