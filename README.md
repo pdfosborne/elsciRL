@@ -118,9 +118,9 @@ This will give you a localhost link to open the App in a browser.
 [![YouTube](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-WebApp-Demo.png?raw=true)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 
 
-The App will looks similar to the [public demo](https://osbornep.pythonanywhere.com/) except now the algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
+Please follow the instructions on the Home tab.
 
-By default the instruction agent will be run for 1,000 episodes to save time but you can increase or decrease this if you wish to change the training time.
+The algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
 
 Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
 
