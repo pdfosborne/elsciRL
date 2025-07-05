@@ -4,7 +4,6 @@ from elsciRL.application_suite.import_data import Applications
 from elsciRL.application_suite.import_tool import PullApplications
 
 # Get search method
-from elsciRL.experiments.archive import observed_states
 from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
 import os
 import json

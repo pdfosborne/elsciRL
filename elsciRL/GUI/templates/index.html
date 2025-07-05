@@ -411,7 +411,7 @@
                             {# Dynamically include agent parameter forms #}
                             {% if agent_parameter_definitions %}
                                 {% for agent_id, agent_config in agent_parameter_definitions.items() %}
-                                    {% include 'agent_params/_generic_agent_param_form.html' %}
+                                    {% include '_generic_agent_param_form.html' %}
                                 {% endfor %}
                             {% endif %}
                         </div>
