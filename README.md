@@ -84,7 +84,7 @@ cd elsciRL
 pip install -e .
 ```
 
-## Quick Demo
+<!-- ## Quick Demo
 
 To check the install has worked, you can run a quick CLI demo from a selection of applications:
 
@@ -98,10 +98,10 @@ This will run a tabular Q learning agent on your selected problem and save resul
 
 > '*CURRENT_DIRECTORY*/elsciRL-EXAMPLE-output/...'
 
-A help function is included in demo: *test.help()*
+A help function is included in demo: *test.help()* -->
 
 
-## Run the App Interface
+## GUI App
 
 To run the App, run the following code in a Python script.
 
