@@ -26,6 +26,8 @@
 <div align="left">
 
 
+![GUI_GIF](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_GUI_GIF_2.gif)
+
 ## Install Guide
 
 ### Quick Install
