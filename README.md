@@ -1,5 +1,5 @@
 # elsciRL
-## A Framework for LLMs to Learn from Interaction Problems with Rewards
+## Integrating Language Solutions into Reinforcement Learning Problem Settings
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_v3_2trianglesLight_transparent.png" align="left" height="250" width="250" ></a>
 
