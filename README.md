@@ -1,7 +1,7 @@
 # elsciRL
 ## Integrating Language Solutions into Reinforcement Learning
 
-<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_logo_v3_2trianglesLight_transparent.png" align="left" height="250" width="250" ></a>
+<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsci_logo-text.png" align="left" height="250" width="250" ></a>
 
 <div align="center">
   <br>
