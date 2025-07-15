@@ -1,5 +1,8 @@
-# elsciRL
-## Integrating Language Solutions into Reinforcement Learning
+<!-- # elsciRL -->
+<!-- ## Integrating Language Solutions into Reinforcement Learning -->
+<div align="center">
+  <h1>Integrating Language Solutions into Reinforcement Learning</h1>
+</div>
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v2.png" align="left" height="240" width="300" ></a>
 
@@ -21,9 +24,14 @@
   <b>Quicklinks:</b> [Homepage](https://elsci.org) | [FAQs](https://elsci.org/FAQs) | [New Developers](https://elsci.org/New+Developers) | [Contributing Guide](https://elsci.org/Become+a+Contributor) | [App Interface Guide](https://elsci.org/App+Interface+Guide)
   <br>
   <br>
-  ---
+  <br>
 </div>
-<br>
+
+---
+### Announcements
+[14/07/2025] **New publication** [*elsciRL: Integrating Language Solutions into Reinforcement Learning Problem Settings*](https://arxiv.org/abs/2507.08705)
+
+---
 <div align="center">
   
   <a href="https://www.youtube.com/watch?v=JbPtl7Sk49Y">![GUI_Preview_GIF](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_GUI_GIF_2.gif)</a>
@@ -96,19 +104,26 @@ This will give you a localhost link to open the App in a browser.
 
 ## What is elsciRL?
 
-**elsciRL (pronounced L-SEE)** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) solutions.
+**elsciRL (pronounced L-SEE)** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) approaches.
 
-Our novel solution is a framework that makes use of adapters to introduce language such as a set of one-to-one mapping rules. Given any language exists in the problem space, we can then use an unsupervised instruction following approach. These combined define our **Explicit Langauge and Self-Completing Instruction methdology, i.e. elsci**.
+Our novel solution is a two-phased approach.
 
-This approach allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
+First, we use adapters to introduce language with reduced setup requirements. For example, this may be in the form of a set of one-to-one mapping rules to more advanced prediction methods to transform environment states to language. 
 
-This work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
+Second, now that language exists in the problem space, we can then apply our unsupervised instruction following approach. Prior approaches required some form of human labelling efforts to complete instructions which can be costly to obtain. 
+
+These combined define our **Explicit Langauge for Self-Completing Instruction** methdology, i.e. **elsci**.
+
+Our solution allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
+
+Our work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
 
 ### Features
-1. **Accelerates Research** by seperating Reinforcement Learning development into distinct components and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge
-2. **Improve Reproducability** by designing generally applicable alogorithms & applications including configurations to re-create prior experiments
-3. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions
-4. **Enchance New Applications** by making it easier to setup new problems and reduce the amount of data required testing
+1. **Enhance any Reinforcement Learning application with language.**
+2. A **GUI** that improves the experience for users to interact with language approaches and setting up new experiments.
+3. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
+4. **Improve Reproducability** by designing a set of generally applicable alogorithms including the configurations to re-create prior experiments.
+<!-- 4. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions. -->
 
 <div width="75%" align="center">
 	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/Agent-Performance-2.gif?raw=true" />
