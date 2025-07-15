@@ -4,7 +4,6 @@
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v2.png" align="left" height="240" width="300" ></a>
 
 <div align="center">
-  <br>
   <b>Open-source Python Software for Academic and Industry Applications</b>
 
   Visit our <a href="https://elsci.org">website</a> to get started, explore our <a href="https://github.com/pdfosborne/elsciRL-Wiki">open-source Wiki</a> to learn more or join our <a href="https://discord.gg/GgaqcrYCxt">Discord server</a> to connect with the community.
@@ -18,7 +17,7 @@
   <a href="https://github.com/pdfosborne/elsciRL">![elsciRL GitHub](https://img.shields.io/github/stars/pdfosborne/elsciRL?style=for-the-badge&logo=github&label=elsciRL&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL)</a>
   <a href="https://github.com/pdfosborne/elsciRL-Wiki">![Wiki GitHub](https://img.shields.io/github/stars/pdfosborne/elsciRL-Wiki?style=for-the-badge&logo=github&label=elsciRL-Wiki&link=https%3A%2F%2Fgithub.com%2Fpdfosborne%2FelsciRL-Wiki)</a>
   <a href="https://discord.gg/GgaqcrYCxt">![Discord](https://img.shields.io/discord/1310579689315893248?style=for-the-badge&logo=discord&label=Discord&link=https%3A%2F%2Fdiscord.com%2Fchannels%2F1184202186469683200%2F1184202186998173878)</a> 
-  
+
   <b>Quicklinks:</b> [Homepage](https://elsci.org) | [FAQs](https://elsci.org/FAQs) | [New Developers](https://elsci.org/New+Developers) | [Contributing Guide](https://elsci.org/Become+a+Contributor) | [App Interface Guide](https://elsci.org/App+Interface+Guide)
   <br>
   <br>
@@ -91,25 +90,15 @@ App.run()
 
 This will give you a localhost link to open the App in a browser. 
 
+[![YouTube](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-WebApp-Demo-YTlogo.png?raw=true)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
 
-*Click the image to watch the demo video*
-
-[![YouTube](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-WebApp-Demo.png?raw=true)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
-
-
-Please follow the instructions on the Home tab.
-
-The algorithm will directly compare your instruction against known environment positions to find the best match. Furthermore, if validated as a correct match, will use your computer resources to train the agent with this factored in.
-
-Once you've finished a test you can see the results will show on the App and also save the full output in your local file directory.
-
-
+*The Home tab provides an guide of how to use the GUI. Click the image to watch the demo video.*
 
 ## What is elsciRL?
 
 **elsciRL (pronounced L-SEE)** offers a general purpose Python library for accelerating the development of language based Reinforcement Learning (RL) solutions.
 
-Our novel solution is a framework that uses a combination of Language Adapters and Self-completing Instruction Following (a.k.a. LASIF). 
+Our novel solution is a framework that makes use of adapters to introduce language such as a set of one-to-one mapping rules. Given any language exists in the problem space, we can then use an unsupervised instruction following approach. These combined define our **Explicit Langauge and Self-Completing Instruction methdology, i.e. elsci**.
 
 This approach allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
 
