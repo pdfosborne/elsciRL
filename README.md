@@ -139,7 +139,7 @@ See the [FAQs](https://elsci.org/FAQs) for more information.
 
 ---
 
-# Cite
+### Cite
 
 Please use the following to cite this work
 
