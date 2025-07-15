@@ -1,7 +1,7 @@
 # elsciRL
 ## Integrating Language Solutions into Reinforcement Learning
 
-<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v2.png" align="left" height="300" width="300" ></a>
+<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v2.png" align="left" height="240" width="300" ></a>
 
 <div align="center">
   <br>
@@ -26,7 +26,6 @@
 </div>
 <br>
 <div align="center">
-
   
   <a href="https://www.youtube.com/watch?v=JbPtl7Sk49Y">![GUI_Preview_GIF](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_GUI_GIF_2.gif)</a>
   <a href="https://www.youtube.com/@DrPhilipOsborne">![YouTube](https://img.shields.io/youtube/channel/views/UCJo8IlRyjvxmHdyt_begm8Q?style=for-the-badge&logo=youtube&label=YouTube&link=https%3A%2F%2Fwww.youtube.com%2F%40DrPhilipOsborne)</a>
