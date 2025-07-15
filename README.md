@@ -22,11 +22,17 @@
   <b>Quicklinks:</b> [Homepage](https://elsci.org) | [FAQs](https://elsci.org/FAQs) | [New Developers](https://elsci.org/New+Developers) | [Contributing Guide](https://elsci.org/Become+a+Contributor) | [App Interface Guide](https://elsci.org/App+Interface+Guide)
   <br>
   <br>
+  ---
+</div>
+<br>
+<div align="center">
+
+  
+  <a href="https://www.youtube.com/watch?v=JbPtl7Sk49Y">![GUI_Preview_GIF](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_GUI_GIF_2.gif)</a>
+  <a href="https://www.youtube.com/@DrPhilipOsborne">![YouTube](https://img.shields.io/youtube/channel/views/UCJo8IlRyjvxmHdyt_begm8Q?style=for-the-badge&logo=youtube&label=YouTube&link=https%3A%2F%2Fwww.youtube.com%2F%40DrPhilipOsborne)</a>
 </div>
 <div align="left">
 
-
-![GUI_GIF](https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_GUI_GIF_2.gif)
 
 ## Install Guide
 
