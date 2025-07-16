@@ -126,7 +126,7 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 
 <div width="75%" align="center">
 	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_LLM_Overview-v2.png" />
-	<p>Overview of the elsciRL library, <i style='color:red;'>red blocks</i> highlight the Language Adapter and Self-completing Instruction Following (LASIF) framework defined by [(Osborne, 2024)](https://research.manchester.ac.uk/en/studentTheses/improving-real-world-reinforcement-learning-by-self-completing-hu), <i style='color:blue;'>blue blocks</i> highlight the most recent developments with LLMs.</p>
+	<p>Overview of the elsciRL library, <b style='color:red;'>red blocks</b> highlight the Adapter and Self-completing Instruction Following methodologies, <b style='color:blue;'>blue blocks</b> highlight the most recent developments with LLMs.</p>
 </div>
 
 ### What is Reinforcement Learning?
