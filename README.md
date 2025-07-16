@@ -98,8 +98,9 @@ App.run()
 This will give you a localhost link to open the App in a browser. 
 
 [![YouTube](https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/elsciRL-WebApp-Demo-YTlogo.png?raw=true)](https://www.youtube.com/watch?v=JbPtl7Sk49Y)
-
-*The Home tab provides an guide of how to use the GUI. Click the image to watch the demo video.*
+<div width="75%" align="center">
+	<p><i>The Home tab provides an guide of how to use the GUI. Click the image to watch the demo video.</i></p>
+</div>
 
 ## What is elsciRL?
 
