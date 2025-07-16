@@ -125,7 +125,8 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 <!-- 4. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions. -->
 
 <div width="75%" align="center">
-	<img src="https://github.com/pdfosborne/elsciRL-Wiki/blob/main/Resources/images/Agent-Performance-2.gif?raw=true" />
+	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_LLM_Overview-v2.png" />
+	<p>Overview of the elsciRL library, <i style='color:red;'>red blocks</i> highlight the Language Adapter and Self-completing Instruction Following (LASIF) framework defined by [(Osborne, 2024)](https://research.manchester.ac.uk/en/studentTheses/improving-real-world-reinforcement-learning-by-self-completing-hu), <i style='color:blue;'>blue blocks</i> highlight the most recent developments with LLMs.</p>
 </div>
 
 ### What is Reinforcement Learning?
