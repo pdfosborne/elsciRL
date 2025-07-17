@@ -119,12 +119,12 @@ Our solution allows end users to give instructions to Reinforcement Learning age
 Our work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
 
 ### Features
-1. **Enhance any Reinforcement Learning application with language.**
-2. A **GUI** that improves the experience for users to interact with language approaches and setting up new experiments.
-3. **Setup New Applications Faster** with fewer problem-specific requirements.
-4. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
-5. **Improve Reproducibility** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
-6. **Extract Domain Expert Knowledge** by using our GUI to let non-technical users provide instructions that guide the agent.
+1. **Enhance any Reinforcement Learning application with language.** 
+2. Our **Graphical User Interface (GUI)** makes it easy to apply new algorithms and provide instructions.
+3. **Develop applications faster** with fewer problem specific requirements.
+4. **Accelerate your research** with our [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
+5. **Enables  reproducibility of your work** including publication of the configurations used so others can re-create the experiments.
+6. **Collect user input data with ease** by using our GUI to let non-technical users provide instructions that guide the agent.
 
 <div width="75%" align="center">
 	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_LLM_Overview-v2.png" />
