@@ -1,7 +1,7 @@
 <!-- # elsciRL -->
 <!-- ## Integrating Language Solutions into Reinforcement Learning -->
 <div align="center">
-  <h1>Integrating Language Solutions into Reinforcement Learning</h1>
+  <h1>Enhance Any Reinforcement Learning Application with Language</h1>
 </div>
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v3.png" align="left" height="300" width="375" ></a>
@@ -122,7 +122,7 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 1. **Enhance any Reinforcement Learning application with language.**
 2. A **GUI** that improves the experience for users to interact with language approaches and setting up new experiments.
 3. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
-4. **Improve Reproducability** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
+4. **Improve Reproducibility** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
 <!-- 4. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions. -->
 
 <div width="75%" align="center">
