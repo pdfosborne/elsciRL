@@ -112,7 +112,7 @@ First, we use adapters to introduce language with reduced setup requirements. Fo
 
 Second, now that language exists in the problem space, we can then apply our unsupervised instruction following approach. Prior approaches required some form of human labelling efforts to complete instructions which can be costly to obtain. 
 
-These combined define our **Explicit Langauge for Self-Completing Instruction** methdology, i.e. **elsci**.
+These combined define our **Explicit Language for Self-Completing Instruction** methodology, i.e. **elsci**.
 
 Our solution allows end users to give instructions to Reinforcement Learning agents without direct supervision where prior methods required any objectives to be hard coded as rules or shown by demonstration (e.g. if key in inventory then objective reached). 
 
@@ -122,7 +122,7 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 1. **Enhance any Reinforcement Learning application with language.**
 2. A **GUI** that improves the experience for users to interact with language approaches and setting up new experiments.
 3. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
-4. **Improve Reproducability** by designing a set of generally applicable alogorithms including the configurations to re-create prior experiments.
+4. **Improve Reproducability** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
 <!-- 4. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions. -->
 
 <div width="75%" align="center">
