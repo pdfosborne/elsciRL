@@ -1,7 +1,7 @@
 <!-- # elsciRL -->
 <!-- ## Integrating Language Solutions into Reinforcement Learning -->
 <div align="center">
-  <h1>Enhance Any Reinforcement Learning Application with Language</h1>
+  <h1>Improve Reinforcement Learning Applications with Language</h1>
 </div>
 
 <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_v3.png" align="left" height="300" width="375" ></a>
