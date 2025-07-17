@@ -121,7 +121,7 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 ### Features
 1. **Enhance any Reinforcement Learning application with language.**
 2. A **GUI** that improves the experience for users to interact with language approaches and setting up new experiments.
-3. **Setup New Applications Faster** with fewer problem-specific components requirements.
+3. **Setup New Applications Faster** with fewer problem-specific requirements.
 4. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
 5. **Improve Reproducibility** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
 6. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions that guide the agent.
