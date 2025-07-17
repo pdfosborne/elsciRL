@@ -124,7 +124,7 @@ Our work fits within the scope of AI agents but we notably do not require the pr
 3. **Setup New Applications Faster** with fewer problem-specific requirements.
 4. **Accelerates Research** by reducing the number of steps to setup new applications and providing an [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
 5. **Improve Reproducibility** by designing a set of generally applicable algorithms including the configurations to re-create prior experiments.
-6. **Extract Domain Expert Knowledge** by using our App Interface to let non-technical users provide instructions that guide the agent.
+6. **Extract Domain Expert Knowledge** by using our GUI to let non-technical users provide instructions that guide the agent.
 
 <div width="75%" align="center">
 	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_LLM_Overview-v2.png" />
