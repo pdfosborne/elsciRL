@@ -180,6 +180,21 @@ class PullApplications:
                     with open(instruction_file, 'w') as f:
                         json.dump(instruction_data, f, indent=2)
             
+            # Save README files
+            if 'readme_files' in data:
+                readme_dir = os.path.join(cache_dir, 'readme_files')
+                if not os.path.exists(readme_dir):
+                    os.makedirs(readme_dir)
+                for readme_name, readme_content in data['readme_files'].items():
+                    # Determine file extension from readme name or use default
+                    if '.' in readme_name:
+                        readme_file = os.path.join(readme_dir, readme_name)
+                    else:
+                        readme_file = os.path.join(readme_dir, f"{readme_name}.md")
+                    with open(readme_file, 'w', encoding='utf-8') as f:
+                        f.write(readme_content)
+                    print(f"Saved README file: {readme_name}")
+            
             print(f"Cached data for {problem} in directory structure")
         except Exception as e:
             print(f"Failed to save cache for {problem}: {e}")
@@ -202,10 +217,37 @@ class PullApplications:
             cached_source_hash = metadata.get('source_hash')
             current_source_hash = hashlib.md5(json.dumps(source_data, sort_keys=True).encode()).hexdigest()
             
-            # For 'main' branch, always update (no cache check)
+            # For 'main' branch, check if we need to update based on last-commit-id marker
             if commit_id == 'main':
-                print(f"Commit is 'main' for {problem}, skipping cache and pulling fresh data")
-                return None
+                # Load cached data to check README content
+                cached_data = self._load_cached_data(problem, cache_dir)
+                if cached_data and 'readme_files' in cached_data:
+                    # Check if any README file contains a last-commit-id marker
+                    cached_last_commit_if = None
+                    for readme_content in cached_data['readme_files'].values():
+                        cached_last_commit_if = self._extract_last_commit_if(readme_content)
+                        if cached_last_commit_if:
+                            break
+                    
+                    if cached_last_commit_if:
+                        # Get current main branch info
+                        main_info = self._get_main_branch_info(
+                            self.imports[problem]['github_user'], 
+                            self.imports[problem]['repository']
+                        )
+                        
+                        if main_info and main_info['sha'].startswith(cached_last_commit_if):
+                            print(f"Using cached data for {problem} (main branch unchanged, last-commit-id: {cached_last_commit_if})")
+                            return cached_data
+                        else:
+                            print(f"Main branch has changed for {problem}, updating cache")
+                            return None
+                    else:
+                        print(f"No last-commit-id marker found in README for {problem}, pulling fresh data")
+                        return None
+                else:
+                    print(f"No cached README data for {problem}, pulling fresh data")
+                    return None
             
             if cached_commit == commit_id and cached_source_hash == current_source_hash:
                 print(f"Using cached data for {problem} (commit: {commit_id})")
@@ -330,6 +372,17 @@ class PullApplications:
                         with open(os.path.join(instructions_dir, instruction_file), 'r') as f:
                             data['instructions'][instruction_name] = json.load(f)
             
+            # Load README files
+            readme_dir = os.path.join(cache_dir, 'readme_files')
+            if os.path.exists(readme_dir):
+                data['readme_files'] = {}
+                for readme_file in os.listdir(readme_dir):
+                    if readme_file.endswith(('.md', '.txt', '.rst')):
+                        readme_name = readme_file
+                        with open(os.path.join(readme_dir, readme_file), 'r', encoding='utf-8') as f:
+                            data['readme_files'][readme_name] = f.read()
+                        print(f"Loaded cached README file: {readme_name}")
+            
             return data
         except Exception as e:
             print(f"Failed to load cached data for {problem}: {e}")
@@ -365,6 +418,41 @@ class PullApplications:
                 'commit_id': latest['commit_id'],
                 'cache_hit': latest['cache_hit']
             }
+        return None
+    
+    def _get_main_branch_info(self, github_user, repository):
+        """Get information about the main branch of a GitHub repository."""
+        try:
+            # GitHub API endpoint for the main branch
+            api_url = f"https://api.github.com/repos/{github_user}/{repository}/branches/main"
+            response = urllib.request.urlopen(api_url)
+            branch_info = json.loads(response.read().decode('utf-8'))
+            
+            return {
+                'sha': branch_info['commit']['sha'],
+                'commit_date': branch_info['commit']['commit']['author']['date']
+            }
+        except Exception as e:
+            print(f"Failed to get main branch info for {github_user}/{repository}: {e}")
+            return None
+    
+    def _extract_last_commit_if(self, readme_content):
+        """Extract the last-commit-id value from README content."""
+        import re
+        if not readme_content:
+            return None
+        
+        # Look for patterns like 'last-commit-id: xxxxxx' or 'last-commit-id:xxxxxx'
+        patterns = [
+            r'last-commit-id:\s*([a-f0-9]{7,40})',  # SHA hash
+            r'last-commit-id:\s*([a-zA-Z0-9_-]+)',   # Any alphanumeric identifier
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, readme_content, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        
         return None
     
 
@@ -526,12 +614,58 @@ class PullApplications:
                 print("No instructions found.")
                 self.current_test[problem]['instructions'] = {}
             
+            # Load README files
+            self.current_test[problem]['readme_files'] = {}
+            try:
+                # Try to pull README.md from the root of the repository
+                readme_url = self.root + '/README.md'
+                readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                self.current_test[problem]['readme_files']['README.md'] = readme_content
+                print("Pulling README.md...")
+            except:
+                try:
+                    # Try to pull README.txt from the root of the repository
+                    readme_url = self.root + '/README.txt'
+                    readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                    self.current_test[problem]['readme_files']['README.txt'] = readme_content
+                    print("Pulling README.txt...")
+                except:
+                    try:
+                        # Try to pull README.rst from the root of the repository
+                        readme_url = self.root + '/README.rst'
+                        readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                        self.current_test[problem]['readme_files']['README.rst'] = readme_content
+                        print("Pulling README.rst...")
+                    except:
+                        print("No README file found.")
+                        self.current_test[problem]['readme_files'] = {}
+            
             # Add cache metadata and save to cache
             cache_metadata = {
                 'commit_id': commit_id,
                 'source_hash': hashlib.md5(json.dumps(source_data, sort_keys=True).encode()).hexdigest(),
                 'timestamp': datetime.now().isoformat()
             }
+            
+            # For 'main' branch, also store the main branch commit date and last-commit-id value
+            if commit_id == 'main':
+                main_info = self._get_main_branch_info(
+                    self.imports[problem]['github_user'], 
+                    self.imports[problem]['repository']
+                )
+                if main_info:
+                    cache_metadata['main_branch_date'] = main_info['commit_date']
+                    cache_metadata['main_branch_sha'] = main_info['sha']
+                    print(f"Stored main branch info for {problem}: {main_info['commit_date']}")
+                
+                # Check for last-commit-id marker in README files
+                if 'readme_files' in self.current_test[problem]:
+                    for readme_content in self.current_test[problem]['readme_files'].values():
+                        last_commit_id = self._extract_last_commit_if(readme_content)
+                        if last_commit_id:
+                            cache_metadata['last_commit_id'] = last_commit_id
+                            print(f"Found last-commit-id marker in README for {problem}: {last_commit_id}")
+                            break
             
             self.current_test[problem]['cache_metadata'] = cache_metadata
             
@@ -589,7 +723,9 @@ class PullApplications:
                                 info[problem_dir] = {
                                     'commit_id': metadata.get('commit_id'),
                                     'timestamp': metadata.get('timestamp'),
-                                    'source_hash': metadata.get('source_hash')
+                                    'source_hash': metadata.get('source_hash'),
+                                    'last_commit_id': metadata.get('last_commit_id'),
+                                    'main_branch_sha': metadata.get('main_branch_sha')
                                 }
                                 
 
@@ -652,7 +788,8 @@ class PullApplications:
                     'prerender_data_folder': self.imports[problem]['prerender_data_folder'],
                     'prerender_data_filenames': self.imports[problem]['prerender_data_filenames'],
                     'instruction_folder': self.imports[problem]['instruction_folder'],
-                    'instruction_filenames': self.imports[problem]['instruction_filenames']
+                    'instruction_filenames': self.imports[problem]['instruction_filenames'],
+                    'readme_files': ['README.md', 'README.txt', 'README.rst']  # Standard README file names to check
                 }
                 
                 commit_id = self.imports[problem]['commit_id']
@@ -668,11 +805,12 @@ class PullApplications:
                 print(f"Cache miss for {problem}, importing from source...")
                 self.root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + commit_id
                 print("Source: ", self.root)
+                # ------------------------------------------------
+                # - Pull Engine
                 # NOTE - This requires repo to match structure with engine inside environment folder
                 engine_module = httpimport.load(engine.split('.')[0], self.root+'/'+self.imports[problem]['engine_folder']) 
                 # TODO: Pull class name directly from engine file to be called
                 self.current_test[problem]['source'] = {str(self.root): source_data}
-
                 try:
                     self.current_test[problem]['engine'] = engine_module.Engine
                 except:
@@ -693,136 +831,163 @@ class PullApplications:
                         print("Successfully loaded engine after installing requirements.")
                     except:
                         print("Failed to load engine and no requirements.txt found.")
-            # ------------------------------------------------
-            # - Pull Adapters, Configs and Analysis
-            self.current_test[problem]['adapters'] = {}
-            for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
-                adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])   
-                # TODO: Pull class name directly from adapter file to be 
-                self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
-            # ---
-            self.current_test[problem]['experiment_configs'] = {}
-            for config_name,config in self.imports[problem]['experiment_config_filenames'].items():
-                experiment_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
-                self.current_test[problem]['experiment_configs'][config_name] = experiment_config
-            # ---
-            self.current_test[problem]['local_configs'] = {}
-            for config_name,config in self.imports[problem]['local_config_filenames'].items():
-                local_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
-                self.current_test[problem]['local_configs'][config_name] = local_config
-            # ---
-            self.current_test[problem]['local_analysis'] = {}
-            for analysis_name,analysis in self.imports[problem]['local_analysis_filenames'].items():
-                try:
-                    local_analysis = httpimport.load(analysis, self.root+'/'+self.imports[problem]['local_analysis_folder'])  
-                    # TODO: Pull class name directly from analysis file to be called 
-                    self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
-                except:
-                    print("No analysis file found.")
-                    self.current_test[problem]['local_analysis'][analysis_name] = {}
-            
-            # ------------------------------------------------
-            # Pull prerender data
-            self.current_test[problem]['prerender_data'] = {}
-            self.current_test[problem]['prerender_data_encoded'] = {}
-            if self.imports[problem]['prerender_data_folder'] != '':
-                print("Pulling prerender data...")
-                try:
-                    for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                            # Load JSON or text file
-                            if prerender.endswith('.jsonl') or prerender.endswith('.json'):
-                                # Load JSONL file
-                                data = {}
-                                with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                    for line in f:
-                                        row = (json.loads(line.decode('utf-8')))
-                                        data.update(row)
-                            elif prerender.endswith('.txt'):
-                                # Load text file
-                                data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
-                            elif prerender.endswith('.xml'):
-                                # Load XML file (assuming it contains numerical data)
-                                import xml.etree.ElementTree as ET
-                                tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                root_xml = tree.getroot()
-                                data = []
-                                for elem in root_xml.findall('.//data'):
-                                    data.append(float(elem.text))
-                            else:
-                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                            print(f"Pulling prerender data for {prerender_name}...")
-                            self.current_test[problem]['prerender_data'][prerender_name] = data
-                except:
-                    print(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
-                    print("No prerender data found.")
-                    self.current_test[problem]['prerender_data'] = {}
-                try:
-                    for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                            map_location= 'cpu' if torch.cuda.is_available() else 'cpu'
-                            if (prerender.endswith('.jsonl') or prerender.endswith('.json')):
-                                # Load JSONL file
-                                data = []
-                                with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                    for line in f:
-                                        data.append(json.loads(line.decode('utf-8')))
-                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                            elif prerender.endswith('.txt'):
-                                data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
-                            elif prerender.endswith('.xml'):
-                                # Load XML file (assuming it contains numerical data)
-                                import xml.etree.ElementTree as ET
-                                tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                root_xml = tree.getroot()
-                                data = []
-                                for elem in root_xml.findall('.//data'):
-                                    data.append(float(elem.text))
-                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                            else:
-                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                            print(f"Pulling prerender encoded data for {prerender_name}...")
-                            self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
-                except:
-                    print("No prerender encoded data found.")
-                    self.current_test[problem]['prerender_data_encoded'] = {}
-            else:
-                print("No prerender data found.")
+                # ------------------------------------------------
+                # - Pull Adapters, Configs and Analysis
+                self.current_test[problem]['adapters'] = {}
+                for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
+                    adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])   
+                    # TODO: Pull class name directly from adapter file to be 
+                    self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
+                # ---
+                self.current_test[problem]['experiment_configs'] = {}
+                for config_name,config in self.imports[problem]['experiment_config_filenames'].items():
+                    experiment_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
+                    self.current_test[problem]['experiment_configs'][config_name] = experiment_config
+                # ---
+                self.current_test[problem]['local_configs'] = {}
+                for config_name,config in self.imports[problem]['local_config_filenames'].items():
+                    local_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
+                    self.current_test[problem]['local_configs'][config_name] = local_config
+                # ---
+                self.current_test[problem]['local_analysis'] = {}
+                for analysis_name,analysis in self.imports[problem]['local_analysis_filenames'].items():
+                    try:
+                        local_analysis = httpimport.load(analysis, self.root+'/'+self.imports[problem]['local_analysis_folder'])  
+                        # TODO: Pull class name directly from analysis file to be called 
+                        self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
+                    except:
+                        print("No analysis file found.")
+                        self.current_test[problem]['local_analysis'][analysis_name] = {}
+                
+                # ------------------------------------------------
+                # Pull prerender data
                 self.current_test[problem]['prerender_data'] = {}
                 self.current_test[problem]['prerender_data_encoded'] = {}
-            # ------------------------------------------------
-            # Pull prerender images
-            self.current_test[problem]['prerender_images'] = {}
-            if self.imports[problem]['prerender_data_folder'] != '':
-                try:
-                    for image_name, image in self.imports[problem]['prerender_image_filenames'].items():
-                        if image.endswith(('.png', '.jpg', '.svg', '.gif')):
-                            image_url = self.root + '/' + self.imports[problem]['prerender_data_folder'] + '/' + image
-                            image_data = urllib.request.urlopen(image_url).read()
-                            self.current_test[problem]['prerender_images'][image_name] = image_data
-                    print("Pulling prerender images...")
-                except:
+                if self.imports[problem]['prerender_data_folder'] != '':
+                    print("Pulling prerender data...")
+                    try:
+                        for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
+                            if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
+                                # Load JSON or text file
+                                if prerender.endswith('.jsonl') or prerender.endswith('.json'):
+                                    # Load JSONL file
+                                    data = {}
+                                    with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
+                                        for line in f:
+                                            row = (json.loads(line.decode('utf-8')))
+                                            data.update(row)
+                                elif prerender.endswith('.txt'):
+                                    # Load text file
+                                    data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
+                                elif prerender.endswith('.xml'):
+                                    # Load XML file (assuming it contains numerical data)
+                                    import xml.etree.ElementTree as ET
+                                    tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
+                                    root_xml = tree.getroot()
+                                    data = []
+                                    for elem in root_xml.findall('.//data'):
+                                        data.append(float(elem.text))
+                                else:
+                                    raise ValueError(f"Unsupported file format for prerender data: {prerender}")
+                                print(f"Pulling prerender data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data'][prerender_name] = data
+                    except:
+                        print(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
+                        print("No prerender data found.")
+                        self.current_test[problem]['prerender_data'] = {}
+                    try:
+                        for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
+                            if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
+                                map_location= 'cpu' if torch.cuda.is_available() else 'cpu'
+                                if (prerender.endswith('.jsonl') or prerender.endswith('.json')):
+                                    # Load JSONL file
+                                    data = []
+                                    with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
+                                        for line in f:
+                                            data.append(json.loads(line.decode('utf-8')))
+                                    data = torch.tensor(data, dtype=torch.float32).to(map_location)
+                                elif prerender.endswith('.txt'):
+                                    data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
+                                elif prerender.endswith('.xml'):
+                                    # Load XML file (assuming it contains numerical data)
+                                    import xml.etree.ElementTree as ET
+                                    tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
+                                    root_xml = tree.getroot()
+                                    data = []
+                                    for elem in root_xml.findall('.//data'):
+                                        data.append(float(elem.text))
+                                    data = torch.tensor(data, dtype=torch.float32).to(map_location)
+                                else:
+                                    raise ValueError(f"Unsupported file format for prerender data: {prerender}")
+                                print(f"Pulling prerender encoded data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
+                    except:
+                        print("No prerender encoded data found.")
+                        self.current_test[problem]['prerender_data_encoded'] = {}
+                else:
+                    print("No prerender data found.")
+                    self.current_test[problem]['prerender_data'] = {}
+                    self.current_test[problem]['prerender_data_encoded'] = {}
+                # ------------------------------------------------
+                # Pull prerender images
+                self.current_test[problem]['prerender_images'] = {}
+                if self.imports[problem]['prerender_data_folder'] != '':
+                    try:
+                        for image_name, image in self.imports[problem]['prerender_image_filenames'].items():
+                            if image.endswith(('.png', '.jpg', '.svg', '.gif')):
+                                image_url = self.root + '/' + self.imports[problem]['prerender_data_folder'] + '/' + image
+                                image_data = urllib.request.urlopen(image_url).read()
+                                self.current_test[problem]['prerender_images'][image_name] = image_data
+                        print("Pulling prerender images...")
+                    except:
+                        print("No prerender images found.")
+                        self.current_test[problem]['prerender_images'] = {}
+                else:
                     print("No prerender images found.")
                     self.current_test[problem]['prerender_images'] = {}
-            else:
-                print("No prerender images found.")
-                self.current_test[problem]['prerender_images'] = {}
-            # -----------------------------------------------
-            # Pull instructions
-            if self.imports[problem]['instruction_filenames'] != {}:
+                # -----------------------------------------------
+                # Pull instructions
+                if self.imports[problem]['instruction_filenames'] != {}:
+                    try:
+                        self.current_test[problem]['instructions'] = {}
+                        for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
+                            instruction_data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
+                            self.current_test[problem]['instructions'][instruction_name] = instruction_data
+                            print(f"Pulling instruction data for {instruction_name}...")
+                    except:
+                        print("No instruction data found.")
+                        self.current_test[problem]['instructions'] = {}
+                else:
+                    print("No instructions found.")
+                    self.current_test[problem]['instructions'] = {}
+                
+                # -----------------------------------------------
+                # Pull README files
+                self.current_test[problem]['readme_files'] = {}
                 try:
-                    self.current_test[problem]['instructions'] = {}
-                    for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
-                        instruction_data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
-                        self.current_test[problem]['instructions'][instruction_name] = instruction_data
-                        print(f"Pulling instruction data for {instruction_name}...")
+                    # Try to pull README.md from the root of the repository
+                    readme_url = self.root + '/README.md'
+                    readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                    self.current_test[problem]['readme_files']['README.md'] = readme_content
+                    print("Pulling README.md...")
                 except:
-                    print("No instruction data found.")
-                    self.current_test[problem]['instructions'] = {}
-            else:
-                print("No instructions found.")
-                self.current_test[problem]['instructions'] = {}
-            # -----------------------------------------------
+                    try:
+                        # Try to pull README.txt from the root of the repository
+                        readme_url = self.root + '/README.txt'
+                        readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                        self.current_test[problem]['readme_files']['README.txt'] = readme_content
+                        print("Pulling README.txt...")
+                    except:
+                        try:
+                            # Try to pull README.rst from the root of the repository
+                            readme_url = self.root + '/README.rst'
+                            readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
+                            self.current_test[problem]['readme_files']['README.rst'] = readme_content
+                            print("Pulling README.rst...")
+                        except:
+                            print("No README file found.")
+                            self.current_test[problem]['readme_files'] = {}
+                # -----------------------------------------------
             
             # Add cache metadata and save to cache
             if 'cache_metadata' not in self.current_test[problem]:
@@ -832,7 +997,7 @@ class PullApplications:
                     'timestamp': datetime.now().isoformat()
                 }
                 
-                # For 'main' branch, also store the main branch commit date
+                # For 'main' branch, also store the main branch commit date and last-commit-id value
                 if commit_id == 'main':
                     main_info = self._get_main_branch_info(
                         self.imports[problem]['github_user'], 
@@ -842,6 +1007,15 @@ class PullApplications:
                         cache_metadata['main_branch_date'] = main_info['commit_date']
                         cache_metadata['main_branch_sha'] = main_info['sha']
                         print(f"Stored main branch info for {problem}: {main_info['commit_date']}")
+                    
+                    # Check for last-commit-id marker in README files
+                    if 'readme_files' in self.current_test[problem]:
+                        for readme_content in self.current_test[problem]['readme_files'].values():
+                            last_commit_id = self._extract_last_commit_if(readme_content)
+                            if last_commit_id:
+                                cache_metadata['last_commit_id'] = last_commit_id
+                                print(f"Found last-commit-id marker in README for {problem}: {last_commit_id}")
+                                break
                 
                 self.current_test[problem]['cache_metadata'] = cache_metadata
             
