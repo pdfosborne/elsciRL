@@ -223,25 +223,16 @@ class PullApplications:
                 cached_data = self._load_cached_data(problem, cache_dir)
                 if cached_data and 'readme_files' in cached_data:
                     # Check if any README file contains a last-commit-id marker
-                    cached_last_commit_if = None
+                    cached_last_commit_id= None
                     for readme_content in cached_data['readme_files'].values():
-                        cached_last_commit_if = self._extract_last_commit_if(readme_content)
-                        if cached_last_commit_if:
+                        cached_last_commit_id= self._extract_last_commit_id(readme_content)
+                        if cached_last_commit_id:
                             break
                     
-                    if cached_last_commit_if:
-                        # Get current main branch info
-                        main_info = self._get_main_branch_info(
-                            self.imports[problem]['github_user'], 
-                            self.imports[problem]['repository']
-                        )
-                        
-                        if main_info and main_info['sha'].startswith(cached_last_commit_if):
-                            print(f"Using cached data for {problem} (main branch unchanged, last-commit-id: {cached_last_commit_if})")
-                            return cached_data
-                        else:
-                            print(f"Main branch has changed for {problem}, updating cache")
-                            return None
+                    if cached_last_commit_id:
+                        # For main branch with last-commit-id marker, use cache
+                        print(f"Using cached data for {problem} (main branch with last-commit-id: {cached_last_commit_id})")
+                        return cached_data
                     else:
                         print(f"No last-commit-id marker found in README for {problem}, pulling fresh data")
                         return None
@@ -420,23 +411,9 @@ class PullApplications:
             }
         return None
     
-    def _get_main_branch_info(self, github_user, repository):
-        """Get information about the main branch of a GitHub repository."""
-        try:
-            # GitHub API endpoint for the main branch
-            api_url = f"https://api.github.com/repos/{github_user}/{repository}/branches/main"
-            response = urllib.request.urlopen(api_url)
-            branch_info = json.loads(response.read().decode('utf-8'))
-            
-            return {
-                'sha': branch_info['commit']['sha'],
-                'commit_date': branch_info['commit']['commit']['author']['date']
-            }
-        except Exception as e:
-            print(f"Failed to get main branch info for {github_user}/{repository}: {e}")
-            return None
+
     
-    def _extract_last_commit_if(self, readme_content):
+    def _extract_last_commit_id(self, readme_content):
         """Extract the last-commit-id value from README content."""
         import re
         if not readme_content:
@@ -647,21 +624,12 @@ class PullApplications:
                 'timestamp': datetime.now().isoformat()
             }
             
-            # For 'main' branch, also store the main branch commit date and last-commit-id value
+            # For 'main' branch, check for last-commit-id marker in README files
             if commit_id == 'main':
-                main_info = self._get_main_branch_info(
-                    self.imports[problem]['github_user'], 
-                    self.imports[problem]['repository']
-                )
-                if main_info:
-                    cache_metadata['main_branch_date'] = main_info['commit_date']
-                    cache_metadata['main_branch_sha'] = main_info['sha']
-                    print(f"Stored main branch info for {problem}: {main_info['commit_date']}")
-                
                 # Check for last-commit-id marker in README files
                 if 'readme_files' in self.current_test[problem]:
                     for readme_content in self.current_test[problem]['readme_files'].values():
-                        last_commit_id = self._extract_last_commit_if(readme_content)
+                        last_commit_id = self._extract_last_commit_id(readme_content)
                         if last_commit_id:
                             cache_metadata['last_commit_id'] = last_commit_id
                             print(f"Found last-commit-id marker in README for {problem}: {last_commit_id}")
@@ -724,8 +692,7 @@ class PullApplications:
                                     'commit_id': metadata.get('commit_id'),
                                     'timestamp': metadata.get('timestamp'),
                                     'source_hash': metadata.get('source_hash'),
-                                    'last_commit_id': metadata.get('last_commit_id'),
-                                    'main_branch_sha': metadata.get('main_branch_sha')
+                                    'last_commit_id': metadata.get('last_commit_id')
                                 }
                                 
 
@@ -997,21 +964,12 @@ class PullApplications:
                     'timestamp': datetime.now().isoformat()
                 }
                 
-                # For 'main' branch, also store the main branch commit date and last-commit-id value
+                # For 'main' branch, check for last-commit-id marker in README files
                 if commit_id == 'main':
-                    main_info = self._get_main_branch_info(
-                        self.imports[problem]['github_user'], 
-                        self.imports[problem]['repository']
-                    )
-                    if main_info:
-                        cache_metadata['main_branch_date'] = main_info['commit_date']
-                        cache_metadata['main_branch_sha'] = main_info['sha']
-                        print(f"Stored main branch info for {problem}: {main_info['commit_date']}")
-                    
                     # Check for last-commit-id marker in README files
                     if 'readme_files' in self.current_test[problem]:
                         for readme_content in self.current_test[problem]['readme_files'].values():
-                            last_commit_id = self._extract_last_commit_if(readme_content)
+                            last_commit_id = self._extract_last_commit_id(readme_content)
                             if last_commit_id:
                                 cache_metadata['last_commit_id'] = last_commit_id
                                 print(f"Found last-commit-id marker in README for {problem}: {last_commit_id}")
