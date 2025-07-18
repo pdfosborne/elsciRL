@@ -108,7 +108,7 @@ class PullApplications:
                     os.makedirs(adapters_dir)
                 # Save adapter files
                 for adapter_name, adapter_filename in self.imports[problem]['adapter_filenames'].items():
-                    adapter_file = os.path.join(adapters_dir, f"{adapter_name}")
+                    adapter_file = os.path.join(adapters_dir, f"{adapter_name}.py")
                     adapter = self.imports[problem]['adapter_filenames'][adapter_name]
                     adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])
                     adapter_content = str(urllib.request.urlopen(adapter_module.__file__).read().decode('utf-8'))
