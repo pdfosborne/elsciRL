@@ -173,7 +173,8 @@ class Applications:
                                             'language-large-v1':'encoded_observed_states_Maze_large_language_default_1000.txt',
                                             'LLM-large-v1':'encoded_observed_states_Maze_large_LLM_llama32_1000.txt'
                                             },
-                "prerender_image_filenames": {},
+                "prerender_image_filenames": {'umaze_setup':'umaze_example.png',
+                                              'double_t_maze_setup':'doubletmaze_example.png',},
                 "instruction_folder": "instructions",
                 "instruction_filenames": {"osborne2025umaze":"Osborne2025_instruction_results_Maze_LLM-umaze-v1.json",
                                           "osborne2025double_t_maze":"Osborne2025_instruction_results_Maze_LLM-double_t_maze-v1.json",

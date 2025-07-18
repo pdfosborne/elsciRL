@@ -1284,7 +1284,7 @@ def get_job_results_route(job_id):
 def get_interface_guide():
     try:
         # Fetch the raw markdown content from GitHub
-        response = requests.get('https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/main/App%20Interface%20Guide.md')
+        response = requests.get('https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/main/Documentation/_Guides/GUI%20Guide.md')
         if response.status_code == 200:
             # Convert markdown to HTML
             html_content = markdown(response.text)
