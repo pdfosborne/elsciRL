@@ -28,6 +28,7 @@
 
 ---
 ### Announcements
+[18/07/2025] elsciRL Update 0.3.6 LLM methods now available and re-usability improvements to the interface.
 [14/07/2025] **New publication** [*elsciRL: Integrating Language Solutions into Reinforcement Learning Problem Settings*](https://arxiv.org/abs/2507.08705)
 
 ---
