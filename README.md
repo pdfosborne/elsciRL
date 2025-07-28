@@ -28,8 +28,9 @@
 
 ---
 ### Announcements
-[18/07/2025] elsciRL Update 0.3.6 LLM methods now available and re-usability improvements to the interface.
-[14/07/2025] **New publication** [*elsciRL: Integrating Language Solutions into Reinforcement Learning Problem Settings*](https://arxiv.org/abs/2507.08705)
+[July 2025] elsciRL update 0.3.6 LLM methods now available and re-usability improvements to the interface.
+
+[July 2025] **New publication** [*elsciRL: Integrating Language Solutions into Reinforcement Learning Problem Settings*](https://arxiv.org/abs/2507.08705)
 
 ---
 <div align="center">
@@ -40,6 +41,22 @@
 <div align="left">
 
 
+<div align="left" style="font-size:150%">
+	<p><b>Features</b></p>	
+</div>
+
+1. **Enhance any Reinforcement Learning application with language.** 
+2. Our **Graphical User Interface (GUI)** makes it easy to apply new algorithms and provide instructions.
+3. **Develop applications faster** with fewer problem specific requirements.
+4. **Accelerate your research** with our [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
+5. **Enables  reproducibility of your work** including publication of the configurations used so others can re-create the experiments.
+6. **Collect user input data with ease** by using our GUI to let non-technical users provide instructions that guide the agent.
+
+<div align="center">
+	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_comparison_flow.png" />
+</div>
+
+---
 ## Install Guide
 
 ### Quick Install
@@ -104,6 +121,8 @@ This will give you a localhost link to open the App in a browser.
 </div>
 
 ## Applications
+Each application page provides a summary, configuration options, available adapters, and citation information.
+
 
 | Application                | App Code                | Published by | Link                                                                                 |
 | :------------------------: | :---------------------: | :----------: | :----------------------------------------------------------------------------------: |
@@ -115,8 +134,6 @@ This will give you a localhost link to open the App in a browser.
 | Maze Simulation            | elsciRL-Maze            | elsciRL (2025) | [Maze Simulation](./Applications_Directory/2025-GridWorld-Maze.md)                   |
 
 ---
-Each application page provides a summary, configuration options, available adapters, and citation information.
-
 
 ## What is elsciRL?
 
@@ -134,17 +151,9 @@ Our solution allows end users to give instructions to Reinforcement Learning age
 
 Our work fits within the scope of AI agents but we notably do not require the problem to already contain language which is normally required for applying LLMs.
 
-### Features
-1. **Enhance any Reinforcement Learning application with language.** 
-2. Our **Graphical User Interface (GUI)** makes it easy to apply new algorithms and provide instructions.
-3. **Develop applications faster** with fewer problem specific requirements.
-4. **Accelerate your research** with our [Open-Source Wiki](https://github.com/pdfosborne/elsciRL-Wiki) and [Discord Server](https://discord.gg/GgaqcrYCxt) to share knowledge.
-5. **Enables  reproducibility of your work** including publication of the configurations used so others can re-create the experiments.
-6. **Collect user input data with ease** by using our GUI to let non-technical users provide instructions that guide the agent.
-
 <div width="75%" align="center">
 	<img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_LLM_Overview-v2.png" />
-	<p><i>Overview of the elsciRL library, <b style='color:red;'>red blocks</b> highlight the Adapter and Self-completing Instruction Following methodologies, <b style='color:blue;'>blue blocks</b> highlight the most recent developments with LLMs.</i></p>
+	<p><i>Overview of the elsciRL library, <b style='color:red;'>red blocks</b> highlight the Adapter and Self-completing Instruction Following methodologies, <b style='color:blue;'>blue blocks</b> highlight our most recent developments with LLMs.</i></p>
 </div>
 
 ### What is Reinforcement Learning?
