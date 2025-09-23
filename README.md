@@ -4,7 +4,7 @@
   <h1>Improve Any Reinforcement Learning Application with Language</h1>
 </div>
 
-<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_black_outline.png" align="left" height="250" width="250" ></a>
+<a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_black_outline.png" align="left" height="200" width="200" ></a>
 
 <div align="center">
   <b>Open-source Python Software for Academic and Industry Applications</b>
@@ -183,6 +183,7 @@ Please use the following to cite this work
   type         = {PhD thesis}
 }
 ```
+
 
 
 
