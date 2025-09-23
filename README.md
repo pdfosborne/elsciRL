@@ -126,12 +126,12 @@ Each application page provides a summary, configuration options, available adapt
 
 | Application                | Year | App Code                | Published by | Link                                                                                 |
 | :------------------------: | :---------------------: | :---------------------: | :----------: | :----------------------------------------------------------------------------------: |
-| Sailing Simulation         | 2024 | elsciRL-Sailing         | pdfosborne | [Sailing Simulation](https://github.com/pdfosborne/elsciRL-App-Sailing)              |
-| Chess Simulation           | 2024 | elsciRL-Chess           | pdfosborne | [Chess Simulation](https://github.com/pdfosborne/elsciRL-App-Chess)                           |
-| GridWorld Classroom        | 2024 | elsciRL-Classroom       | pdfosborne | [GridWorld Classroom](https://github.com/pdfosborne/elsciRL-App-Classroom)          |
-| Gym FrozenLake             | 2024 | elsciRL-GymFrozenLake   | pdfosborne | [Gym FrozenLake](https://github.com/pdfosborne/elsciRL-App-GymFrozenLake)                    |
-| TextWorldExpress           | 2024 | elsciRL-TextWorldExpress| pdfosborne | [TextWorldExpress](https://github.com/pdfosborne/elsciRL-App-TextWorldExpress)               |
-| Maze Simulation            | 2025 | elsciRL-Maze            | pdfosborne | [Maze Simulation](https://github.com/pdfosborne/elsciRL-App-Maze)                   |
+| Maze Simulation            | 2025 | elsciRL-Maze            | pdfosborne | [github/pdfosborne/Maze-Saiing](https://github.com/pdfosborne/elsciRL-App-Maze)                   |
+| Sailing Simulation         | 2024 | elsciRL-Sailing         | pdfosborne | [github/pdfosborne/Sailing-Simulation](https://github.com/pdfosborne/elsciRL-App-Sailing)              |
+| Chess Simulation           | 2024 | elsciRL-Chess           | pdfosborne | [github/pdfosborne/Chess](https://github.com/pdfosborne/elsciRL-App-Chess)                           |
+| GridWorld Classroom        | 2024 | elsciRL-Classroom       | pdfosborne | [github/pdfosborne/GridWorld-Classroom](https://github.com/pdfosborne/elsciRL-App-Classroom)          |
+| Gym FrozenLake             | 2024 | elsciRL-GymFrozenLake   | pdfosborne | [github/pdfosborne/Gym-FrozenLake](https://github.com/pdfosborne/elsciRL-App-GymFrozenLake)                    |
+| TextWorldExpress           | 2024 | elsciRL-TextWorldExpress| pdfosborne | [github/pdfosborne/TextWorldExpress](https://github.com/pdfosborne/elsciRL-App-TextWorldExpress)               |
 
 ---
 
@@ -193,6 +193,7 @@ Please use the following to cite this work
       url={https://arxiv.org/abs/2507.08705}, 
 }
 ```
+
 
 
 
