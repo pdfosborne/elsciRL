@@ -9,6 +9,7 @@ import subprocess
 import sys
 import pickle
 import hashlib
+import shutil
 
 # Local imports
 from elsciRL.application_suite.import_data import Applications
@@ -94,12 +95,15 @@ class PullApplications:
                     os.makedirs(engine_dir)
                 # Save engine file
                 engine_file = os.path.join(engine_dir, f"{data['engine_filename']}")
-                engine = self.imports[problem]['engine_filename']
-                engine_module = httpimport.load(engine.split('.')[0], self.root+'/'+self.imports[problem]['engine_folder'])  
-                engine_content = str(urllib.request.urlopen(engine_module.__file__).read().decode('utf-8')) 
-                with open(engine_file, 'w') as f:
-                    f.write(engine_content)
-                print(f"Saved engine file: {data['engine_filename']}")
+                engine_filename = self.imports[problem]['engine_filename']
+                engine_path = os.path.join(self.root, self.imports[problem]['engine_folder'], engine_filename)
+                
+                if os.path.exists(engine_path):
+                    with open(engine_path, 'r') as f:
+                        engine_content = f.read()
+                    with open(engine_file, 'w') as f:
+                        f.write(engine_content)
+                    print(f"Saved engine file: {data['engine_filename']}")
             
             # Save adapters
             if 'adapters' in data:
@@ -109,64 +113,103 @@ class PullApplications:
                 # Save adapter files
                 for adapter_name, adapter_filename in self.imports[problem]['adapter_filenames'].items():
                     adapter_file = os.path.join(adapters_dir, f"{adapter_name}.py")
-                    adapter = self.imports[problem]['adapter_filenames'][adapter_name]
-                    adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])
-                    adapter_content = str(urllib.request.urlopen(adapter_module.__file__).read().decode('utf-8'))
-                    with open(adapter_file, 'w') as f:
-                        f.write(adapter_content)
-                    print(f"Saved adapter file: {adapter_filename}")
+                    adapter_path = os.path.join(self.root, self.imports[problem]['local_adapter_folder'], adapter_filename)
+                    
+                    if os.path.exists(adapter_path):
+                        with open(adapter_path, 'r') as f:
+                            adapter_content = f.read()
+                        with open(adapter_file, 'w') as f:
+                            f.write(adapter_content)
+                        print(f"Saved adapter file: {adapter_filename}")
+            
+            # Save experiment and local configs in unified configs directory
+            configs_dir = os.path.join(cache_dir, 'configs')
+            if not os.path.exists(configs_dir):
+                os.makedirs(configs_dir)
             
             # Save experiment configs
             if 'experiment_configs' in data:
-                configs_dir = os.path.join(cache_dir, 'experiment_configs')
-                if not os.path.exists(configs_dir):
-                    os.makedirs(configs_dir)
                 for config_name, config_data in data['experiment_configs'].items():
-                    config_file = os.path.join(configs_dir, f"{config_name}.json")
+                    # Remove extension from config_name if present
+                    clean_name = config_name
+                    if config_name.endswith('.json'):
+                        clean_name = config_name[:-5]  # Remove .json extension
+                    config_file = os.path.join(configs_dir, f"experiment_{clean_name}.json")
                     with open(config_file, 'w') as f:
                         json.dump(config_data, f, indent=2)
             
             # Save local configs
             if 'local_configs' in data:
-                local_configs_dir = os.path.join(cache_dir, 'local_configs')
-                if not os.path.exists(local_configs_dir):
-                    os.makedirs(local_configs_dir)
                 for config_name, config_data in data['local_configs'].items():
-                    config_file = os.path.join(local_configs_dir, f"{config_name}.json")
+                    # Remove extension from config_name if present
+                    clean_name = config_name
+                    if config_name.endswith('.json'):
+                        clean_name = config_name[:-5]  # Remove .json extension
+                    config_file = os.path.join(configs_dir, f"local_{clean_name}.json")
                     with open(config_file, 'w') as f:
                         json.dump(config_data, f, indent=2)
             
+            # Save prerender data (all types in single prerender directory)
+            prerender_dir = os.path.join(cache_dir, 'prerender')
+            if not os.path.exists(prerender_dir):
+                os.makedirs(prerender_dir)
+            
             # Save prerender data
             if 'prerender_data' in data:
-                prerender_dir = os.path.join(cache_dir, 'prerender_data')
-                if not os.path.exists(prerender_dir):
-                    os.makedirs(prerender_dir)
                 for data_name, data_content in data['prerender_data'].items():
-                    data_file = os.path.join(prerender_dir, f"{data_name}.json")
-                    with open(data_file, 'w') as f:
-                        json.dump(data_content, f, indent=2)
+                    # Remove extension from data_name if present
+                    clean_name = data_name
+                    for ext in ['.txt', '.json', '.jsonl']:
+                        if data_name.endswith(ext):
+                            clean_name = data_name[:-len(ext)]
+                            break
+                    
+                    # Determine file extension based on data type
+                    if isinstance(data_content, (list, dict)):
+                        data_file = os.path.join(prerender_dir, f"{clean_name}.json")
+                        with open(data_file, 'w') as f:
+                            json.dump(data_content, f, indent=2)
+                    else:
+                        data_file = os.path.join(prerender_dir, f"{clean_name}.txt")
+                        with open(data_file, 'w') as f:
+                            f.write(str(data_content))
             
-            # Save prerender data encoded (as numpy arrays)
+            # Save prerender data encoded (as numpy arrays, txt, or json)
             if 'prerender_data_encoded' in data:
-                prerender_encoded_dir = os.path.join(cache_dir, 'prerender_data_encoded')
-                if not os.path.exists(prerender_encoded_dir):
-                    os.makedirs(prerender_encoded_dir)
                 for data_name, data_content in data['prerender_data_encoded'].items():
-                    data_file = os.path.join(prerender_encoded_dir, f"{data_name}.npy")
-                    np.save(data_file, data_content.cpu().numpy())
+                    # Get the actual filename from import data
+                    data_filename = self.imports[problem]['prerender_data_encoded_filenames'].get(data_name, f"encoded_{data_name}")
+                    
+                    # Remove extension from data_filename if present
+                    clean_filename = data_filename
+                    for ext in ['.npy', '.txt', '.json', '.jsonl']:
+                        if data_filename.endswith(ext):
+                            clean_filename = data_filename[:-len(ext)]
+                            break
+                    
+                    if isinstance(data_content, torch.Tensor):
+                        # Save as .npy for tensor data
+                        data_file = os.path.join(prerender_dir, f"{clean_filename}.npy")
+                        np.save(data_file, data_content.cpu().numpy())
+                    elif isinstance(data_content, (list, dict)):
+                        # Save as .json for structured data
+                        data_file = os.path.join(prerender_dir, f"{clean_filename}.json")
+                        with open(data_file, 'w') as f:
+                            json.dump(data_content, f, indent=2)
+                    else:
+                        # Save as .txt for other data types
+                        data_file = os.path.join(prerender_dir, f"{clean_filename}.txt")
+                        with open(data_file, 'w') as f:
+                            f.write(str(data_content))
             
             # Save prerender images
             if 'prerender_images' in data:
-                images_dir = os.path.join(cache_dir, 'prerender_images')
-                if not os.path.exists(images_dir):
-                    os.makedirs(images_dir)
                 for image_name, image_data in data['prerender_images'].items():
-                    # Determine file extension from image name or use default
-                    if '.' in image_name:
-                        ext = image_name.split('.')[-1]
-                        image_file = os.path.join(images_dir, image_name)
-                    else:
-                        image_file = os.path.join(images_dir, f"{image_name}.png")
+                    # Get the actual filename from import data
+                    image_filename = self.imports[problem]['prerender_image_filenames'].get(image_name, f"{image_name}.png")
+                    
+                    # Use the filename directly as it already includes the extension
+                    image_file = os.path.join(prerender_dir, image_filename)
                     with open(image_file, 'wb') as f:
                         f.write(image_data)
             
@@ -176,9 +219,31 @@ class PullApplications:
                 if not os.path.exists(instructions_dir):
                     os.makedirs(instructions_dir)
                 for instruction_name, instruction_data in data['instructions'].items():
-                    instruction_file = os.path.join(instructions_dir, f"{instruction_name}.json")
+                    # Remove extension from instruction_name if present
+                    clean_name = instruction_name
+                    if instruction_name.endswith('.json'):
+                        clean_name = instruction_name[:-5]  # Remove .json extension
+                    instruction_file = os.path.join(instructions_dir, f"{clean_name}.json")
                     with open(instruction_file, 'w') as f:
                         json.dump(instruction_data, f, indent=2)
+            
+            # Save analysis files
+            if 'local_analysis' in data:
+                analysis_dir = os.path.join(cache_dir, 'analysis')
+                if not os.path.exists(analysis_dir):
+                    os.makedirs(analysis_dir)
+                for analysis_name, analysis_data in data['local_analysis'].items():
+                    # Save analysis .py files
+                    analysis_filename = self.imports[problem]['local_analysis_filenames'].get(analysis_name, f"{analysis_name}.py")
+                    analysis_path = os.path.join(self.root, self.imports[problem]['local_analysis_folder'], analysis_filename)
+                    
+                    if os.path.exists(analysis_path):
+                        analysis_file = os.path.join(analysis_dir, f"{analysis_name}.py")
+                        with open(analysis_path, 'r') as f:
+                            analysis_content = f.read()
+                        with open(analysis_file, 'w') as f:
+                            f.write(analysis_content)
+                        print(f"Saved analysis file: {analysis_filename}")
             
             # Save README files
             if 'readme_files' in data:
@@ -200,7 +265,7 @@ class PullApplications:
             print(f"Failed to save cache for {problem}: {e}")
     
     def _load_from_cache(self, problem, commit_id, source_data):
-        """Load data from cache directory structure if available and up-to-date."""
+        """Load data from cache directory structure if available and up-to-date using git checking."""
         try:
             cache_dir = self._get_cache_dir(problem)
             metadata_file = self._get_cache_metadata_file(problem)
@@ -217,40 +282,40 @@ class PullApplications:
             cached_source_hash = metadata.get('source_hash')
             current_source_hash = hashlib.md5(json.dumps(source_data, sort_keys=True).encode()).hexdigest()
             
-            # For 'main' branch, check if we need to update based on last-commit-id marker
+            # For 'main' branch, use git to check for updates
             if commit_id == 'main':
-                # Load cached data to check README content
-                cached_data = self._load_cached_data(problem, cache_dir)
-                if cached_data and 'readme_files' in cached_data:
-                    # Check if any README file contains a last-commit-id marker
-                    cached_last_commit_id= None
-                    for readme_content in cached_data['readme_files'].values():
-                        cached_last_commit_id= self._extract_last_commit_id(readme_content)
-                        if cached_last_commit_id:
-                            break
-                    
-                    if cached_last_commit_id:
-                        # For main branch with last-commit-id marker, use cache
-                        print(f"Using cached data for {problem} (main branch with last-commit-id: {cached_last_commit_id})")
-                        return cached_data
-                    else:
-                        print(f"No last-commit-id marker found in README for {problem}, pulling fresh data")
-                        return None
-                else:
-                    print(f"No cached README data for {problem}, pulling fresh data")
+                # Clone repository if it doesn't exist
+                github_user = self.imports[problem]['github_user']
+                repository = self.imports[problem]['repository']
+                if not self._clone_repository(problem, github_user, repository, commit_id):
                     return None
+                
+                # Check for updates using git fetch
+                has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+                
+                if has_updates:
+                    print(f"Repository has updates for {problem}, will pull fresh data")
+                    return None
+                else:
+                    print(f"Repository is up to date for {problem}, using cached data")
+                    # Use cached import data if available, otherwise use current source_data
+                    cached_import_data = metadata.get('import_data', source_data)
+                    return self._load_cached_data(problem, cache_dir, cached_import_data)
             
+            # For specific commit IDs, check if we have the exact commit
             if cached_commit == commit_id and cached_source_hash == current_source_hash:
                 print(f"Using cached data for {problem} (commit: {commit_id})")
-                return self._load_cached_data(problem, cache_dir)
+                # Use cached import data if available, otherwise use current source_data
+                cached_import_data = metadata.get('import_data', source_data)
+                return self._load_cached_data(problem, cache_dir, cached_import_data)
             
             return None
         except Exception as e:
             print(f"Failed to load cache for {problem}: {e}")
             return None
     
-    def _load_cached_data(self, problem, cache_dir):
-        """Load cached data from directory structure."""
+    def _load_cached_data(self, problem, cache_dir, import_data=None):
+        """Load cached data from directory structure using import data for file names."""
         try:
             data = {'cache_metadata': {}}
             
@@ -259,6 +324,10 @@ class PullApplications:
             if os.path.exists(metadata_file):
                 with open(metadata_file, 'r') as f:
                     data['cache_metadata'] = json.load(f)
+            
+            # Use cached import data if available, otherwise use current import_data
+            if import_data is None:
+                import_data = data['cache_metadata'].get('import_data', {})
             
             # Load engine
             engine_dir = os.path.join(cache_dir, 'engine')
@@ -270,8 +339,8 @@ class PullApplications:
                     sys.path.insert(0, engine_dir)
                     
                     try:
-                        # Get the engine filename from the imports data
-                        engine_filename = self.imports[problem]['engine_filename']
+                        # Get the engine filename from the import data
+                        engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
                         engine_module_name = engine_filename.split('.')[0]
                         engine_module = __import__(engine_module_name)
                         data['engine'] = engine_module.Engine
@@ -293,7 +362,9 @@ class PullApplications:
                     sys.path.insert(0, adapters_dir)
                     
                     try:
-                        for adapter_name, adapter_filename in self.imports[problem]['adapter_filenames'].items():
+                        # Get adapter filenames from import data
+                        adapter_filenames = import_data.get('adapter_filenames', self.imports[problem]['adapter_filenames'])
+                        for adapter_name, adapter_filename in adapter_filenames.items():
                             adapter_module_name = adapter_filename.split('.')[0]
                             adapter_module = __import__(adapter_module_name)
                             data['adapters'][adapter_name] = adapter_module.Adapter
@@ -304,65 +375,162 @@ class PullApplications:
                         # Remove from path
                         sys.path.pop(0)
             
-            # Load experiment configs
-            configs_dir = os.path.join(cache_dir, 'experiment_configs')
+            # Load experiment and local configs from unified configs directory using import data
+            configs_dir = os.path.join(cache_dir, 'configs')
             if os.path.exists(configs_dir):
                 data['experiment_configs'] = {}
-                for config_file in os.listdir(configs_dir):
-                    if config_file.endswith('.json'):
-                        config_name = config_file[:-5]  # Remove .json extension
-                        with open(os.path.join(configs_dir, config_file), 'r') as f:
-                            data['experiment_configs'][config_name] = json.load(f)
-            
-            # Load local configs
-            local_configs_dir = os.path.join(cache_dir, 'local_configs')
-            if os.path.exists(local_configs_dir):
                 data['local_configs'] = {}
-                for config_file in os.listdir(local_configs_dir):
-                    if config_file.endswith('.json'):
-                        config_name = config_file[:-5]  # Remove .json extension
-                        with open(os.path.join(local_configs_dir, config_file), 'r') as f:
+                
+                # Load experiment configs using filenames from import data
+                experiment_config_filenames = import_data.get('experiment_config_filenames', {})
+                for config_name, config_filename in experiment_config_filenames.items():
+                    # Remove extension from config_filename if present
+                    clean_filename = config_filename
+                    if config_filename.endswith('.json'):
+                        clean_filename = config_filename[:-5]  # Remove .json extension
+                    config_file = os.path.join(configs_dir, f"{clean_filename}.json")
+                    if os.path.exists(config_file):
+                        with open(config_file, 'r') as f:
+                            data['experiment_configs'][config_name] = json.load(f)
+                            print(f"Loaded cached experiment config: {config_name}")
+                
+                # Load local configs using filenames from import data
+                local_config_filenames = import_data.get('local_config_filenames', {})
+                for config_name, config_filename in local_config_filenames.items():
+                    # Remove extension from config_filename if present
+                    clean_filename = config_filename
+                    if config_filename.endswith('.json'):
+                        clean_filename = config_filename[:-5]  # Remove .json extension
+                    config_file = os.path.join(configs_dir, f"{clean_filename}.json")
+                    if os.path.exists(config_file):
+                        with open(config_file, 'r') as f:
                             data['local_configs'][config_name] = json.load(f)
-            
-            # Load prerender data
-            prerender_dir = os.path.join(cache_dir, 'prerender_data')
+                            print(f"Loaded cached local config: {config_name}")
+
+            # Load prerender data (all types from single prerender directory) using import data
+            prerender_dir = os.path.join(cache_dir, 'prerender')
             if os.path.exists(prerender_dir):
                 data['prerender_data'] = {}
-                for data_file in os.listdir(prerender_dir):
-                    if data_file.endswith('.json'):
-                        data_name = data_file[:-5]  # Remove .json extension
-                        with open(os.path.join(prerender_dir, data_file), 'r') as f:
-                            data['prerender_data'][data_name] = json.load(f)
-            
-            # Load prerender data encoded
-            prerender_encoded_dir = os.path.join(cache_dir, 'prerender_data_encoded')
-            if os.path.exists(prerender_encoded_dir):
                 data['prerender_data_encoded'] = {}
-                for data_file in os.listdir(prerender_encoded_dir):
-                    if data_file.endswith('.npy'):
-                        data_name = data_file[:-4]  # Remove .npy extension
-                        array_data = np.load(os.path.join(prerender_encoded_dir, data_file))
-                        data['prerender_data_encoded'][data_name] = torch.from_numpy(array_data)
-            
-            # Load prerender images
-            images_dir = os.path.join(cache_dir, 'prerender_images')
-            if os.path.exists(images_dir):
                 data['prerender_images'] = {}
-                for image_file in os.listdir(images_dir):
-                    image_name = image_file
-                    with open(os.path.join(images_dir, image_file), 'rb') as f:
-                        data['prerender_images'][image_name] = f.read()
+                
+                # Load regular prerender data using filenames from import data
+                prerender_data_filenames = import_data.get('prerender_data_filenames', {})
+                for data_name, data_filename in prerender_data_filenames.items():
+                    # Remove extension from data_filename if present
+                    clean_filename = data_filename
+                    for ext in ['.txt', '.json', '.jsonl']:
+                        if data_filename.endswith(ext):
+                            clean_filename = data_filename[:-len(ext)]
+                            break
+                    
+                    # Try different extensions
+                    for ext in ['.txt', '.json', '.jsonl']:
+                        file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
+                        if os.path.exists(file_path):
+                            if ext == '.json':
+                                with open(file_path, 'r') as f:
+                                    data['prerender_data'][data_name] = json.load(f)
+                            elif ext == '.jsonl':
+                                # Handle JSONL files
+                                jsonl_data = {}
+                                with open(file_path, 'r') as f:
+                                    for line in f:
+                                        if line.strip():
+                                            row = json.loads(line)
+                                            jsonl_data.update(row)
+                                data['prerender_data'][data_name] = jsonl_data
+                            else:  # .txt files
+                                with open(file_path, 'r') as f:
+                                    data['prerender_data'][data_name] = f.read()
+                            print(f"Loaded cached prerender data: {data_name}")
+                            break
+                
+                # Load encoded prerender data using filenames from import data
+                prerender_data_encoded_filenames = import_data.get('prerender_data_encoded_filenames', {})
+                print(f"Loading cached encoded prerender data: {prerender_data_encoded_filenames}")
+                for data_name, data_filename in prerender_data_encoded_filenames.items():
+                    print(f"Loading cached encoded prerender data: {data_filename}")
+                    # The data_filename already includes "encoded_" prefix, so use it directly
+                    # Remove extension from data_filename if present
+                    clean_filename = data_filename
+                    for ext in ['.npy', '.txt', '.json', '.jsonl']:
+                        if data_filename.endswith(ext):
+                            clean_filename = data_filename[:-len(ext)]
+                            break
+                    
+                    # Try different extensions
+                    for ext in ['.npy', '.txt', '.json']:
+                        file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
+                        print(f"Loading cached encoded prerender data: {file_path}")
+                        if os.path.exists(file_path):
+                            if ext == '.npy':
+                                array_data = np.load(file_path)
+                                data['prerender_data_encoded'][data_name] = torch.from_numpy(array_data)
+                            elif ext == '.json':
+                                with open(file_path, 'r') as f:
+                                    json_data = json.load(f)
+                                data['prerender_data_encoded'][data_name] = json_data
+                            else:  # .txt files
+                                with open(file_path, 'r') as f:
+                                    text_data = f.read()
+                                data['prerender_data_encoded'][data_name] = text_data
+                            print(f"Loaded cached encoded prerender data: {data_name}")
+                            break
+                
+                # Load prerender images using filenames from import data
+                prerender_image_filenames = import_data.get('prerender_image_filenames', {})
+                for image_name, image_filename in prerender_image_filenames.items():
+                    # Use the image filename directly as it already includes the extension
+                    file_path = os.path.join(prerender_dir, image_filename)
+                    print(f"Loading cached prerender image: {file_path}")
+                    if os.path.exists(file_path):
+                        with open(file_path, 'rb') as f:
+                            data['prerender_images'][image_name] = f.read()
+                        print(f"Loaded cached prerender image: {image_name}")
             
-            # Load instructions
+            # Load instructions using filenames from import data
             instructions_dir = os.path.join(cache_dir, 'instructions')
             if os.path.exists(instructions_dir):
                 data['instructions'] = {}
-                for instruction_file in os.listdir(instructions_dir):
-                    if instruction_file.endswith('.json'):
-                        instruction_name = instruction_file[:-5]  # Remove .json extension
-                        with open(os.path.join(instructions_dir, instruction_file), 'r') as f:
+                instruction_filenames = import_data.get('instruction_filenames', {})
+                for instruction_name, instruction_filename in instruction_filenames.items():
+                    # Remove extension from instruction_filename if present
+                    clean_filename = instruction_filename
+                    if instruction_filename.endswith('.json'):
+                        clean_filename = instruction_filename[:-5]  # Remove .json extension
+                    instruction_file = os.path.join(instructions_dir, f"{clean_filename}.json")
+                    if os.path.exists(instruction_file):
+                        with open(instruction_file, 'r') as f:
                             data['instructions'][instruction_name] = json.load(f)
+                            print(f"Loaded cached instruction: {instruction_name}")
             
+            # Load analysis files using filenames from import data
+            analysis_dir = os.path.join(cache_dir, 'analysis')
+            if os.path.exists(analysis_dir):
+                data['local_analysis'] = {}
+                analysis_filenames = import_data.get('local_analysis_filenames', {})
+                for analysis_name, analysis_filename in analysis_filenames.items():
+                    # Remove extension from analysis_filename if present
+                    clean_filename = analysis_filename
+                    if analysis_filename.endswith('.py'):
+                        clean_filename = analysis_filename[:-3]  # Remove .py extension
+                    analysis_file = os.path.join(analysis_dir, f"{clean_filename}.py")
+                    if os.path.exists(analysis_file):
+                        # Add analysis directory to Python path temporarily
+                        import sys
+                        sys.path.insert(0, analysis_dir)
+                        
+                        try:
+                            analysis_module = __import__(clean_filename)
+                            data['local_analysis'][analysis_name] = analysis_module.Analysis
+                            print(f"Loaded cached analysis: {analysis_name}")
+                        except Exception as e:
+                            print(f"Failed to load cached analysis {analysis_name}: {e}")
+                            data['local_analysis'][analysis_name] = {}
+                        finally:
+                            # Remove from path
+                            sys.path.pop(0)
             # Load README files
             readme_dir = os.path.join(cache_dir, 'readme_files')
             if os.path.exists(readme_dir):
@@ -432,13 +600,132 @@ class PullApplications:
         
         return None
     
+    def _get_git_repo_dir(self, problem):
+        """Get the git repository directory for a specific problem."""
+        return os.path.join(self.cache_dir, f"{problem}")
+    
+    def _clone_repository(self, problem, github_user, repository, commit_id='main'):
+        """Clone the repository for a problem if it doesn't exist."""
+        repo_dir = self._get_git_repo_dir(problem)
+        
+        if not os.path.exists(repo_dir):
+            try:
+                repo_url = f"https://github.com/{github_user}/{repository}.git"
+                print(f"Cloning repository for {problem}: {repo_url}")
+                subprocess.check_call(['git', 'clone', repo_url, repo_dir], 
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"Successfully cloned repository for {problem}")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to clone repository for {problem}: {e}")
+                return False
+        else:
+            print(f"Repository already exists for {problem}")
+        
+        return True
+    
+    def _check_repository_updates(self, problem, commit_id='main'):
+        """Check if the repository has updates using git fetch."""
+        repo_dir = self._get_git_repo_dir(problem)
+        
+        if not os.path.exists(repo_dir):
+            return False
+        
+        try:
+            # Fetch latest changes from remote
+            subprocess.check_call(['git', 'fetch', 'origin'], 
+                                cwd=repo_dir, 
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Get current commit hash
+            current_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
+                                                   cwd=repo_dir).decode('utf-8').strip()
+            
+            # Get remote commit hash for the specified branch/commit
+            if commit_id == 'main':
+                remote_commit = subprocess.check_output(['git', 'rev-parse', 'origin/main'], 
+                                                      cwd=repo_dir).decode('utf-8').strip()
+            else:
+                remote_commit = subprocess.check_output(['git', 'rev-parse', commit_id], 
+                                                      cwd=repo_dir).decode('utf-8').strip()
+            
+            # Check if there are updates
+            has_updates = current_commit != remote_commit
+            
+            if has_updates:
+                print(f"Repository updates available for {problem}: {current_commit[:7]} -> {remote_commit[:7]}")
+            else:
+                print(f"Repository is up to date for {problem}: {current_commit[:7]}")
+            
+            return has_updates, current_commit, remote_commit
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to check repository updates for {problem}: {e}")
+            return False, None, None
+    
+    def _update_repository(self, problem, commit_id='main'):
+        """Update the repository using git pull."""
+        repo_dir = self._get_git_repo_dir(problem)
+        
+        if not os.path.exists(repo_dir):
+            return False
+        
+        try:
+            # Checkout the specified commit/branch
+            if commit_id == 'main':
+                subprocess.check_call(['git', 'checkout', 'main'], 
+                                    cwd=repo_dir, 
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.check_call(['git', 'pull', 'origin', 'main'], 
+                                    cwd=repo_dir, 
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.check_call(['git', 'checkout', commit_id], 
+                                    cwd=repo_dir, 
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # Get the new commit hash
+            new_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
+                                               cwd=repo_dir).decode('utf-8').strip()
+            
+            print(f"Successfully updated repository for {problem} to commit: {new_commit[:7]}")
+            return True, new_commit
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to update repository for {problem}: {e}")
+            return False, None
+    
 
     
     def _pull_fresh_data(self, problem, commit_id, source_data):
-        """Pull fresh data for a problem and cache it."""
+        """Pull fresh data for a problem and cache it using git."""
         try:
             print(f"Pulling fresh data for {problem}...")
-            self.root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + commit_id
+            
+            # Clone or update repository
+            github_user = self.imports[problem]['github_user']
+            repository = self.imports[problem]['repository']
+            
+            if not self._clone_repository(problem, github_user, repository, commit_id):
+                return None
+            
+            # Update repository if needed
+            if commit_id == 'main':
+                has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+                if has_updates:
+                    success, new_commit = self._update_repository(problem, commit_id)
+                    if not success:
+                        return None
+                else:
+                    print(f"Repository is already up to date for {problem}")
+            else:
+                # For specific commits, checkout the exact commit
+                success, new_commit = self._update_repository(problem, commit_id)
+                if not success:
+                    return None
+            
+            # Set root to the local repository directory
+            repo_dir = self._get_git_repo_dir(problem)
+            self.root = repo_dir
             print("Source: ", self.root)
             
             # Initialize the problem data structure
@@ -448,111 +735,155 @@ class PullApplications:
             
             # Load engine
             engine = self.imports[problem]['engine_filename']
-            engine_module = httpimport.load(engine.split('.')[0], self.root+'/'+self.imports[problem]['engine_folder'])
+            engine_path = os.path.join(self.root, self.imports[problem]['engine_folder'], engine)
+            
+            # Add the engine directory to Python path temporarily
+            engine_dir = os.path.join(self.root, self.imports[problem]['engine_folder'])
+            sys.path.insert(0, engine_dir)
+            
             try:
+                engine_module = __import__(engine.split('.')[0])
                 self.current_test[problem]['engine'] = engine_module.Engine
             except:
                 print("Engine error, attempting to install requirements.")
                 try:
-                    requirements = urllib.request.urlopen(self.root+'/'+'requirements.txt').read()
-                    requirements = requirements.decode('utf-8').split('\n')
-                    for req in requirements:
-                        if req.strip():
-                            try:
-                                subprocess.check_call([sys.executable, "-m", "pip", "install", req.strip()])
-                                print(f"Successfully installed {req}")
-                            except subprocess.CalledProcessError:
-                                print(f"Failed to install {req}")
-                    self.current_test[problem]['engine'] = engine_module.Engine
-                    print("Successfully loaded engine after installing requirements.")
-                except:
-                    print("Failed to load engine and no requirements.txt found.")
+                    requirements_path = os.path.join(self.root, 'requirements.txt')
+                    if os.path.exists(requirements_path):
+                        with open(requirements_path, 'r') as f:
+                            requirements = f.read().split('\n')
+                        for req in requirements:
+                            if req.strip():
+                                try:
+                                    subprocess.check_call([sys.executable, "-m", "pip", "install", req.strip()])
+                                    print(f"Successfully installed {req}")
+                                except subprocess.CalledProcessError:
+                                    print(f"Failed to install {req}")
+                        self.current_test[problem]['engine'] = engine_module.Engine
+                        print("Successfully loaded engine after installing requirements.")
+                    else:
+                        print("No requirements.txt found.")
+                except Exception as e:
+                    print(f"Failed to load engine: {e}")
+            finally:
+                # Remove from path
+                sys.path.pop(0)
 
             # Load adapters
             self.current_test[problem]['adapters'] = {}
-            for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
-                adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])
-                self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
+            adapter_dir = os.path.join(self.root, self.imports[problem]['local_adapter_folder'])
+            sys.path.insert(0, adapter_dir)
+            
+            try:
+                for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
+                    adapter_module = __import__(adapter.split('.')[0])
+                    self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
+            finally:
+                # Remove from path
+                sys.path.pop(0)
             
             # Load experiment configs
             self.current_test[problem]['experiment_configs'] = {}
+            config_dir = os.path.join(self.root, self.imports[problem]['config_folder'])
             for config_name, config in self.imports[problem]['experiment_config_filenames'].items():
-                experiment_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
+                config_path = os.path.join(config_dir, config)
+                with open(config_path, 'r') as f:
+                    experiment_config = json.load(f)
                 self.current_test[problem]['experiment_configs'][config_name] = experiment_config
             
             # Load local configs
             self.current_test[problem]['local_configs'] = {}
             for config_name, config in self.imports[problem]['local_config_filenames'].items():
-                local_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
+                config_path = os.path.join(config_dir, config)
+                with open(config_path, 'r') as f:
+                    local_config = json.load(f)
                 self.current_test[problem]['local_configs'][config_name] = local_config
             
             # Load local analysis
             self.current_test[problem]['local_analysis'] = {}
-            for analysis_name, analysis in self.imports[problem]['local_analysis_filenames'].items():
-                try:
-                    local_analysis = httpimport.load(analysis, self.root+'/'+self.imports[problem]['local_analysis_folder'])
-                    self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
-                except:
-                    print("No analysis file found.")
-                    self.current_test[problem]['local_analysis'][analysis_name] = {}
+            analysis_dir = os.path.join(self.root, self.imports[problem]['local_analysis_folder'])
+            sys.path.insert(0, analysis_dir)
+            
+            try:
+                for analysis_name, analysis in self.imports[problem]['local_analysis_filenames'].items():
+                    try:
+                        local_analysis = __import__(analysis)
+                        self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
+                    except:
+                        print("No analysis file found.")
+                        self.current_test[problem]['local_analysis'][analysis_name] = {}
+            finally:
+                # Remove from path
+                sys.path.pop(0)
             
             # Load prerender data
             self.current_test[problem]['prerender_data'] = {}
             self.current_test[problem]['prerender_data_encoded'] = {}
             if self.imports[problem]['prerender_data_folder'] != '':
                 print("Pulling prerender data...")
+                prerender_dir = os.path.join(self.root, self.imports[problem]['prerender_data_folder'])
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                            if prerender.endswith('.jsonl') or prerender.endswith('.json'):
-                                data = {}
-                                with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                    for line in f:
-                                        row = (json.loads(line.decode('utf-8')))
-                                        data.update(row)
-                            elif prerender.endswith('.txt'):
-                                data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
-                            elif prerender.endswith('.xml'):
-                                import xml.etree.ElementTree as ET
-                                tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                root_xml = tree.getroot()
-                                data = []
-                                for elem in root_xml.findall('.//data'):
-                                    data.append(float(elem.text))
-                            else:
-                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                            print(f"Pulling prerender data for {prerender_name}...")
-                            self.current_test[problem]['prerender_data'][prerender_name] = data
-                except:
-                    print("No prerender data found.")
+                        prerender_path = os.path.join(prerender_dir, prerender)
+                        if os.path.exists(prerender_path):
+                            if prerender.endswith(('.txt', '.json', '.jsonl')):
+                                if prerender.endswith('.jsonl'):
+                                    data = {}
+                                    with open(prerender_path, 'r') as f:
+                                        for line in f:
+                                            if line.strip():
+                                                row = json.loads(line)
+                                                data.update(row)
+                                elif prerender.endswith('.json'):
+                                    with open(prerender_path, 'r') as f:
+                                        data = json.load(f)
+                                elif prerender.endswith('.txt'):
+                                    with open(prerender_path, 'r') as f:
+                                        data = f.read()
+                                else:
+                                    raise ValueError(f"Unsupported file format for prerender data: {prerender}")
+                                print(f"Pulling prerender data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data'][prerender_name] = data
+                except Exception as e:
+                    print(f"No prerender data found: {e}")
                     self.current_test[problem]['prerender_data'] = {}
                 
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
-                        if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                            map_location = 'cpu' if torch.cuda.is_available() else 'cpu'
-                            if (prerender.endswith('.jsonl') or prerender.endswith('.json')):
-                                data = []
-                                with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                    for line in f:
-                                        data.append(json.loads(line.decode('utf-8')))
-                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                            elif prerender.endswith('.txt'):
-                                data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
-                            elif prerender.endswith('.xml'):
-                                import xml.etree.ElementTree as ET
-                                tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                root_xml = tree.getroot()
-                                data = []
-                                for elem in root_xml.findall('.//data'):
-                                    data.append(float(elem.text))
-                                data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                            else:
-                                raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                            print(f"Pulling prerender encoded data for {prerender_name}...")
-                            self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
-                except:
-                    print("No prerender encoded data found.")
+                        prerender_path = os.path.join(prerender_dir, prerender)
+                        if os.path.exists(prerender_path):
+                            if prerender.endswith(('.txt', '.json', '.jsonl', '.npy')):
+                                if prerender.endswith('.npy'):
+                                    # Direct numpy file - convert to tensor
+                                    map_location = 'cpu' if torch.cuda.is_available() else 'cpu'
+                                    data = torch.from_numpy(np.load(prerender_path)).to(map_location)
+                                elif prerender.endswith('.json'):
+                                    # JSON file - load as structured data
+                                    with open(prerender_path, 'r') as f:
+                                        data = json.load(f)
+                                elif prerender.endswith('.jsonl'):
+                                    # JSONL file - convert to tensor
+                                    map_location = 'cpu' if torch.cuda.is_available() else 'cpu'
+                                    data = []
+                                    with open(prerender_path, 'r') as f:
+                                        for line in f:
+                                            if line.strip():
+                                                data.append(json.loads(line))
+                                    data = torch.tensor(data, dtype=torch.float32).to(map_location)
+                                elif prerender.endswith('.txt'):
+                                    # Text file - try to load as numeric data first, fallback to text
+                                    try:
+                                        map_location = 'cpu' if torch.cuda.is_available() else 'cpu'
+                                        data = torch.from_numpy(np.loadtxt(prerender_path, dtype=np.float32)).to(map_location)
+                                    except ValueError:
+                                        # If not numeric, load as text
+                                        with open(prerender_path, 'r') as f:
+                                            data = f.read()
+                                else:
+                                    raise ValueError(f"Unsupported file format for prerender encoded data: {prerender}")
+                                print(f"Pulling prerender encoded data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
+                except Exception as e:
+                    print(f"No prerender encoded data found: {e}")
                     self.current_test[problem]['prerender_data_encoded'] = {}
             else:
                 print("No prerender data found.")
@@ -564,13 +895,15 @@ class PullApplications:
             if self.imports[problem]['prerender_data_folder'] != '':
                 try:
                     for image_name, image in self.imports[problem]['prerender_image_filenames'].items():
-                        if image.endswith(('.png', '.jpg', '.svg', '.gif')):
-                            image_url = self.root + '/' + self.imports[problem]['prerender_data_folder'] + '/' + image
-                            image_data = urllib.request.urlopen(image_url).read()
-                            self.current_test[problem]['prerender_images'][image_name] = image_data
+                        if image.endswith(('.png', '.jpg', '.gif')):
+                            image_path = os.path.join(prerender_dir, image)
+                            if os.path.exists(image_path):
+                                with open(image_path, 'rb') as f:
+                                    image_data = f.read()
+                                self.current_test[problem]['prerender_images'][image_name] = image_data
                     print("Pulling prerender images...")
-                except:
-                    print("No prerender images found.")
+                except Exception as e:
+                    print(f"No prerender images found: {e}")
                     self.current_test[problem]['prerender_images'] = {}
             else:
                 print("No prerender images found.")
@@ -580,12 +913,16 @@ class PullApplications:
             if self.imports[problem]['instruction_filenames'] != {}:
                 try:
                     self.current_test[problem]['instructions'] = {}
+                    instruction_dir = os.path.join(self.root, self.imports[problem]['instruction_folder'])
                     for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
-                        instruction_data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
-                        self.current_test[problem]['instructions'][instruction_name] = instruction_data
-                        print(f"Pulling instruction data for {instruction_name}...")
-                except:
-                    print("No instruction data found.")
+                        instruction_path = os.path.join(instruction_dir, instruction)
+                        if os.path.exists(instruction_path):
+                            with open(instruction_path, 'r') as f:
+                                instruction_data = json.load(f)
+                            self.current_test[problem]['instructions'][instruction_name] = instruction_data
+                            print(f"Pulling instruction data for {instruction_name}...")
+                except Exception as e:
+                    print(f"No instruction data found: {e}")
                     self.current_test[problem]['instructions'] = {}
             else:
                 print("No instructions found.")
@@ -595,33 +932,41 @@ class PullApplications:
             self.current_test[problem]['readme_files'] = {}
             try:
                 # Try to pull README.md from the root of the repository
-                readme_url = self.root + '/README.md'
-                readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                self.current_test[problem]['readme_files']['README.md'] = readme_content
-                print("Pulling README.md...")
-            except:
-                try:
+                readme_path = os.path.join(self.root, 'README.md')
+                if os.path.exists(readme_path):
+                    with open(readme_path, 'r', encoding='utf-8') as f:
+                        readme_content = f.read()
+                    self.current_test[problem]['readme_files']['README.md'] = readme_content
+                    print("Pulling README.md...")
+                else:
                     # Try to pull README.txt from the root of the repository
-                    readme_url = self.root + '/README.txt'
-                    readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                    self.current_test[problem]['readme_files']['README.txt'] = readme_content
-                    print("Pulling README.txt...")
-                except:
-                    try:
+                    readme_path = os.path.join(self.root, 'README.txt')
+                    if os.path.exists(readme_path):
+                        with open(readme_path, 'r', encoding='utf-8') as f:
+                            readme_content = f.read()
+                        self.current_test[problem]['readme_files']['README.txt'] = readme_content
+                        print("Pulling README.txt...")
+                    else:
                         # Try to pull README.rst from the root of the repository
-                        readme_url = self.root + '/README.rst'
-                        readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                        self.current_test[problem]['readme_files']['README.rst'] = readme_content
-                        print("Pulling README.rst...")
-                    except:
-                        print("No README file found.")
-                        self.current_test[problem]['readme_files'] = {}
+                        readme_path = os.path.join(self.root, 'README.rst')
+                        if os.path.exists(readme_path):
+                            with open(readme_path, 'r', encoding='utf-8') as f:
+                                readme_content = f.read()
+                            self.current_test[problem]['readme_files']['README.rst'] = readme_content
+                            print("Pulling README.rst...")
+                        else:
+                            print("No README file found.")
+                            self.current_test[problem]['readme_files'] = {}
+            except Exception as e:
+                print(f"Error loading README files: {e}")
+                self.current_test[problem]['readme_files'] = {}
             
             # Add cache metadata and save to cache
             cache_metadata = {
                 'commit_id': commit_id,
                 'source_hash': hashlib.md5(json.dumps(source_data, sort_keys=True).encode()).hexdigest(),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'import_data': source_data  # Store the import data specification
             }
             
             # For 'main' branch, check for last-commit-id marker in README files
@@ -754,6 +1099,8 @@ class PullApplications:
                     'local_analysis_filenames': self.imports[problem]['local_analysis_filenames'],
                     'prerender_data_folder': self.imports[problem]['prerender_data_folder'],
                     'prerender_data_filenames': self.imports[problem]['prerender_data_filenames'],
+                    'prerender_data_encoded_filenames': self.imports[problem]['prerender_data_encoded_filenames'],
+                    'prerender_image_filenames': self.imports[problem]['prerender_image_filenames'],
                     'instruction_folder': self.imports[problem]['instruction_folder'],
                     'instruction_filenames': self.imports[problem]['instruction_filenames'],
                     'readme_files': ['README.md', 'README.txt', 'README.rst']  # Standard README file names to check
@@ -768,200 +1115,17 @@ class PullApplications:
                     self._log_import(problem, commit_id, source_data, cache_hit=True)
                     continue
                 
-                # If not in cache, proceed with normal import
-                print(f"Cache miss for {problem}, importing from source...")
-                self.root = 'https://raw.githubusercontent.com/'+ self.imports[problem]['github_user'] + "/" + self.imports[problem]['repository'] + "/" + commit_id
-                print("Source: ", self.root)
-                # ------------------------------------------------
-                # - Pull Engine
-                # NOTE - This requires repo to match structure with engine inside environment folder
-                engine_module = httpimport.load(engine.split('.')[0], self.root+'/'+self.imports[problem]['engine_folder']) 
-                # TODO: Pull class name directly from engine file to be called
-                self.current_test[problem]['source'] = {str(self.root): source_data}
-                try:
-                    self.current_test[problem]['engine'] = engine_module.Engine
-                except:
-                    print("Engine error, attempting to install requirements.")
-                    try:
-                        requirements = urllib.request.urlopen(self.root+'/'+'requirements.txt').read()
-                        # Install packages from requirements.txt
-                        requirements = requirements.decode('utf-8').split('\n')
-                        for req in requirements:
-                            if req.strip():  # Skip empty lines
-                                try:
-                                    subprocess.check_call([sys.executable, "-m", "pip", "install", req.strip()])
-                                    print(f"Successfully installed {req}")
-                                except subprocess.CalledProcessError:
-                                    print(f"Failed to install {req}")
-                        # Try importing engine again after installing requirements
-                        self.current_test[problem]['engine'] = engine_module.Engine
-                        print("Successfully loaded engine after installing requirements.")
-                    except:
-                        print("Failed to load engine and no requirements.txt found.")
-                # ------------------------------------------------
-                # - Pull Adapters, Configs and Analysis
-                self.current_test[problem]['adapters'] = {}
-                for adapter_name, adapter in self.imports[problem]['adapter_filenames'].items():
-                    adapter_module = httpimport.load(adapter.split('.')[0], self.root+'/'+self.imports[problem]['local_adapter_folder'])   
-                    # TODO: Pull class name directly from adapter file to be 
-                    self.current_test[problem]['adapters'][adapter_name] = adapter_module.Adapter
-                # ---
-                self.current_test[problem]['experiment_configs'] = {}
-                for config_name,config in self.imports[problem]['experiment_config_filenames'].items():
-                    experiment_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
-                    self.current_test[problem]['experiment_configs'][config_name] = experiment_config
-                # ---
-                self.current_test[problem]['local_configs'] = {}
-                for config_name,config in self.imports[problem]['local_config_filenames'].items():
-                    local_config = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['config_folder']+'/'+config).read())
-                    self.current_test[problem]['local_configs'][config_name] = local_config
-                # ---
-                self.current_test[problem]['local_analysis'] = {}
-                for analysis_name,analysis in self.imports[problem]['local_analysis_filenames'].items():
-                    try:
-                        local_analysis = httpimport.load(analysis, self.root+'/'+self.imports[problem]['local_analysis_folder'])  
-                        # TODO: Pull class name directly from analysis file to be called 
-                        self.current_test[problem]['local_analysis'][analysis_name] = local_analysis.Analysis
-                    except:
-                        print("No analysis file found.")
-                        self.current_test[problem]['local_analysis'][analysis_name] = {}
-                
-                # ------------------------------------------------
-                # Pull prerender data
-                self.current_test[problem]['prerender_data'] = {}
-                self.current_test[problem]['prerender_data_encoded'] = {}
-                if self.imports[problem]['prerender_data_folder'] != '':
-                    print("Pulling prerender data...")
-                    try:
-                        for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
-                            if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                                # Load JSON or text file
-                                if prerender.endswith('.jsonl') or prerender.endswith('.json'):
-                                    # Load JSONL file
-                                    data = {}
-                                    with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                        for line in f:
-                                            row = (json.loads(line.decode('utf-8')))
-                                            data.update(row)
-                                elif prerender.endswith('.txt'):
-                                    # Load text file
-                                    data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender).read().decode('utf-8'))
-                                elif prerender.endswith('.xml'):
-                                    # Load XML file (assuming it contains numerical data)
-                                    import xml.etree.ElementTree as ET
-                                    tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                    root_xml = tree.getroot()
-                                    data = []
-                                    for elem in root_xml.findall('.//data'):
-                                        data.append(float(elem.text))
-                                else:
-                                    raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                                print(f"Pulling prerender data for {prerender_name}...")
-                                self.current_test[problem]['prerender_data'][prerender_name] = data
-                    except:
-                        print(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender)
-                        print("No prerender data found.")
-                        self.current_test[problem]['prerender_data'] = {}
-                    try:
-                        for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
-                            if prerender.endswith(('.txt', '.json', '.xml', '.jsonl')):
-                                map_location= 'cpu' if torch.cuda.is_available() else 'cpu'
-                                if (prerender.endswith('.jsonl') or prerender.endswith('.json')):
-                                    # Load JSONL file
-                                    data = []
-                                    with urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender) as f:
-                                        for line in f:
-                                            data.append(json.loads(line.decode('utf-8')))
-                                    data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                                elif prerender.endswith('.txt'):
-                                    data = torch.from_numpy(np.loadtxt(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender), dtype=np.float32)).to(map_location)
-                                elif prerender.endswith('.xml'):
-                                    # Load XML file (assuming it contains numerical data)
-                                    import xml.etree.ElementTree as ET
-                                    tree = ET.parse(urllib.request.urlopen(self.root+'/'+self.imports[problem]['prerender_data_folder']+'/'+prerender))
-                                    root_xml = tree.getroot()
-                                    data = []
-                                    for elem in root_xml.findall('.//data'):
-                                        data.append(float(elem.text))
-                                    data = torch.tensor(data, dtype=torch.float32).to(map_location)
-                                else:
-                                    raise ValueError(f"Unsupported file format for prerender data: {prerender}")
-                                print(f"Pulling prerender encoded data for {prerender_name}...")
-                                self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
-                    except:
-                        print("No prerender encoded data found.")
-                        self.current_test[problem]['prerender_data_encoded'] = {}
-                else:
-                    print("No prerender data found.")
-                    self.current_test[problem]['prerender_data'] = {}
-                    self.current_test[problem]['prerender_data_encoded'] = {}
-                # ------------------------------------------------
-                # Pull prerender images
-                self.current_test[problem]['prerender_images'] = {}
-                if self.imports[problem]['prerender_data_folder'] != '':
-                    try:
-                        for image_name, image in self.imports[problem]['prerender_image_filenames'].items():
-                            if image.endswith(('.png', '.jpg', '.svg', '.gif')):
-                                image_url = self.root + '/' + self.imports[problem]['prerender_data_folder'] + '/' + image
-                                image_data = urllib.request.urlopen(image_url).read()
-                                self.current_test[problem]['prerender_images'][image_name] = image_data
-                        print("Pulling prerender images...")
-                    except:
-                        print("No prerender images found.")
-                        self.current_test[problem]['prerender_images'] = {}
-                else:
-                    print("No prerender images found.")
-                    self.current_test[problem]['prerender_images'] = {}
-                # -----------------------------------------------
-                # Pull instructions
-                if self.imports[problem]['instruction_filenames'] != {}:
-                    try:
-                        self.current_test[problem]['instructions'] = {}
-                        for instruction_name, instruction in self.imports[problem]['instruction_filenames'].items():
-                            instruction_data = json.loads(urllib.request.urlopen(self.root+'/'+self.imports[problem]['instruction_folder']+'/'+instruction).read())
-                            self.current_test[problem]['instructions'][instruction_name] = instruction_data
-                            print(f"Pulling instruction data for {instruction_name}...")
-                    except:
-                        print("No instruction data found.")
-                        self.current_test[problem]['instructions'] = {}
-                else:
-                    print("No instructions found.")
-                    self.current_test[problem]['instructions'] = {}
-                
-                # -----------------------------------------------
-                # Pull README files
-                self.current_test[problem]['readme_files'] = {}
-                try:
-                    # Try to pull README.md from the root of the repository
-                    readme_url = self.root + '/README.md'
-                    readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                    self.current_test[problem]['readme_files']['README.md'] = readme_content
-                    print("Pulling README.md...")
-                except:
-                    try:
-                        # Try to pull README.txt from the root of the repository
-                        readme_url = self.root + '/README.txt'
-                        readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                        self.current_test[problem]['readme_files']['README.txt'] = readme_content
-                        print("Pulling README.txt...")
-                    except:
-                        try:
-                            # Try to pull README.rst from the root of the repository
-                            readme_url = self.root + '/README.rst'
-                            readme_content = urllib.request.urlopen(readme_url).read().decode('utf-8')
-                            self.current_test[problem]['readme_files']['README.rst'] = readme_content
-                            print("Pulling README.rst...")
-                        except:
-                            print("No README file found.")
-                            self.current_test[problem]['readme_files'] = {}
-                # -----------------------------------------------
+                # If not in cache, proceed with git-based import
+                print(f"Cache miss for {problem}, importing from git repository...")
+                self._pull_fresh_data(problem, commit_id, source_data)
             
-            # Add cache metadata and save to cache
+            # Add cache metadata and save to cache (only if not already cached)
             if 'cache_metadata' not in self.current_test[problem]:
                 cache_metadata = {
                     'commit_id': commit_id,
                     'source_hash': hashlib.md5(json.dumps(source_data, sort_keys=True).encode()).hexdigest(),
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'import_data': source_data  # Store the import data specification
                 }
                 
                 # For 'main' branch, check for last-commit-id marker in README files
@@ -976,10 +1140,10 @@ class PullApplications:
                                 break
                 
                 self.current_test[problem]['cache_metadata'] = cache_metadata
-            
-            # Save to cache and log the import
-            self._save_to_cache(problem, self.current_test[problem])
-            self._log_import(problem, commit_id, source_data, cache_hit=False)
+                
+                # Save to cache and log the import
+                self._save_to_cache(problem, self.current_test[problem])
+                self._log_import(problem, commit_id, source_data, cache_hit=False)
             
         print("-----------------------------------------------")
         return self.current_test
