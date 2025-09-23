@@ -10,6 +10,8 @@ import sys
 import pickle
 import hashlib
 import shutil
+import importlib.util
+
 
 # Local imports
 from elsciRL.application_suite.import_data import Applications
@@ -328,28 +330,31 @@ class PullApplications:
             # Use cached import data if available, otherwise use current import_data
             if import_data is None:
                 import_data = data['cache_metadata'].get('import_data', {})
-            
+        
+            # Reconstruct source data structure from cached import data
+            cache_root_path = cache_dir
+            data['source'] = {str(cache_root_path): import_data}
+
             # Load engine
             engine_dir = os.path.join(cache_dir, 'engine')
             if os.path.exists(engine_dir):
                 engine_files = [f for f in os.listdir(engine_dir) if f.endswith('.py')]
                 if engine_files:
-                    # Add engine directory to Python path temporarily
-                    import sys
-                    sys.path.insert(0, engine_dir)
-                    
                     try:
                         # Get the engine filename from the import data
                         engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
+                        engine_file_path = os.path.join(engine_dir, engine_filename)
+                        
+                        # Load module directly from file path
                         engine_module_name = engine_filename.split('.')[0]
-                        engine_module = __import__(engine_module_name)
+                        spec = importlib.util.spec_from_file_location(engine_module_name, engine_file_path)
+                        engine_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(engine_module)
+                        
                         data['engine'] = engine_module.Engine
                         print(f"Loaded cached engine: {engine_filename}")
                     except Exception as e:
                         print(f"Failed to load cached engine: {e}")
-                    finally:
-                        # Remove from path
-                        sys.path.pop(0)
             
             # Load adapters
             adapters_dir = os.path.join(cache_dir, 'adapters')
@@ -357,23 +362,22 @@ class PullApplications:
                 data['adapters'] = {}
                 adapter_files = [f for f in os.listdir(adapters_dir) if f.endswith('.py')]
                 if adapter_files:
-                    # Add adapters directory to Python path temporarily
-                    import sys
-                    sys.path.insert(0, adapters_dir)
-                    
                     try:
                         # Get adapter filenames from import data
                         adapter_filenames = import_data.get('adapter_filenames', self.imports[problem]['adapter_filenames'])
                         for adapter_name, adapter_filename in adapter_filenames.items():
+                            adapter_file_path = os.path.join(adapters_dir, adapter_filename)
+                            
+                            # Load module directly from file path
                             adapter_module_name = adapter_filename.split('.')[0]
-                            adapter_module = __import__(adapter_module_name)
+                            spec = importlib.util.spec_from_file_location(adapter_module_name, adapter_file_path)
+                            adapter_module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(adapter_module)
+                            
                             data['adapters'][adapter_name] = adapter_module.Adapter
                             print(f"Loaded cached adapter: {adapter_filename}")
                     except Exception as e:
                         print(f"Failed to load cached adapters: {e}")
-                    finally:
-                        # Remove from path
-                        sys.path.pop(0)
             
             # Load experiment and local configs from unified configs directory using import data
             configs_dir = os.path.join(cache_dir, 'configs')
@@ -442,15 +446,13 @@ class PullApplications:
                                 data['prerender_data'][data_name] = jsonl_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    data['prerender_data'][data_name] = f.read()
+                                    data['prerender_data'][data_name] = json.loads(f.read())
                             print(f"Loaded cached prerender data: {data_name}")
                             break
                 
                 # Load encoded prerender data using filenames from import data
                 prerender_data_encoded_filenames = import_data.get('prerender_data_encoded_filenames', {})
-                print(f"Loading cached encoded prerender data: {prerender_data_encoded_filenames}")
                 for data_name, data_filename in prerender_data_encoded_filenames.items():
-                    print(f"Loading cached encoded prerender data: {data_filename}")
                     # The data_filename already includes "encoded_" prefix, so use it directly
                     # Remove extension from data_filename if present
                     clean_filename = data_filename
@@ -462,7 +464,6 @@ class PullApplications:
                     # Try different extensions
                     for ext in ['.npy', '.txt', '.json']:
                         file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
-                        print(f"Loading cached encoded prerender data: {file_path}")
                         if os.path.exists(file_path):
                             if ext == '.npy':
                                 array_data = np.load(file_path)
@@ -473,7 +474,7 @@ class PullApplications:
                                 data['prerender_data_encoded'][data_name] = json_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    text_data = f.read()
+                                    text_data = json.loads(f.read())
                                 data['prerender_data_encoded'][data_name] = text_data
                             print(f"Loaded cached encoded prerender data: {data_name}")
                             break
@@ -483,7 +484,6 @@ class PullApplications:
                 for image_name, image_filename in prerender_image_filenames.items():
                     # Use the image filename directly as it already includes the extension
                     file_path = os.path.join(prerender_dir, image_filename)
-                    print(f"Loading cached prerender image: {file_path}")
                     if os.path.exists(file_path):
                         with open(file_path, 'rb') as f:
                             data['prerender_images'][image_name] = f.read()
@@ -838,7 +838,7 @@ class PullApplications:
                                         data = json.load(f)
                                 elif prerender.endswith('.txt'):
                                     with open(prerender_path, 'r') as f:
-                                        data = f.read()
+                                        data = json.loads(f.read())
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender data: {prerender}")
                                 print(f"Pulling prerender data for {prerender_name}...")
@@ -870,14 +870,9 @@ class PullApplications:
                                                 data.append(json.loads(line))
                                     data = torch.tensor(data, dtype=torch.float32).to(map_location)
                                 elif prerender.endswith('.txt'):
-                                    # Text file - try to load as numeric data first, fallback to text
-                                    try:
-                                        map_location = 'cpu' if torch.cuda.is_available() else 'cpu'
-                                        data = torch.from_numpy(np.loadtxt(prerender_path, dtype=np.float32)).to(map_location)
-                                    except ValueError:
-                                        # If not numeric, load as text
-                                        with open(prerender_path, 'r') as f:
-                                            data = f.read()
+                                    # If not numeric, load as text
+                                    with open(prerender_path, 'r') as f:
+                                        data = json.loads(f.read())
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender encoded data: {prerender}")
                                 print(f"Pulling prerender encoded data for {prerender_name}...")

@@ -266,31 +266,39 @@ class WebApp:
         input_prompt = 'Reinforcement Learning experiment for application: ' + application + '\n'
         
         try:
+            # Get source data from cached import data
             source = self.pull_app_data[application]['source']
             root_url = list(source.keys())[0]
             engine_folder = source[root_url]['engine_folder']
             engine_filename = source[root_url]['engine_filename']
 
-            # Get the engine source code as text from the URL
-            engine_url = f"{root_url.rstrip('/')}/{engine_folder.strip('/')}/{engine_filename}.py"
-            response = requests.get(engine_url)
-            engine_source_code = response.text
+            # Get the engine source code from cached files
+            cache_dir = os.path.join(os.getcwd(), '.cache', application)
+            engine_file_path = os.path.join(cache_dir, 'engine', f"{engine_filename}")
+            
+            if os.path.exists(engine_file_path):
+                with open(engine_file_path, 'r', encoding='utf-8') as f:
+                    engine_source_code = f.read()
+                input_prompt += f"\n Engine source code:\n{engine_source_code}...\n"
+            else:
+                print(f"Engine source file not found in cache: {engine_file_path}")
 
-            input_prompt += f"\n Engine source code:\n{engine_source_code}...\n" 
-
-            # Get the adapter source code
+            # Get the adapter source code from cached files
             adapter_folder = source[root_url]['local_adapter_folder']
             adapter_filename = source[root_url]['adapter_filenames']
+            adapters_dir = os.path.join(cache_dir, 'adapters')
+            
             for adapter_name, adapter_file in adapter_filename.items():
-                adapter_url = f"{root_url.rstrip('/')}/{adapter_folder.strip('/')}/{adapter_file}.py"
-                response = requests.get(adapter_url)
-                if response.status_code == 200:
-                    input_prompt += f"\n Adapter source code ({adapter_name}):\n{response.text}...\n"
+                adapter_file_path = os.path.join(adapters_dir, f"{adapter_file}")
+                if os.path.exists(adapter_file_path):
+                    with open(adapter_file_path, 'r', encoding='utf-8') as f:
+                        adapter_source_code = f.read()
+                    input_prompt += f"\n Adapter source code ({adapter_name}):\n{adapter_source_code}...\n"
                 else:
-                    print(f"Error fetching adapter source code from {adapter_url}: {response.status_code}")
+                    print(f"Adapter source file not found in cache: {adapter_file_path}")
 
         except Exception as e:
-            print(f"Error fetching engine source code from {root_url}: {e}")
+            print(f"Error reading cached source code: {e}")
         # ---
         instruction_reflection = True
         # Set LLM Instruction Planner state
@@ -363,18 +371,31 @@ Here is information about the environment and the task: {input_prompt}
         self.ExperimentConfig["adapter_select"] = [observed_states_filename.split('-')[0]]
 
         if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
-            print("Pre-rendered data found...")
             observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
+            print(f"Pre-rendered data found, observed states: {list(observed_states.items())[0:3]}")
+            print(f"Checking if encoded data exists for {observed_states_filename}...available options are {list(self.pull_app_data[application]['prerender_data_encoded'].keys())}")
             observed_states_encoded = self.pull_app_data[application]['prerender_data_encoded'][observed_states_filename] if observed_states_filename in self.pull_app_data[application]['prerender_data_encoded'] else None
-            self.elsci_run = elsci_search(Config=self.ExperimentConfig,
-                                          LocalConfig=local_config,
-                                          Engine=engine, Adapters=adapters,
-                                          save_dir=self.global_save_dir,
-                                          number_exploration_episodes=self.num_explor_epi,
-                                          match_sim_threshold=0.9,
-                                          observed_states=observed_states,
-                                          observed_states_encoded=observed_states_encoded,
-                                          context_length=1000)
+            if observed_states_encoded is not None:
+                print(f"Observed states encoded data found.")
+                self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+                                            LocalConfig=local_config,
+                                            Engine=engine, Adapters=adapters,
+                                            save_dir=self.global_save_dir,
+                                            number_exploration_episodes=self.num_explor_epi,
+                                            match_sim_threshold=0.9,
+                                            observed_states=observed_states,
+                                            observed_states_encoded=observed_states_encoded,
+                                            context_length=1000)
+            else:
+                self.elsci_run = elsci_search(Config=self.ExperimentConfig,
+                                            LocalConfig=local_config,
+                                            Engine=engine, Adapters=adapters,
+                                            save_dir=self.global_save_dir,
+                                            number_exploration_episodes=self.num_explor_epi,
+                                            match_sim_threshold=0.9,
+                                            observed_states=observed_states,
+                                            observed_states_encoded=None,
+                                            context_length=1000)
         else:
             print("No pre-rendered data found...")
             self.elsci_run = elsci_search(Config=self.ExperimentConfig,
@@ -673,20 +694,25 @@ Example of environment language structure: {results[application][instr]['sub_goa
                 })
 
                 if LLM_Ollama_action_mapping:
-                    # Add engine source code to Agent's system prompt
+                    # Add engine source code to Agent's system prompt from cached files
                     try:
                         source = self.pull_app_data[application]['source']
                         root_url = list(source.keys())[0]
                         engine_folder = source[root_url]['engine_folder']
                         engine_filename = source[root_url]['engine_filename']
 
-                        # Get the engine source code as text from the URL
-                        engine_url = f"{root_url.rstrip('/')}/{engine_folder.strip('/')}/{engine_filename}.py"
-                        response = requests.get(engine_url)
-                        engine_source_code = response.text
-                        ExperimentConfig['agent_parameters']['LLM_Ollama']['system_prompt'] += f"\n Engine source code:\n{engine_source_code}...\n" 
+                        # Get the engine source code from cached files
+                        cache_dir = os.path.join(os.getcwd(), '.cache', application)
+                        engine_file_path = os.path.join(cache_dir, 'engine', f"{engine_filename}.py")
+                        
+                        if os.path.exists(engine_file_path):
+                            with open(engine_file_path, 'r', encoding='utf-8') as f:
+                                engine_source_code = f.read()
+                            ExperimentConfig['agent_parameters']['LLM_Ollama']['system_prompt'] += f"\n Engine source code:\n{engine_source_code}...\n"
+                        else:
+                            print(f"Engine source file not found in cache: {engine_file_path}")
                     except Exception as e:
-                        print(f"Error fetching engine source code from {root_url}: {e}")
+                        print(f"Error reading cached engine source code: {e}")
 
             # Adapters are now selected per agent and output into agent_adapter_dict, so if none then use all adapters
             agent_adapter_dict = data.get('agent_adapter_dict', {})
