@@ -54,7 +54,7 @@ class WebApp:
             self.app_setup_info = f.read()
 
         # Initialize LLM Instruction Planner
-        self.LLM_INSTUCTION_PLANNER = False
+        self.LLM_INSTRUCTION_PLANNER = False
         self.LLM_validation = None
 
         self.AGENT_PARAMETER_DEFINITIONS = {
@@ -302,8 +302,8 @@ class WebApp:
         # ---
         instruction_reflection = True
         # Set LLM Instruction Planner state
-        self.LLM_INSTUCTION_PLANNER = enable_llm_planner
-        if self.LLM_INSTUCTION_PLANNER:
+        self.LLM_INSTRUCTION_PLANNER = enable_llm_planner
+        if self.LLM_INSTRUCTION_PLANNER:
             try:
                 if observed_states_filename == '':
                     observed_states_data = None
@@ -325,7 +325,7 @@ Here is information about the environment and the task: {input_prompt}
                                                            observed_states=observed_states_data)
             except Exception as e:
                 print(f"Error initializing LLM validator: {e}")
-                self.LLM_INSTUCTION_PLANNER = False
+                self.LLM_INSTRUCTION_PLANNER = False
         
 
         if not application:
@@ -335,7 +335,7 @@ Here is information about the environment and the task: {input_prompt}
         instructions = [f'{i}' for i in range(0, len(instruction_descriptions))]
 
         # Use LLM plan generator if enabled
-        if self.LLM_INSTUCTION_PLANNER and self.LLM_plan_generator is not None:
+        if self.LLM_INSTRUCTION_PLANNER and self.LLM_plan_generator is not None:
             try:
                 # Use LLM to breakdown the user input into structured instructions
                 llm_breakdown = self.LLM_plan_generator.break_down_task(user_input, max_subgoals=llm_num_instructions)
@@ -420,7 +420,7 @@ Here is information about the environment and the task: {input_prompt}
         results[application] = best_match_dict.copy()
         # Match is completed then checked by LLM method
         # If LLM method not selected then will only complete the match and allow user to confirm
-        if self.LLM_INSTUCTION_PLANNER:
+        if self.LLM_INSTRUCTION_PLANNER:
             self.validated_LLM_instructions = [] 
             instruction_descriptions_reflection = []
             instruction_descriptions_current = instruction_descriptions
@@ -522,7 +522,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
         # Store validated instructions
         if application not in self.instruction_results:
             self.instruction_results[application] = {}
-        if self.LLM_INSTUCTION_PLANNER:
+        if self.LLM_INSTRUCTION_PLANNER:
             self.instruction_results[application]['LLM_instr_' + str(self.global_input_count)] = instruction_results_data
             for instr_type in self.instruction_results[application].keys():
                 for n,instr in enumerate(list(self.instruction_results[application][instr_type].keys())):
@@ -575,7 +575,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
         }
         
         # Include LLM validation result if LLM planner is enabled
-        if self.LLM_INSTUCTION_PLANNER:
+        if self.LLM_INSTRUCTION_PLANNER:
             response_data['llm_validation_result'] = self.validated_LLM_instructions
 
         return jsonify(response_data)
