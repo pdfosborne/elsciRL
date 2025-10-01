@@ -124,7 +124,7 @@ This will give you a localhost link to open the App in a browser.
 Each application page provides a summary, configuration options, available adapters, and citation information.
 
 
-| Application                | Year | App Code                | Published by |
+| Application                | Year | Repo Name                | Published by |
 | :------------------------: | :---------------------: | :---------------------: | :----------: | 
 | [Maze Navigation](https://github.com/pdfosborne/elsciRL-App-Maze) | 2025 | elsciRL-Maze            | pdfosborne | 
 | [Sailing Simulation](https://github.com/pdfosborne/elsciRL-App-Sailing) | 2024 | elsciRL-Sailing         | pdfosborne |  
