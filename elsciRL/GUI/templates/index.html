@@ -145,39 +145,56 @@
 
         .application-card {
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 12px;
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: box-shadow 0.3s ease;
             position: relative;
+            min-height: 80px;
         }
 
         .application-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
+
+        .application-card.has-updates {
+            border: 2px solid #ffc107;
+            background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+            box-shadow: 0 4px 8px rgba(255, 193, 7, 0.2);
+        }
+
 
         .application-card h4 {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
             color: var(--text-color);
-            font-size: 1.2em;
-        }
-
-        .application-card .description {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-            line-height: 1.4;
+            font-size: 1.1em;
+            font-weight: bold;
         }
 
         .application-card .metadata {
-            font-size: 0.8em;
-            color: #888;
-            margin-bottom: 15px;
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 10px;
         }
 
         .application-card .metadata div {
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+        }
+
+        .application-card .repo-link {
+            color: #0366d6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .application-card .repo-link:hover {
+            text-decoration: underline;
+        }
+
+        .application-card .last-updated {
+            color: #888;
+            font-size: 0.7em;
         }
 
         .application-card .status {
@@ -190,14 +207,35 @@
             font-weight: bold;
         }
 
+        .application-card .status.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .application-card .status.clickable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .application-card .status.clickable:active {
+            transform: scale(0.95);
+        }
+
         .status-downloaded {
             background-color: #d4edda;
             color: #155724;
         }
 
         .status-available {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: #007bff;
+            color: white;
+        }
+
+        .status-update-available {
+            background-color: #ffc107;
+            color: #000;
+            font-weight: bold;
         }
 
         .status-downloading {
@@ -346,11 +384,14 @@
                                 <h3>Available Applications</h3>
                                 <p>Browse and download available applications to use in your experiments. <strong>You must download applications before they become available for use.</strong></p>
                             </div>
-                            <button onclick="refreshApplicationData()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                Refresh
-                            </button>
+                              <button onclick="checkAllUpdates()" style="padding: 8px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                                 Check for Updates
+                              </button>
+                              <button onclick="refreshApplicationData()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                 Update All
+                              </button>
                         </div>
-                        <div id="applicationsOverview" class="applications-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;">
+                        <div id="applicationsOverview" class="applications-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
                             <!-- Applications will be populated dynamically -->
                         </div>
                         <div id="downloadStatus" style="margin-top: 15px; display: none;">
@@ -1765,34 +1806,83 @@
 
         function createApplicationCard(app) {
             const card = document.createElement('div');
-            card.className = 'application-card';
+            let cardClass = 'application-card';
+            
+            // Add update highlighting class if updates are available
+            if (app.is_downloaded && app.has_updates) {
+                cardClass += ' has-updates';
+            }
+            
+            card.className = cardClass;
             
             const statusClass = app.is_downloaded ? 'status-downloaded' : 'status-available';
-            const statusText = app.is_downloaded ? 'Downloaded' : 'Available';
+            let statusText = app.is_downloaded ? 'Downloaded' : 'Download';
             
-            const features = [];
-            if (app.adapters_count > 0) features.push(`${app.adapters_count} adapters`);
-            if (app.configs_count > 0) features.push(`${app.configs_count} configs`);
-            if (app.experiment_configs_count > 0) features.push(`${app.experiment_configs_count} experiment configs`);
-            if (app.has_prerender_data) features.push('Pre-rendered data');
-            if (app.has_instructions) features.push('Instructions');
-            if (app.has_analysis) features.push('Analysis tools');
+            // Update status text if updates are available
+            if (app.is_downloaded && app.has_updates) {
+                statusText = 'Update Available';
+            }
             
-            card.innerHTML = `
-                <div class="status ${statusClass}">${statusText}</div>
+            // Format last updated timestamp
+            let lastUpdatedText = 'Never';
+            if (app.last_updated) {
+                let date;
+                // Check if it's already a timestamp string (ISO format)
+                if (typeof app.last_updated === 'string') {
+                    date = new Date(app.last_updated);
+                } else {
+                    // Assume it's a Unix timestamp
+                    date = new Date(app.last_updated * 1000);
+                }
+                
+                // Check if date is valid
+                if (!isNaN(date.getTime())) {
+                    // Format the date in a more readable way
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    
+                    if (diffMinutes < 1) {
+                        lastUpdatedText = 'Just now';
+                    } else if (diffMinutes < 60) {
+                        lastUpdatedText = `${diffMinutes}m ago`;
+                    } else if (diffHours < 24) {
+                        lastUpdatedText = `${diffHours}h ago`;
+                    } else if (diffDays < 7) {
+                        lastUpdatedText = `${diffDays}d ago`;
+                    } else {
+                        lastUpdatedText = date.toLocaleDateString();
+                    }
+                } else {
+                    lastUpdatedText = 'Unknown';
+                }
+            }
+            
+            // Create repository URL
+            const repoUrl = `https://github.com/${app.github_user}/${app.repository}`;
+            
+            // Create the card content
+            let statusElement = '';
+            if (app.is_downloaded) {
+                // For downloaded apps, status is not clickable
+                statusElement = `<div class="status ${statusClass}">${statusText}</div>`;
+            } else {
+                // For available apps, status is clickable and acts as download button
+                statusElement = `<div class="status ${statusClass} clickable" onclick="downloadApplication('${app.name}')">${statusText}</div>`;
+            }
+            
+            const cardContent = `${statusElement}
                 <h4>${app.name}</h4>
-                <div class="description">${app.description}</div>
                 <div class="metadata">
-                    <div><strong>Repository:</strong> ${app.github_user}/${app.repository}</div>
-                    <div><strong>Commit:</strong> ${app.commit_id}</div>
-                    <div><strong>Features:</strong> ${features.join(', ')}</div>
-                </div>
-                <button class="download-btn" onclick="downloadApplication('${app.name}')" 
-                        ${app.is_downloaded ? 'disabled' : ''}>
-                    ${app.is_downloaded ? 'Up to date' : 'Download'}
-                </button>
-            `;
+                    <div>
+                        <a href="${repoUrl}" target="_blank" class="repo-link">${app.github_user}/${app.repository}</a>
+                    </div>
+                    <div class="last-updated">Updated: ${lastUpdatedText}</div>
+                </div>`;
             
+            card.innerHTML = cardContent;
             return card;
         }
 
@@ -1802,11 +1892,15 @@
             
             // Show download status
             downloadStatus.style.display = 'block';
-            statusText.textContent = `Downloading ${applicationName}...`;
+            statusText.textContent = `Checking for updates for ${applicationName}...`;
             
-            // Disable all download buttons
+            // Disable all download buttons and clickable status elements
             document.querySelectorAll('.download-btn').forEach(btn => {
                 btn.disabled = true;
+            });
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
             });
             
             fetch('/download_application', {
@@ -1820,7 +1914,10 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
+                if (data.status === 'needs_confirmation') {
+                    // Show confirmation dialog
+                    showUpdateConfirmationDialog(applicationName, data.update_info);
+                } else if (data.status === 'success') {
                     statusText.textContent = `Successfully downloaded ${applicationName}`;
                     statusText.style.color = 'green';
                     
@@ -1839,12 +1936,381 @@
                 statusText.style.color = 'red';
             })
             .finally(() => {
+                // Re-enable download buttons and clickable status elements
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
+                // Hide download status after 5 seconds (only if not showing confirmation)
+                if (data && data.status !== 'needs_confirmation') {
+                    setTimeout(() => {
+                        downloadStatus.style.display = 'none';
+                        statusText.style.color = '';
+                    }, 5000);
+                }
+            });
+        }
+
+        function showUpdateConfirmationDialog(applicationName, updateInfo) {
+            const dialog = document.createElement('div');
+            dialog.className = 'update-confirmation-dialog';
+            dialog.innerHTML = `
+                <div class="dialog-content">
+                    <h3>Updates Available</h3>
+                    <p>There are updates available for <strong>${applicationName}</strong>:</p>
+                    <div class="update-info">
+                        <p><strong>Current version:</strong> ${updateInfo.current_commit_short}</p>
+                        <p><strong>Latest version:</strong> ${updateInfo.remote_commit_short}</p>
+                    </div>
+                    <p>Would you like to update to the latest version?</p>
+                    <div class="dialog-buttons">
+                        <button class="btn btn-primary" onclick="confirmUpdate('${applicationName}')">Update Now</button>
+                        <button class="btn btn-secondary" onclick="cancelUpdate()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .update-confirmation-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                .dialog-content {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                .update-info {
+                    background: #f5f5f5;
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin: 10px 0;
+                }
+                .dialog-buttons {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    margin-top: 20px;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                .btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                }
+                .btn-secondary {
+                    background-color: #6c757d;
+                    color: white;
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(dialog);
+        }
+
+        function confirmUpdate(applicationName) {
+            // Remove dialog
+            const dialog = document.querySelector('.update-confirmation-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            
+            // Proceed with forced update
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            downloadStatus.style.display = 'block';
+            statusText.textContent = `Updating ${applicationName}...`;
+            
+            // Disable all download buttons and clickable status elements
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
+            });
+            
+            fetch('/download_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    application_name: applicationName,
+                    force_update: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = `Successfully updated ${applicationName}`;
+                    statusText.style.color = 'green';
+                    
+                    // Refresh application data and reload the interface
+                    setTimeout(() => {
+                        refreshApplicationData();
+                    }, 1000);
+                } else {
+                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating application:', error);
+                statusText.textContent = `Error updating ${applicationName}`;
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Re-enable download buttons and clickable status elements
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
                 // Hide download status after 5 seconds
                 setTimeout(() => {
                     downloadStatus.style.display = 'none';
                     statusText.style.color = '';
                 }, 5000);
             });
+        }
+
+        function cancelUpdate() {
+            // Remove dialog
+            const dialog = document.querySelector('.update-confirmation-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            
+            // Hide download status
+            const downloadStatus = document.getElementById('downloadStatus');
+            downloadStatus.style.display = 'none';
+        }
+
+        function checkAllUpdates() {
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            // Show status
+            downloadStatus.style.display = 'block';
+            statusText.textContent = 'Checking for updates on all applications...';
+            statusText.style.color = '';
+            
+            // Disable buttons during check
+            const checkButton = event.target;
+            const updateButton = checkButton.nextElementSibling;
+            checkButton.disabled = true;
+            updateButton.disabled = true;
+            
+            // Disable clickable status elements
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
+            });
+            
+            fetch('/check_all_application_updates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    statusText.textContent = `Error: ${data.error}`;
+                    statusText.style.color = 'red';
+                } else {
+                    const totalChecked = data.total_checked;
+                    const hasUpdates = data.has_any_updates;
+                    const applications = data.applications;
+                    
+                    if (totalChecked === 0) {
+                        statusText.textContent = 'No downloaded applications found to check.';
+                        statusText.style.color = 'orange';
+                    } else if (hasUpdates) {
+                        statusText.textContent = `Found updates for ${Object.values(applications).filter(app => app.has_updates).length} out of ${totalChecked} applications.`;
+                        statusText.style.color = 'orange';
+                        
+                        // Show detailed update information
+                        showUpdateResultsDialog(applications);
+                    } else {
+                        statusText.textContent = `All ${totalChecked} applications are up to date.`;
+                        statusText.style.color = 'green';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking updates:', error);
+                statusText.textContent = 'Error checking for updates.';
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Re-enable buttons
+                checkButton.disabled = false;
+                updateButton.disabled = false;
+                
+                // Re-enable clickable status elements
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
+                // Hide status after 5 seconds
+                setTimeout(() => {
+                    downloadStatus.style.display = 'none';
+                    statusText.style.color = '';
+                }, 5000);
+            });
+        }
+
+        function showUpdateResultsDialog(applications) {
+            const dialog = document.createElement('div');
+            dialog.className = 'update-results-dialog';
+            
+            // Filter applications with updates
+            const appsWithUpdates = Object.entries(applications).filter(([name, info]) => info.has_updates);
+            const appsUpToDate = Object.entries(applications).filter(([name, info]) => !info.has_updates && !info.error);
+            const appsWithErrors = Object.entries(applications).filter(([name, info]) => info.error);
+            
+            dialog.innerHTML = `
+                <div class="dialog-content">
+                    <h3>Update Check Results</h3>
+                    <div class="update-summary">
+                        <p><strong>Applications with updates:</strong> ${appsWithUpdates.length}</p>
+                        <p><strong>Applications up to date:</strong> ${appsUpToDate.length}</p>
+                        ${appsWithErrors.length > 0 ? `<p><strong>Applications with errors:</strong> ${appsWithErrors.length}</p>` : ''}
+                    </div>
+                    
+                    ${appsWithUpdates.length > 0 ? `
+                        <div class="updates-section">
+                            <h4>Available Updates</h4>
+                            ${appsWithUpdates.map(([name, info]) => `
+                                <div class="update-item">
+                                    <strong>${name}</strong>
+                                    <div class="commit-info">
+                                        <span>Current: ${info.current_commit_short || 'Unknown'}</span>
+                                        <span>Latest: ${info.remote_commit_short || 'Unknown'}</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" onclick="downloadApplication('${name}')">Update</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${appsWithErrors.length > 0 ? `
+                        <div class="errors-section">
+                            <h4>Errors</h4>
+                            ${appsWithErrors.map(([name, info]) => `
+                                <div class="error-item">
+                                    <strong>${name}</strong>
+                                    <span class="error-message">${info.error}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="dialog-buttons">
+                        <button class="btn btn-secondary" onclick="closeUpdateResultsDialog()">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .update-results-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                .update-results-dialog .dialog-content {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                }
+                .update-summary {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 4px;
+                    margin: 15px 0;
+                }
+                .updates-section, .errors-section {
+                    margin: 20px 0;
+                }
+                .update-item, .error-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    border: 1px solid #dee2e6;
+                    border-radius: 4px;
+                    margin: 5px 0;
+                }
+                .commit-info {
+                    display: flex;
+                    gap: 15px;
+                    font-size: 0.9em;
+                    color: #6c757d;
+                }
+                .error-message {
+                    color: #dc3545;
+                    font-size: 0.9em;
+                }
+                .btn-sm {
+                    padding: 4px 8px;
+                    font-size: 0.8em;
+                }
+                .dialog-buttons {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 20px;
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(dialog);
+        }
+
+        function closeUpdateResultsDialog() {
+            const dialog = document.querySelector('.update-results-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
         }
 
         function refreshApplicationData() {

@@ -1084,7 +1084,46 @@ class PullApplications:
         
         return self.pull(problem_selection)
     
-    def download_application(self, problem: str):
+    def check_for_updates(self, problem: str):
+        """Check if an application has updates available."""
+        if problem not in self.imports:
+            return {'has_updates': False, 'error': f"Application '{problem}' not found"}
+        
+        source_data = self.imports[problem]
+        commit_id = source_data.get('commit_id', 'main')
+        
+        # If commit_id is '*', get the latest commit
+        if commit_id == '*':
+            try:
+                github_user = source_data['github_user']
+                repository = source_data['repository']
+                commit_id = self._get_latest_commit_id(github_user, repository)
+            except Exception as e:
+                return {'has_updates': False, 'error': f"Failed to get latest commit: {e}"}
+        
+        # Check if repository exists
+        repo_dir = self._get_git_repo_dir(problem)
+        if not os.path.exists(repo_dir):
+            return {'has_updates': False, 'error': 'Repository not found locally'}
+        
+        # Check for updates
+        try:
+            has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+            if has_updates is False and current_commit is None:
+                # This means there was an error checking for updates
+                return {'has_updates': False, 'error': 'Failed to check for updates'}
+            
+            return {
+                'has_updates': has_updates,
+                'current_commit': current_commit,
+                'remote_commit': remote_commit,
+                'current_commit_short': current_commit[:7] if current_commit else None,
+                'remote_commit_short': remote_commit[:7] if remote_commit else None
+            }
+        except Exception as e:
+            return {'has_updates': False, 'error': f"Error checking updates: {e}"}
+
+    def download_application(self, problem: str, force_update: bool = False):
         """Download a specific application and cache it locally."""
         if problem not in self.imports:
             raise ValueError(f"Application '{problem}' not found in available applications")
@@ -1114,6 +1153,20 @@ class PullApplications:
                     print(f"Failed to clone repository for {problem}")
                     return False
             else:
+                # Check for updates if not forcing
+                if not force_update:
+                    has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+                    if has_updates:
+                        print(f"Updates available for {problem}: {current_commit[:7]} -> {remote_commit[:7]}")
+                        # Return update info instead of proceeding
+                        return {
+                            'needs_confirmation': True,
+                            'current_commit': current_commit,
+                            'remote_commit': remote_commit,
+                            'current_commit_short': current_commit[:7],
+                            'remote_commit_short': remote_commit[:7]
+                        }
+                
                 print(f"Updating repository for {problem}...")
                 update_result = self._update_repository(problem, commit_id)
                 if not update_result or (isinstance(update_result, tuple) and not update_result[0]):

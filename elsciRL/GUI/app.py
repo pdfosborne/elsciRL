@@ -220,22 +220,32 @@ class WebApp:
             cache_dir = pull_apps._get_cache_dir(app_name)
             is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
             
-            # Get application description from README if available
-            description = "No description available"
+            # Get last updated timestamp
+            last_updated = None
+            has_updates = False
             if is_downloaded:
-                readme_path = os.path.join(cache_dir, 'README.md')
-                if os.path.exists(readme_path):
+                metadata_file = pull_apps._get_cache_metadata_file(app_name)
+                if os.path.exists(metadata_file):
                     try:
-                        with open(readme_path, 'r', encoding='utf-8') as f:
-                            readme_content = f.read()
-                            # Extract first paragraph as description
-                            lines = readme_content.split('\n')
-                            for line in lines:
-                                if line.strip() and not line.startswith('#'):
-                                    description = line.strip()
-                                    break
+                        with open(metadata_file, 'r') as f:
+                            metadata = json.load(f)
+                            last_updated = metadata.get('timestamp', None)
                     except:
                         pass
+                
+                # Fallback to directory modification time
+                if not last_updated:
+                    try:
+                        last_updated = os.path.getmtime(cache_dir)
+                    except:
+                        pass
+                
+                # Check for updates if downloaded
+                try:
+                    update_info = pull_apps.check_for_updates(app_name)
+                    has_updates = update_info.get('has_updates', False)
+                except:
+                    has_updates = False
             
             # Count available components
             adapters_count = len(app_data.get('adapter_filenames', {}))
@@ -244,11 +254,12 @@ class WebApp:
             
             app_info = {
                 'name': app_name,
-                'description': description,
                 'github_user': app_data.get('github_user', ''),
                 'repository': app_data.get('repository', ''),
                 'commit_id': app_data.get('commit_id', '*'),
                 'is_downloaded': is_downloaded,
+                'last_updated': last_updated,
+                'has_updates': has_updates,
                 'adapters_count': adapters_count,
                 'configs_count': configs_count,
                 'experiment_configs_count': experiment_configs_count,
@@ -262,15 +273,76 @@ class WebApp:
             'applications': applications_info
         })
     
-    def download_application(self, application_name: str):
+    def check_application_updates(self, application_name: str):
+        """Check if an application has updates available"""
+        try:
+            from elsciRL.application_suite.import_tool import PullApplications
+            
+            pull_apps = PullApplications()
+            update_info = pull_apps.check_for_updates(application_name)
+            
+            return jsonify(update_info)
+                
+        except Exception as e:
+            return jsonify({
+                'has_updates': False,
+                'error': f'Error checking updates for {application_name}: {str(e)}'
+            }), 500
+
+    def check_all_application_updates(self):
+        """Check for updates on all downloaded applications"""
+        try:
+            from elsciRL.application_suite.import_tool import PullApplications
+            
+            pull_apps = PullApplications()
+            update_results = {}
+            
+            # Get list of downloaded applications
+            downloaded_apps = []
+            for app_name in self.available_applications:
+                cache_dir = pull_apps._get_cache_dir(app_name)
+                is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
+                if is_downloaded:
+                    downloaded_apps.append(app_name)
+            
+            # Check updates for each downloaded application
+            for app_name in downloaded_apps:
+                try:
+                    update_info = pull_apps.check_for_updates(app_name)
+                    update_results[app_name] = update_info
+                except Exception as e:
+                    update_results[app_name] = {
+                        'has_updates': False,
+                        'error': f'Error checking updates: {str(e)}'
+                    }
+            
+            return jsonify({
+                'applications': update_results,
+                'total_checked': len(downloaded_apps),
+                'has_any_updates': any(result.get('has_updates', False) for result in update_results.values())
+            })
+                
+        except Exception as e:
+            return jsonify({
+                'error': f'Error checking updates for all applications: {str(e)}'
+            }), 500
+
+    def download_application(self, application_name: str, force_update: bool = False):
         """Download and cache a specific application"""
         try:
             from elsciRL.application_suite.import_tool import PullApplications
             
             pull_apps = PullApplications()
-            success = pull_apps.download_application(application_name)
+            result = pull_apps.download_application(application_name, force_update)
             
-            if success:
+            # Check if result indicates confirmation is needed
+            if isinstance(result, dict) and result.get('needs_confirmation'):
+                return jsonify({
+                    'status': 'needs_confirmation',
+                    'message': f'Updates available for {application_name}',
+                    'update_info': result
+                })
+            elif result is True:
                 return jsonify({
                     'status': 'success',
                     'message': f'Successfully downloaded and cached {application_name}'
@@ -364,8 +436,12 @@ class WebApp:
             return None
     
     def get_observed_states(self, selected_application):
-        observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
-        return observed_states
+        try:
+            observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
+            return observed_states
+        except:
+            print("Error fetching observed states...")
+            return []
 
     def get_local_configs(self, selected_application:str=''):
         if selected_application == '':
@@ -1323,13 +1399,26 @@ def get_applications_route():
 def get_all_applications_info_route():
     return WebApp_instance.get_all_applications_info()
 
-@app.route('/download_application', methods=['POST'])
-def download_application_route():
+@app.route('/check_application_updates', methods=['POST'])
+def check_application_updates_route():
     data = request.get_json()
     application_name = data.get('application_name', '')
     if not application_name:
         return jsonify({'status': 'error', 'message': 'No application name provided'}), 400
-    return WebApp_instance.download_application(application_name)
+    return WebApp_instance.check_application_updates(application_name)
+
+@app.route('/check_all_application_updates', methods=['POST'])
+def check_all_application_updates_route():
+    return WebApp_instance.check_all_application_updates()
+
+@app.route('/download_application', methods=['POST'])
+def download_application_route():
+    data = request.get_json()
+    application_name = data.get('application_name', '')
+    force_update = data.get('force_update', False)
+    if not application_name:
+        return jsonify({'status': 'error', 'message': 'No application name provided'}), 400
+    return WebApp_instance.download_application(application_name, force_update)
 
 @app.route('/refresh_application_data', methods=['POST'])
 def refresh_application_data_route():
