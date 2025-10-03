@@ -238,6 +238,22 @@
             font-weight: bold;
         }
 
+        .status-update-available.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .status-update-available.clickable:hover {
+            background-color: #e0a800;
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-update-available.clickable:active {
+            transform: scale(0.95);
+        }
+
         .status-downloading {
             background-color: #cce5ff;
             color: #004085;
@@ -296,15 +312,16 @@
             <div class="tabs">
                 <div class="tab-buttons">
                     <button class="tab-btn active" onclick="openTab(event, 'homeTab')">Home</button>
-                    <button class="tab-btn" onclick="openTab(event, 'setupTab')">Application</button>
-                    <button class="tab-btn" onclick="openTab(event, 'configTab')">Config</button>
-                    <button class="tab-btn" onclick="openTab(event, 'inputTab')">Instruction Input</button>
-                    <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Train Model</button>
+                    <button class="tab-btn" onclick="openTab(event, 'setupTab')">Applications</button>
+                    <button class="tab-btn" onclick="openTab(event, 'experimentTab')">Experiment</button>
+                    <button class="tab-btn" onclick="openTab(event, 'configTab')">Agent</button>
+                    <button class="tab-btn" onclick="openTab(event, 'inputTab')">Instructions</button>
+                    <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Run Model</button>
                     <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
                 </div>
                 <div class="tab-text">
                     <!-- <a href="https://elsci.org">elsci.org</a> -->
-                    <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_textfull_outline_transparent.png" alt="elsciRL-Logo" style="width:50px;height:40px;"></a>  
+                    <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_black_outline.png" alt="elsciRL-Logo" style="width:40px;height:40px;"></a>  
                 </div>
             </div>
             <div id="homeTab" class="tab-content" style="display:block;">
@@ -400,6 +417,10 @@
                         </div>
                     </div>
                     
+                </div>
+            </div>
+            <div id="experimentTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
                             <h3>Select Downloaded Application</h3>
@@ -409,7 +430,7 @@
                                     <!-- Remove the initial option here -->
                                 </select>
                                 <div id="noApplicationsMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
-                                    <strong>No applications downloaded yet.</strong> Please download applications from the overview above before you can use them.
+                                    <strong>No applications downloaded yet.</strong> Please download applications from the Application tab before you can use them.
                                 </div>
                                 <div id="autoDownloadMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; color: #0c5460;">
                                     <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
@@ -1865,8 +1886,11 @@
             
             // Create the card content
             let statusElement = '';
-            if (app.is_downloaded) {
-                // For downloaded apps, status is not clickable
+            if (app.is_downloaded && app.has_updates) {
+                // For downloaded apps with updates, status is clickable and acts as update button
+                statusElement = `<div class="status ${statusClass} clickable" onclick="downloadApplication('${app.name}')">${statusText}</div>`;
+            } else if (app.is_downloaded) {
+                // For downloaded apps without updates, status is not clickable
                 statusElement = `<div class="status ${statusClass}">${statusText}</div>`;
             } else {
                 // For available apps, status is clickable and acts as download button
