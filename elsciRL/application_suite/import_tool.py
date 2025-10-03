@@ -600,6 +600,34 @@ class PullApplications:
         
         return None
     
+    def _get_latest_commit_id(self, github_user, repository, branch='main'):
+        """Get the latest commit ID from GitHub API."""
+        try:
+            import urllib.request
+            import json
+            
+            # Use GitHub API to get the latest commit
+            api_url = f"https://api.github.com/repos/{github_user}/{repository}/commits/{branch}"
+            
+            # Add timeout and user agent to avoid rate limiting
+            request = urllib.request.Request(api_url)
+            request.add_header('User-Agent', 'elsciRL-Application-Downloader')
+            
+            with urllib.request.urlopen(request, timeout=10) as response:
+                data = json.loads(response.read().decode())
+                return data['sha']
+                
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                print(f"Repository {github_user}/{repository} not found or branch {branch} doesn't exist")
+            else:
+                print(f"HTTP error getting latest commit ID for {github_user}/{repository}: {e}")
+            return 'main'
+        except Exception as e:
+            print(f"Error getting latest commit ID for {github_user}/{repository}: {e}")
+            # Fallback to 'main' if API fails
+            return 'main'
+    
     def _get_git_repo_dir(self, problem):
         """Get the git repository directory for a specific problem."""
         return os.path.join(self.cache_dir, f"{problem}")
@@ -844,7 +872,7 @@ class PullApplications:
                                 print(f"Pulling prerender data for {prerender_name}...")
                                 self.current_test[problem]['prerender_data'][prerender_name] = data
                 except Exception as e:
-                    print(f"No prerender data found: {e}")
+                    print(f"No prerender data found")
                     self.current_test[problem]['prerender_data'] = {}
                 
                 try:
@@ -1055,7 +1083,55 @@ class PullApplications:
             self.clear_cache()  # Clear all cache
         
         return self.pull(problem_selection)
+    
+    def download_application(self, problem: str):
+        """Download a specific application and cache it locally."""
+        if problem not in self.imports:
+            raise ValueError(f"Application '{problem}' not found in available applications")
         
+        source_data = self.imports[problem]
+        github_user = source_data['github_user']
+        repository = source_data['repository']
+        commit_id = source_data.get('commit_id', 'main')
+        
+        print(f"Downloading application: {problem}")
+        print(f"Repository: {github_user}/{repository}")
+        print(f"Commit: {commit_id}")
+        
+        try:
+            # Clone or update the repository
+            if commit_id == '*':
+                # Get the latest commit
+                print(f"Getting latest commit for {github_user}/{repository}...")
+                commit_id = self._get_latest_commit_id(github_user, repository)
+                print(f"Using commit: {commit_id}")
+            
+            # Check if repository exists and is up to date
+            repo_dir = self._get_git_repo_dir(problem)
+            if not os.path.exists(repo_dir):
+                print(f"Cloning repository for {problem}...")
+                if not self._clone_repository(problem, github_user, repository, commit_id):
+                    print(f"Failed to clone repository for {problem}")
+                    return False
+            else:
+                print(f"Updating repository for {problem}...")
+                update_result = self._update_repository(problem, commit_id)
+                if not update_result or (isinstance(update_result, tuple) and not update_result[0]):
+                    print(f"Failed to update repository for {problem}")
+                    return False
+            
+            # Pull fresh data and cache it
+            print(f"Processing and caching data for {problem}...")
+            self._pull_fresh_data(problem, commit_id, source_data)
+            
+            print(f"Successfully downloaded and cached {problem}")
+            return True
+            
+        except Exception as e:
+            print(f"Error downloading {problem}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
         
     def pull(self, problem_selection:list=[]):
         # Pull all problems if none are selected

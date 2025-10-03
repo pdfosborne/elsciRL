@@ -110,12 +110,38 @@ class WebApp:
         self.job_results = {} # Stores job_id: results payload
 
     def load_data(self):
-        # Currently pulls all the available applications
+        # Only loads downloaded applications
         # - Moved to load_data so that it doesnt load on import
         if self.pull_app_data is None:
             from elsciRL.application_suite.import_tool import PullApplications
             self.application_data = PullApplications()
-            self.pull_app_data = self.application_data.pull(problem_selection=self.available_applications)
+            
+            # Get only downloaded applications
+            pull_apps = PullApplications()
+            self.downloaded_apps = []
+            for app_name in self.available_applications:
+                cache_dir = pull_apps._get_cache_dir(app_name)
+                is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
+                if is_downloaded:
+                    self.downloaded_apps.append(app_name)
+            
+            # Auto-download Classroom application if no applications are downloaded
+            if not self.downloaded_apps and 'Classroom' in self.available_applications:
+                print("No applications downloaded. Auto-downloading Classroom application...")
+                try:
+                    success = pull_apps.download_application('Classroom')
+                    if success:
+                        print("Successfully downloaded Classroom application")
+                        self.downloaded_apps.append('Classroom')
+                    else:
+                        print("Failed to auto-download Classroom application")
+                except Exception as e:
+                    print(f"Error auto-downloading Classroom application: {e}")
+            
+            if self.downloaded_apps:
+                self.pull_app_data = self.application_data.pull(problem_selection=self.downloaded_apps)
+            else:
+                self.pull_app_data = {}
             self.config = self.application_data.setup()
 
         # Init data here so it reset when page is reloaded
@@ -150,8 +176,155 @@ class WebApp:
         return render_template('index.html', agent_parameter_definitions=self.AGENT_PARAMETER_DEFINITIONS)
 
     def get_applications(self):
+        """Get only downloaded applications that are available for use"""
+        from elsciRL.application_suite.import_tool import PullApplications
+        
+        pull_apps = PullApplications()
+        self.downloaded_apps = []
+        
+        for app_name in self.available_applications:
+            cache_dir = pull_apps._get_cache_dir(app_name)
+            is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
+            if is_downloaded:
+                self.downloaded_apps.append(app_name)
+        
+        # Auto-download Classroom application if no applications are downloaded
+        if not self.downloaded_apps and 'Classroom' in self.available_applications:
+            print("No applications downloaded. Auto-downloading Classroom application...")
+            try:
+                success = pull_apps.download_application('Classroom')
+                if success:
+                    print("Successfully downloaded Classroom application")
+                    self.downloaded_apps.append('Classroom')
+                else:
+                    print("Failed to auto-download Classroom application")
+            except Exception as e:
+                print(f"Error auto-downloading Classroom application: {e}")
+        
         return jsonify({
-            'applications': self.available_applications
+            'applications': self.downloaded_apps
+        })
+    
+    def get_all_applications_info(self):
+        """Get detailed information about all available applications"""
+        from elsciRL.application_suite.import_data import Applications
+        from elsciRL.application_suite.import_tool import PullApplications
+        
+        applications_data = Applications().data
+        pull_apps = PullApplications()
+        
+        applications_info = []
+        
+        for app_name, app_data in applications_data.items():
+            # Check if application is already cached/downloaded
+            cache_dir = pull_apps._get_cache_dir(app_name)
+            is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
+            
+            # Get application description from README if available
+            description = "No description available"
+            if is_downloaded:
+                readme_path = os.path.join(cache_dir, 'README.md')
+                if os.path.exists(readme_path):
+                    try:
+                        with open(readme_path, 'r', encoding='utf-8') as f:
+                            readme_content = f.read()
+                            # Extract first paragraph as description
+                            lines = readme_content.split('\n')
+                            for line in lines:
+                                if line.strip() and not line.startswith('#'):
+                                    description = line.strip()
+                                    break
+                    except:
+                        pass
+            
+            # Count available components
+            adapters_count = len(app_data.get('adapter_filenames', {}))
+            configs_count = len(app_data.get('local_config_filenames', {}))
+            experiment_configs_count = len(app_data.get('experiment_config_filenames', {}))
+            
+            app_info = {
+                'name': app_name,
+                'description': description,
+                'github_user': app_data.get('github_user', ''),
+                'repository': app_data.get('repository', ''),
+                'commit_id': app_data.get('commit_id', '*'),
+                'is_downloaded': is_downloaded,
+                'adapters_count': adapters_count,
+                'configs_count': configs_count,
+                'experiment_configs_count': experiment_configs_count,
+                'has_prerender_data': len(app_data.get('prerender_data_filenames', {})) > 0,
+                'has_instructions': len(app_data.get('instruction_filenames', {})) > 0,
+                'has_analysis': len(app_data.get('local_analysis_filenames', {})) > 0
+            }
+            applications_info.append(app_info)
+        
+        return jsonify({
+            'applications': applications_info
+        })
+    
+    def download_application(self, application_name: str):
+        """Download and cache a specific application"""
+        try:
+            from elsciRL.application_suite.import_tool import PullApplications
+            
+            pull_apps = PullApplications()
+            success = pull_apps.download_application(application_name)
+            
+            if success:
+                return jsonify({
+                    'status': 'success',
+                    'message': f'Successfully downloaded and cached {application_name}'
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Failed to download {application_name}'
+                }), 500
+                
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': f'Error downloading {application_name}: {str(e)}'
+            }), 500
+    
+    def refresh_application_data(self):
+        """Refresh application data after downloads"""
+        from elsciRL.application_suite.import_tool import PullApplications
+        
+        # Reset pull_app_data to force reload
+        self.pull_app_data = None
+        
+        # Reload data with only downloaded applications
+        pull_apps = PullApplications()
+        self.downloaded_apps = []
+        for app_name in self.available_applications:
+            cache_dir = pull_apps._get_cache_dir(app_name)
+            is_downloaded = os.path.exists(cache_dir) and os.path.exists(pull_apps._get_cache_metadata_file(app_name))
+            if is_downloaded:
+                self.downloaded_apps.append(app_name)
+        
+        # Auto-download Classroom application if no applications are downloaded
+        if not self.downloaded_apps and 'Classroom' in self.available_applications:
+            print("No applications downloaded. Auto-downloading Classroom application...")
+            try:
+                success = pull_apps.download_application('Classroom')
+                if success:
+                    print("Successfully downloaded Classroom application")
+                    self.downloaded_apps.append('Classroom')
+                else:
+                    print("Failed to auto-download Classroom application")
+            except Exception as e:
+                print(f"Error auto-downloading Classroom application: {e}")
+        
+        if self.downloaded_apps:
+            self.pull_app_data = self.application_data.pull(problem_selection=self.downloaded_apps)
+        else:
+            self.pull_app_data = {}
+        
+        return jsonify({
+            'status': 'success',
+            'downloaded_applications': self.downloaded_apps,
+            'options_updated': True
         })
     
     def get_adapters(self, selected_application: str = ''):
@@ -221,7 +394,7 @@ class WebApp:
         all_observed_states = {}
         all_plot_options = {}
         all_experiment_configs = {}
-        for app_iter in self.available_applications:
+        for app_iter in self.downloaded_apps:
             all_observed_states[app_iter] = self.get_observed_states([app_iter])
             all_local_configs[app_iter] = self.get_local_configs(app_iter)
             all_plot_options[app_iter] = self.get_plot_options(app_iter)
@@ -1145,6 +1318,26 @@ def static_files(filename):
 @app.route('/get_applications')
 def get_applications_route():
     return WebApp_instance.get_applications()
+
+@app.route('/get_all_applications_info')
+def get_all_applications_info_route():
+    return WebApp_instance.get_all_applications_info()
+
+@app.route('/download_application', methods=['POST'])
+def download_application_route():
+    data = request.get_json()
+    application_name = data.get('application_name', '')
+    if not application_name:
+        return jsonify({'status': 'error', 'message': 'No application name provided'}), 400
+    return WebApp_instance.download_application(application_name)
+
+@app.route('/refresh_application_data', methods=['POST'])
+def refresh_application_data_route():
+    return WebApp_instance.refresh_application_data()
+
+@app.route('/refresh_options', methods=['POST'])
+def refresh_options_route():
+    return WebApp_instance.get_all_options()
 
 @app.route('/get_observed_states', methods=['POST'])
 def get_observed_states_route():

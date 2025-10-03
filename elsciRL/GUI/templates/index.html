@@ -143,6 +143,88 @@
             margin-bottom: 20px;
         }
 
+        .application-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .application-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .application-card h4 {
+            margin: 0 0 10px 0;
+            color: var(--text-color);
+            font-size: 1.2em;
+        }
+
+        .application-card .description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .application-card .metadata {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .application-card .metadata div {
+            margin-bottom: 5px;
+        }
+
+        .application-card .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        .status-downloaded {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-available {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-downloading {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .download-btn {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .download-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
         /*
         #realTimeRenderDisplay {
             margin-top: 20px;
@@ -257,14 +339,41 @@
             </div>
             <div id="setupTab" class="tab-content" style="display:none;">
                 <div class="config-section" style="width: 95%;">
+                    <!-- Application Overview Section -->
+                    <div class="config-group" style="margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <h3>Available Applications</h3>
+                                <p>Browse and download available applications to use in your experiments. <strong>You must download applications before they become available for use.</strong></p>
+                            </div>
+                            <button onclick="refreshApplicationData()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Refresh
+                            </button>
+                        </div>
+                        <div id="applicationsOverview" class="applications-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;">
+                            <!-- Applications will be populated dynamically -->
+                        </div>
+                        <div id="downloadStatus" style="margin-top: 15px; display: none;">
+                            <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                            <span id="downloadStatusText">Downloading application...</span>
+                        </div>
+                    </div>
+                    
                     <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
                         <div class="config-group" style="flex: 1;">
-                            <h3>Applications</h3>
+                            <h3>Select Downloaded Application</h3>
                             <div class="select-container">
                                 <label for="applicationSelect" title="Select the environment or problem you want to work with.">Select Application:</label>
                                 <select id="applicationSelect" class="form-select" required>
                                     <!-- Remove the initial option here -->
                                 </select>
+                                <div id="noApplicationsMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                                    <strong>No applications downloaded yet.</strong> Please download applications from the overview above before you can use them.
+                                </div>
+                                <div id="autoDownloadMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; color: #0c5460;">
+                                    <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                                    <strong>Auto-downloading Classroom application...</strong> This will be available shortly.
+                                </div>
                             </div>
                             <div id="configSelections" style="display: none;">
                                 <div class="training-params">
@@ -608,22 +717,72 @@
         let currentJobId = null;
         let instructionPresetActive = false;
 
+        // Load applications overview
+        loadApplicationsOverview();
+
         fetch('/get_applications')
             .then(response => response.json())
             .then(data => {
                 const select = document.getElementById('applicationSelect');
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.text = 'Choose application...';
-                defaultOption.disabled = true;
-                defaultOption.selected = true;
-                select.appendChild(defaultOption);
-                data.applications.forEach(app => {
-                    const option = document.createElement('option');
-                    option.value = app;
-                    option.textContent = app;
-                    select.appendChild(option);
-                });
+                const noAppsMessage = document.getElementById('noApplicationsMessage');
+                const autoDownloadMessage = document.getElementById('autoDownloadMessage');
+                
+                // Clear existing options
+                select.innerHTML = '';
+                
+                if (data.applications && data.applications.length > 0) {
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.text = 'Choose application...';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    select.appendChild(defaultOption);
+                    
+                    data.applications.forEach(app => {
+                        const option = document.createElement('option');
+                        option.value = app;
+                        option.textContent = app;
+                        select.appendChild(option);
+                    });
+                    
+                    noAppsMessage.style.display = 'none';
+                    autoDownloadMessage.style.display = 'none';
+                } else {
+                    // Check if Classroom is being auto-downloaded
+                    if (data.applications && data.applications.length === 0) {
+                        // Show auto-download message and retry after a delay
+                        autoDownloadMessage.style.display = 'block';
+                        noAppsMessage.style.display = 'none';
+                        
+                        // Retry after 3 seconds
+                        setTimeout(() => {
+                            fetch('/get_applications')
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.applications && data.applications.length > 0) {
+                                        // Reload the page to show the new application
+                                        location.reload();
+                                    } else {
+                                        // Show no applications message
+                                        autoDownloadMessage.style.display = 'none';
+                                        noAppsMessage.style.display = 'block';
+                                    }
+                                })
+                                .catch(error => console.error('Error retrying applications:', error));
+                        }, 3000);
+                    } else {
+                        // No applications downloaded
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.text = 'No applications downloaded';
+                        defaultOption.disabled = true;
+                        defaultOption.selected = true;
+                        select.appendChild(defaultOption);
+                        
+                        noAppsMessage.style.display = 'block';
+                        autoDownloadMessage.style.display = 'none';
+                    }
+                }
             })
             .catch(error => console.error('Error loading applications:', error));
 
@@ -1576,6 +1735,188 @@
                 .catch(error => {
                     guideContent.innerHTML = `<p style="color: red;">Error loading guide: ${error}</p>`;
                 });
+        }
+
+        // Load applications overview
+        function loadApplicationsOverview() {
+            const overviewContainer = document.getElementById('applicationsOverview');
+            overviewContainer.innerHTML = '<div class="loading-circle"></div> Loading applications...';
+            
+            fetch('/get_all_applications_info')
+                .then(response => response.json())
+                .then(data => {
+                    displayApplications(data.applications);
+                })
+                .catch(error => {
+                    console.error('Error loading applications overview:', error);
+                    overviewContainer.innerHTML = '<p style="color: red;">Error loading applications overview</p>';
+                });
+        }
+
+        function displayApplications(applications) {
+            const overviewContainer = document.getElementById('applicationsOverview');
+            overviewContainer.innerHTML = '';
+            
+            applications.forEach(app => {
+                const card = createApplicationCard(app);
+                overviewContainer.appendChild(card);
+            });
+        }
+
+        function createApplicationCard(app) {
+            const card = document.createElement('div');
+            card.className = 'application-card';
+            
+            const statusClass = app.is_downloaded ? 'status-downloaded' : 'status-available';
+            const statusText = app.is_downloaded ? 'Downloaded' : 'Available';
+            
+            const features = [];
+            if (app.adapters_count > 0) features.push(`${app.adapters_count} adapters`);
+            if (app.configs_count > 0) features.push(`${app.configs_count} configs`);
+            if (app.experiment_configs_count > 0) features.push(`${app.experiment_configs_count} experiment configs`);
+            if (app.has_prerender_data) features.push('Pre-rendered data');
+            if (app.has_instructions) features.push('Instructions');
+            if (app.has_analysis) features.push('Analysis tools');
+            
+            card.innerHTML = `
+                <div class="status ${statusClass}">${statusText}</div>
+                <h4>${app.name}</h4>
+                <div class="description">${app.description}</div>
+                <div class="metadata">
+                    <div><strong>Repository:</strong> ${app.github_user}/${app.repository}</div>
+                    <div><strong>Commit:</strong> ${app.commit_id}</div>
+                    <div><strong>Features:</strong> ${features.join(', ')}</div>
+                </div>
+                <button class="download-btn" onclick="downloadApplication('${app.name}')" 
+                        ${app.is_downloaded ? 'disabled' : ''}>
+                    ${app.is_downloaded ? 'Up to date' : 'Download'}
+                </button>
+            `;
+            
+            return card;
+        }
+
+        function downloadApplication(applicationName) {
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            // Show download status
+            downloadStatus.style.display = 'block';
+            statusText.textContent = `Downloading ${applicationName}...`;
+            
+            // Disable all download buttons
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            
+            fetch('/download_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    application_name: applicationName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = `Successfully downloaded ${applicationName}`;
+                    statusText.style.color = 'green';
+                    
+                    // Refresh application data and reload the interface
+                    setTimeout(() => {
+                        refreshApplicationData();
+                    }, 1000);
+                } else {
+                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('Error downloading application:', error);
+                statusText.textContent = `Error downloading ${applicationName}`;
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Hide download status after 5 seconds
+                setTimeout(() => {
+                    downloadStatus.style.display = 'none';
+                    statusText.style.color = '';
+                }, 5000);
+            });
+        }
+
+        function refreshApplicationData() {
+            // Refresh the application data on the server
+            fetch('/refresh_application_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Reload applications overview to update status
+                    loadApplicationsOverview();
+                    
+                    // Reload the application selector
+                    fetch('/get_applications')
+                        .then(response => response.json())
+                        .then(data => {
+                            const select = document.getElementById('applicationSelect');
+                            const noAppsMessage = document.getElementById('noApplicationsMessage');
+                            
+                            // Clear existing options
+                            select.innerHTML = '';
+                            
+                            if (data.applications && data.applications.length > 0) {
+                                const defaultOption = document.createElement('option');
+                                defaultOption.value = '';
+                                defaultOption.text = 'Choose application...';
+                                defaultOption.disabled = true;
+                                defaultOption.selected = true;
+                                select.appendChild(defaultOption);
+                                
+                                data.applications.forEach(app => {
+                                    const option = document.createElement('option');
+                                    option.value = app;
+                                    option.textContent = app;
+                                    select.appendChild(option);
+                                });
+                                
+                                noAppsMessage.style.display = 'none';
+                            } else {
+                                // No applications downloaded
+                                const defaultOption = document.createElement('option');
+                                defaultOption.value = '';
+                                defaultOption.text = 'No applications downloaded';
+                                defaultOption.disabled = true;
+                                defaultOption.selected = true;
+                                select.appendChild(defaultOption);
+                                
+                                noAppsMessage.style.display = 'block';
+                            }
+                        })
+                        .catch(error => console.error('Error refreshing applications:', error));
+                    
+                    // Refresh all options if they were updated
+                    if (data.options_updated) {
+                        fetch('/get_all_options')
+                            .then(response => response.json())
+                            .then(data => {
+                                allConfigs = data.localConfigs;
+                                allObservedStates = data.observedStates;
+                                allPlotOptions = data.plotOptions;
+                                allExperimentConfigs = data.experimentConfigs;
+                                console.log('Options refreshed after application download');
+                            })
+                            .catch(error => console.error('Error refreshing options:', error));
+                    }
+                }
+            })
+            .catch(error => console.error('Error refreshing application data:', error));
         }
 
         // Call this when the page loads
