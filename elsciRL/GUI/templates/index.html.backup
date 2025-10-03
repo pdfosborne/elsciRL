@@ -1,0 +1,2824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo WebApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .loading-circle {
+            border: 8px solid var(--border-color);
+            border-top: 8px solid var(--button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+
+        .loading-circle-left {
+            margin-right: 10px;
+            margin-left: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .training-params {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .training-params input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .training-params label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .form-select {
+            width: 200px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .applications-checklist {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .application-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .application-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .application-item label {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .config-section {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .config-group {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .config-group h3 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .select-container {
+            margin-bottom: 15px;
+        }
+
+        .select-container label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .select-container input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-overlay .loading-circle {
+            display: block;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .instructions-summary-box {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+
+        .application-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+            position: relative;
+            min-height: 80px;
+        }
+
+        .application-card:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .application-card.has-updates {
+            border: 2px solid #ffc107;
+            background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+            box-shadow: 0 4px 8px rgba(255, 193, 7, 0.2);
+        }
+
+
+        .application-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-color);
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .application-card .metadata {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .application-card .metadata div {
+            margin-bottom: 3px;
+        }
+
+        .application-card .repo-link {
+            color: #0366d6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .application-card .repo-link:hover {
+            text-decoration: underline;
+        }
+
+        .application-card .last-updated {
+            color: #888;
+            font-size: 0.7em;
+        }
+
+        .application-card .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        .application-card .status.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .application-card .status.clickable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .application-card .status.clickable:active {
+            transform: scale(0.95);
+        }
+
+        .status-downloaded {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-available {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .status-update-available {
+            background-color: #ffc107;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .status-update-available.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .status-update-available.clickable:hover {
+            background-color: #e0a800;
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-update-available.clickable:active {
+            transform: scale(0.95);
+        }
+
+        .status-downloading {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .download-btn {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .download-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /*
+        #realTimeRenderDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+
+        #realTimeRenderDisplay img {
+            max-width: 100%;
+            max-height: 400px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        #realTimeRenderDisplay h4 {
+            color: var(--text-color);
+            margin-top: 0;
+        }
+        */
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-circle"></div>
+    </div>
+    <div class="container">
+        <div class="box shadow-effect">
+            <div class="tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="openTab(event, 'homeTab')">Home</button>
+                    <button class="tab-btn" onclick="openTab(event, 'setupTab')">Applications</button>
+                    <button class="tab-btn" onclick="openTab(event, 'experimentTab')">Experiment</button>
+                    <button class="tab-btn" onclick="openTab(event, 'configTab')">Agent</button>
+                    <button class="tab-btn" onclick="openTab(event, 'inputTab')">Instructions</button>
+                    <button class="tab-btn" onclick="openTab(event, 'trainModelTab')">Run Model</button>
+                    <button class="tab-btn" onclick="openTab(event, 'resultsTab')">Results</button>
+                </div>
+                <div class="tab-text">
+                    <!-- <a href="https://elsci.org">elsci.org</a> -->
+                    <a href="https://elsci.org"><img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_black_outline.png" alt="elsciRL-Logo" style="width:40px;height:40px;"></a>  
+                </div>
+            </div>
+            <div id="homeTab" class="tab-content" style="display:block;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-row" style="display: flex; gap: 20px;">
+                        <!-- <div class="config-group" style="flex: 1;">
+                            <h2>Welcome to elsciRL</h2>
+                            <p>This web application helps you run reinforcement learning experiments with various agents and adapters. Follow these steps to get started:</p>
+            
+                            <h3>1. Application Setup</h3>
+                            <p>In the <b>Application</b> tab:</p>
+                            <ul>
+                                <li>Select your desired application/environment</li>
+                                <li>Choose a local configuration for the problem</li>
+                                <li>Select observed state data if needed</li>
+                                <li>Pick an analysis file for results visualization</li>
+                            </ul>
+
+                            <h3>2. Configuration</h3>
+                            <p>In the <b>Config</b> tab:</p>
+                            <ul>
+                                <li>Optionally import a preset configuration</li>
+                                <li>Set training parameters (episodes, repeats, seeds)</li>
+                                <li>Set testing parameters</li>
+                                <li>Select your agents and their adapters</li>
+                                <li>Configure agent-specific parameters</li>
+                            </ul>
+
+                            <h3>3. Instruction Input</h3>
+                            <p>In the <b>Instruction Input</b> tab:</p>
+                            <ul>
+                                <li>Optionally provide language instructions for the agent</li>
+                                <li>Use the LLM Instruction Planner to validate instructions</li>
+                                <li>Review and confirm the agent's understanding</li>
+                            </ul>
+
+                            <h3>4. Training</h3>
+                            <p>In the <b>Train Model</b> tab:</p>
+                            <ul>
+                                <li>Review your configuration</li>
+                                <li>Click "Run Experiment" to start training</li>
+                                <li>Monitor training progress in real-time</li>
+                            </ul>
+
+                            <h3>5. Results</h3>
+                            <p>In the <b>Results</b> tab:</p>
+                            <ul>
+                                <li>View validated instructions used in training</li>
+                                <li>Examine problem-specific results</li>
+                                <li>Analyze variance in performance</li>
+                            </ul>
+
+                            <h3>Tips</h3>
+                            <ul>
+                                <li>You can save your configuration for future use</li>
+                                <li>Use the LLM Instruction Planner to ensure clear instructions</li>
+                                <li>Monitor the training log for progress and potential issues</li>
+                                <li>Results are automatically saved and can be compared across runs</li>
+                            </ul>
+                        </div> -->
+
+                        <div class="config-group" style="flex: 1;">
+                            <!-- <h2>App Interface Guide</h2> -->
+                            <div id="interfaceGuideContent" style="overflow-y: auto; max-height: 2000px;">
+                                <div class="loading-circle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="setupTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
+                    <!-- Application Overview Section -->
+                    <div class="config-group" style="margin-bottom: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <h3>Available Applications</h3>
+                                <p>Browse and download available applications to use in your experiments. <strong>You must download applications before they become available for use.</strong></p>
+                            </div>
+                              <button onclick="checkAllUpdates()" style="padding: 8px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                                 Check for Updates
+                              </button>
+                              <button onclick="refreshApplicationData()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                 Update All
+                              </button>
+                        </div>
+                        <div id="applicationsOverview" class="applications-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                            <!-- Applications will be populated dynamically -->
+                        </div>
+                        <div id="downloadStatus" style="margin-top: 15px; display: none;">
+                            <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                            <span id="downloadStatusText">Downloading application...</span>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            <div id="experimentTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Select Downloaded Application</h3>
+                            <div class="select-container">
+                                <label for="applicationSelect" title="Select the environment or problem you want to work with.">Select Application:</label>
+                                <select id="applicationSelect" class="form-select" required>
+                                    <!-- Remove the initial option here -->
+                                </select>
+                                <div id="noApplicationsMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;">
+                                    <strong>No applications downloaded yet.</strong> Please download applications from the Application tab before you can use them.
+                                </div>
+                                <div id="autoDownloadMessage" style="display: none; margin-top: 10px; padding: 15px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; color: #0c5460;">
+                                    <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                                    <strong>Auto-downloading Classroom application...</strong> This will be available shortly.
+                                </div>
+                            </div>
+                            <div id="configSelections" style="display: none;">
+                                <div class="training-params">
+                                    <label for="localConfigSelect" title="Choose a preset problem configuration.">Local Config:</label>
+                                    <select id="localConfigSelect" class="form-select">
+                                        <option value="" disabled selected>Choose config...</option>
+                                    </select>
+                                </div>
+                                <div class="training-params">
+                                    <label for="observedStateSelect" title="Choose a pre-rendered observed state data used by instruction following methods.">Observed State Input:</label>
+                                    <select id="observedStateSelect" class="form-select">
+                                        <!-- Options will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="training-params">
+                                    <label for="plotSelect" title="Choose a preset, problem specific analysis script.">Select Analysis File:</label>
+                                    <select id="plotSelect" class="form-select">
+                                        <option value="" disabled selected>Choose plot...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="prerenderImageContainer" class="image-section shadow-effect" style="flex: 1;">
+                            <div class="select-container">
+                                <label for="prerenderImageSelect" title="Preview images for the selected application.">Select Preview Image:</label>
+                                <select id="prerenderImageSelect" class="form-select">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+                            <img id="prerenderImage" class="shadow-effect" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="configTab" class="tab-content" style="display:none;">
+                <div class="config-section" style="width: 95%;">
+                    <div class="config-group" style="margin-bottom: 20px;">
+                        <h3>Import/Export Configuration</h3>
+                        <div class="select-container" style="display: flex; align-items: center; gap: 15px;">
+                            <div style="flex: 1;">
+                                <label for="experimentConfigSelect" title="Choose a preset experiment configuration.">Published Configs:</label>
+                                <select id="experimentConfigSelect" class="form-select">
+                                    <option value="" disabled selected>Choose experiment config...</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: flex-end; gap: 10px;">
+                                <input type="file" id="configFileInput" accept=".json" style="display: none;" onchange="importConfiguration(this)">
+                                <button onclick="document.getElementById('configFileInput').click()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Import Config
+                                </button>
+                                <button id="exportConfigBtn" onclick="exportConfiguration()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Export Config
+                                </button>
+                            </div>
+                        </div>
+                        <div id="exportStatus" style="margin-top: 10px;"></div>
+                    </div>
+
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Training Configuration</h3>
+                            <div class="training-params">
+                                <label for="trainingEpisodes" title="Number of episodes for training the agent.">Training Episodes:</label>
+                                <input type="number" id="trainingEpisodes" min="10" max="10000" value="1000" step="500">
+                            </div>
+                            <div class="training-params">
+                                <label for="trainingRepeats" title="Number of times to repeat training with the same starting position.">Training Repeats:</label>
+                                <input type="number" id="trainingRepeats" min="1" max="100" value="5">
+                            </div>
+                            <!-- <div class="training-params">
+                                <label for="trainingSeeds" title="Number of random seeds for training (random starting positions).">Training Seeds (random starting position):</label>
+                                <input type="number" id="trainingSeeds" min="1" max="100" value="1">
+                            </div> -->
+                        </div>
+
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Testing Configuration</h3>
+                            <div class="training-params">
+                                <label for="testEpisodes" title="Number of episodes for testing the agent.">Test Episodes:</label>
+                                <input type="number" id="testEpisodes" min="1" max="1000" value="200">
+                            </div>
+                            <div class="training-params">
+                                <label for="testRepeats" title="Number of times to repeat testing.">Test Repeats:</label>
+                                <input type="number" id="testRepeats" min="1" max="100" value="10">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-row" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <div class="config-group" style="flex: 1; max-width: 50%;">
+                            <h3>Agent and Adapter Selection</h3>
+                            <!-- TODO: DEFINE AGENTS THAT ARE READY, UNCHECK SO PARAMTERS SHOWS WHEN CHECKED -->
+                            <div class="applications-checklist" style="display: flex; flex-direction: column; gap: 10px;">
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-Qlearntab" name="agentType" value="Qlearntab">
+                                    <label for="agent-Qlearntab" style="font-weight: bold;">Q-Learning</label>
+                                    <div class="adapter-subgroup" id="adapters-Qlearntab" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-DQN" name="agentType" value="DQN">
+                                    <label for="agent-DQN" style="font-weight: bold;">Deep Q-Network</label>
+                                    <div class="adapter-subgroup" id="adapters-DQN" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>  
+                                <!-- TODO: DISABLED NEURAL AGENTS FOR NOW, UNCOMMENT WHEN READY -->
+                                <!-- <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_DQN" name="agentType" value="SB3_DQN">
+                                    <label for="agent-SB3_DQN" style="font-weight: bold;">Stable Baselines DQN</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_DQN" style="margin-left: 20px;">
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_PPO" name="agentType" value="SB3_PPO">
+                                    <label for="agent-SB3_PPO" style="font-weight: bold;">Stable Baselines PPO</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_PPO" style="margin-left: 20px;">
+                                    </div>
+                                </div>
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-SB3_A2C" name="agentType" value="SB3_A2C">
+                                    <label for="agent-SB3_A2C" style="font-weight: bold;">Stable Baselines A2C</label>
+                                    <div class="adapter-subgroup" id="adapters-SB3_A2C" style="margin-left: 20px;">
+                                    </div>
+                                </div> -->
+                                <div class="application-item" style="border-left: 2px solid var(--border-color); padding-left: 10px;">
+                                    <input type="checkbox" id="agent-LLM_Ollama" name="agentType" value="LLM_Ollama">
+                                    <label for="agent-LLM_Ollama" style="font-weight: bold;">LLM Ollama Local</label>
+                                    <div class="adapter-subgroup" id="adapters-LLM_Ollama" style="margin-left: 20px;">
+                                        <!-- Adapters will be populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-group" style="flex: 1; max-width: 50%;">
+                            <!-- LLM Adapter Model Selection input -->
+                            <div class="training-params">
+                                <label for="llmAdapterModelSelect" title="Select the LLM model for the LLM Adapter agent."><b>LLM Adapter Model Selection:</b></label>
+                                <input type="text" id="llmAdapterModelSelect" value="qwen3:0.6b" style="width: 180px; margin-left: 10px;">
+                            </div>
+                            <h3>Agent Parameters</h3>
+                            {# Dynamically include agent parameter forms #}
+                            {% if agent_parameter_definitions %}
+                                {% for agent_id, agent_config in agent_parameter_definitions.items() %}
+                                    {% include '_generic_agent_param_form.html' %}
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    
+
+                    <script>
+                        // Update the event listener for agent checkboxes to handle both adapter states and parameter visibility
+                        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                            checkbox.addEventListener('change', function() {
+                                const agentId = this.value;
+                                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                                if (adapterSubgroup) {
+                                    // Enable/disable adapter checkboxes based on agent selection
+                                    adapterSubgroup.querySelectorAll('input[name="adapter"]').forEach(adapterCheckbox => {
+                                        adapterCheckbox.disabled = !this.checked;
+                                        if (!this.checked) {
+                                            adapterCheckbox.checked = false;
+                                        }
+                                    });
+                                }
+                                
+                                // Show/hide parameter sections based on selected agents
+                                if (agentParameterDefinitions) {
+                                    const agentParamsDiv = document.getElementById(`${agentId}-params`);
+                                    if (agentParamsDiv) {
+                                        agentParamsDiv.style.display = this.checked ? 'block' : 'none';
+                                    }
+                                }
+                            });
+                        });
+                    </script>
+                </div>
+            </div>
+
+            <div id="inputTab" class="tab-content" style="display:block;">
+                <div align="center">   
+                    <p><b>Provide language instructions to help the agent or leave blank if you want to run an experiment without</b></p>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label for="instructionSelect" style="color: var(--text-color); font-weight: bold;">Import Instructions:</label>
+                            <select id="instructionSelect" class="form-select" style="width: 200px;">
+                                <option value="" disabled selected>Choose instruction set...</option>
+                            </select>
+                            <button id="importInstructionsBtn" onclick="importInstructions()" style="padding: 8px 15px; background-color: var(--button-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Import
+                            </button>
+                        </div>
+                        <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                        <button id="resetInstructionsBtn" onclick="resetAllInstructions()" style="padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Instructions</button>
+                    </div>
+                    <!-- Instruction preset status indicator -->
+                    <div id="instructionPresetStatus" style="margin-bottom: 15px; display: none; padding: 10px; background-color: #e8f5e8; border: 1px solid #28a745; border-radius: 4px; color: #155724;">
+                        <span style="font-weight: bold;">✓ Instruction Preset Active:</span> 
+                        <span id="activePresetName"></span>
+                        <button id="clearPresetBtn" onclick="clearInstructionPreset()" style="margin-left: 10px; padding: 4px 8px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                            Clear Preset
+                        </button>
+                    </div>
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="checkbox" id="enableLLMPlanner" name="enableLLMPlanner">
+                            <label for="enableLLMPlanner" style="color: var(--text-color); font-weight: bold; margin-left: 5px;" title="Enable the LLM-based instruction planner for automatic instruction validation.">Enable LLM Instruction Planner</label>
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- LLM Model Selection as Text Box -->
+                            <label for="llmModelSelect" style="color: var(--text-color); font-weight: bold;">LLM Model:</label>
+                            <input type="text" id="llmModelSelect" value="llama3.2" style="margin-left: 5px; width: 120px;">
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- Context Length -->
+                            <label for="llmContextLength" style="color: var(--text-color); font-weight: bold;">Context Length:</label>
+                            <input type="number" id="llmContextLength" min="100" max="100000" value="32000" style="width: 80px; margin-left: 5px;">
+                            
+                            <span style="border-left: 1px solid var(--border-color); height: 28px; margin: 0 15px;"></span>
+                            
+                            <!-- Number of Instructions -->
+                            <label for="llmNumInstructions" style="color: var(--text-color); font-weight: bold;"># Instructions:</label>
+                            <input type="number" id="llmNumInstructions" min="1" max="9" value="1" style="width: 50px; margin-left: 5px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-console-container" style="display: flex; gap: 20px;">
+                    <div class="input-section shadow-effect" style="flex: 1; position: relative;">
+                        <p>User Input</p>
+                        <label for="userInput"></label>
+                        <textarea id="userInput" placeholder="Enter your instructions for the agent here. Leave blank to run without instructions."></textarea>
+                        <div class="button-group">
+                            <button id="submitBtn" onclick="processInput()" style="margin-top: 10px;">Submit</button>
+                            <div id="loadingCircleSubmit" class="loading-circle" style="display: none;"></div>
+                            <button id="newInstructionBtn" onclick="newInstruction()">New Instruction</button>
+                        </div>
+                        <!-- Disabled state overlay -->
+                        <div id="inputDisabledOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.1); border-radius: 4px; pointer-events: none;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(255,255,255,0.9); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                <span style="color: #666; font-style: italic;">Input disabled - Instruction preset active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="console-section shadow-effect" style="flex: 1;">
+                        <p>What the agent see to match with your input instructions</p>
+                        <div id="consoleOutput"></div>
+                        <div id="confirmationBlock">
+                            <p>Was the result correct?</p>
+                            <div style="display: flex; align-items: center;">
+                                <button id="correctBtn" onclick="confirmResult(true)">Correct</button>
+                                <button id="incorrectBtn" onclick="confirmResult(false)">Incorrect</button>
+                                <div id="loadingCircleConfirm" class="loading-circle loading-circle-left"></div>
+                            </div>
+                        </div>
+                        <div id="confirmationResult"></div>
+                    </div>
+                </div>
+                <div class="image-container" style="display: flex; gap: 20px;">
+                    <div id="additionalPrerenderImageContainer" class="image-section shadow-effect">
+                        <div class="select-container">
+                            <label for="additionalPrerenderImageSelect" title="Additional preview images for the selected application.">Select Preview Image:</label>
+                            <select id="additionalPrerenderImageSelect" class="form-select">
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <img id="additionalPrerenderImage" class="shadow-effect" style="display: none;">
+                    </div>
+                    <div id="instructionMatchPlots" class="image-section shadow-effect"></div>
+                </div>
+            </div>
+
+            <div id="trainModelTab" class="tab-content" style="display:none;">
+                <div align="center" style="padding-top: 20px;">   
+                    <button id="runExperimentBtn" onclick="runExperiment()">Run Experiment</button>
+                    <div id="experimentInstructions" style="margin-top: 15px;">
+                        <p><b>Click "Run Experiment" to start training the model with the current configuration and any validated instructions.</b></p>
+                        <p>Ensure your application, configurations, and language inputs (if any) are set correctly in the preceding tabs.</p>
+                        <div id="presetExperimentNote" style="display: none; margin-top: 10px; padding: 10px; background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; color: #1565c0;">
+                            <strong>Instruction Preset Active:</strong> The experiment will use the imported instruction preset instead of manually entered instructions.
+                        </div>
+                    </div>
+                    <div id="experimentLoading" style="margin-top: 15px; display: none;">
+                        <div class="loading-circle" style="display: inline-block; margin-right: 10px;"></div>
+                        <div id="recentTrainingLog" style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; text-align: left; font-family: 'Courier New', monospace; font-size: 12px;">
+                            <!-- Recent training log messages will appear here -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Real-time Rendered Figures Display -->
+                <div id="realTimeRenderDisplay">
+                    <h4 id="realTimeRenderPhaseTitle">Waiting for first render...</h4>
+                    <div id="realTimeRenderCarousel">
+                        <!-- Figures will be dynamically added here -->
+                    </div>
+                    <p id="realTimeRenderStatus">No figures available yet</p>
+                </div>
+                <div id="trainingLogOutputContainer" style="padding: 20px; display: none;"> 
+                    <h2>Full Training Log</h3>
+                    <div id="trainingLogOutput"></div>
+                </div>   
+            </div>
+
+            <div id="resultsTab" class="tab-content" style="display:none;">
+                <div><h2>Instructions</h2></div>
+                <div class="instructions-summary-box">
+                    <div class="instructions-summary" id="instructionsSummary">
+                        <!-- Instructions summary will be populated dynamically -->
+                    </div>
+                </div>
+                <div><hr><p> </p></div>
+                <div><h2>Problems Specific Results</h2></div>
+                <div class="results-container" id="resultsContainer">
+                    <!-- Results will be populated dynamically -->
+                </div>
+                <div><hr><p> </p></div>
+                <div><h2>Full Variance Analysis</h2></div>
+                <div class="variance-analysis-container" id="varianceAnalysisContainer">
+                    <!-- Variance analysis chart will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isTraining = false;
+        let cancelTraining = false;
+        let allConfigs = {};
+        let allObservedStates = {};
+        let allPlotOptions = {};
+        let allExperimentConfigs = {}; // New global variable for experiment configs
+        let agentParameterDefinitions = JSON.parse('{{ agent_parameter_definitions | tojson | safe if agent_parameter_definitions else "{}" }}');
+
+        let jobEventSource = null;
+        let currentJobId = null;
+        let instructionPresetActive = false;
+
+        // Load applications overview
+        loadApplicationsOverview();
+
+        fetch('/get_applications')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('applicationSelect');
+                const noAppsMessage = document.getElementById('noApplicationsMessage');
+                const autoDownloadMessage = document.getElementById('autoDownloadMessage');
+                
+                // Clear existing options
+                select.innerHTML = '';
+                
+                if (data.applications && data.applications.length > 0) {
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.text = 'Choose application...';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    select.appendChild(defaultOption);
+                    
+                    data.applications.forEach(app => {
+                        const option = document.createElement('option');
+                        option.value = app;
+                        option.textContent = app;
+                        select.appendChild(option);
+                    });
+                    
+                    noAppsMessage.style.display = 'none';
+                    autoDownloadMessage.style.display = 'none';
+                } else {
+                    // Check if Classroom is being auto-downloaded
+                    if (data.applications && data.applications.length === 0) {
+                        // Show auto-download message and retry after a delay
+                        autoDownloadMessage.style.display = 'block';
+                        noAppsMessage.style.display = 'none';
+                        
+                        // Retry after 3 seconds
+                        setTimeout(() => {
+                            fetch('/get_applications')
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.applications && data.applications.length > 0) {
+                                        // Reload the page to show the new application
+                                        location.reload();
+                                    } else {
+                                        // Show no applications message
+                                        autoDownloadMessage.style.display = 'none';
+                                        noAppsMessage.style.display = 'block';
+                                    }
+                                })
+                                .catch(error => console.error('Error retrying applications:', error));
+                        }, 3000);
+                    } else {
+                        // No applications downloaded
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.text = 'No applications downloaded';
+                        defaultOption.disabled = true;
+                        defaultOption.selected = true;
+                        select.appendChild(defaultOption);
+                        
+                        noAppsMessage.style.display = 'block';
+                        autoDownloadMessage.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error loading applications:', error));
+
+        fetch('/get_all_options')
+            .then(response => response.json())
+            .then(data => {
+                allConfigs = data.localConfigs;
+                allObservedStates = data.observedStates;
+                allPlotOptions = data.plotOptions;
+                allExperimentConfigs = data.experimentConfigs; // assign experiment configs
+            })
+            .catch(error => console.error('Error loading options:', error));
+
+        document.getElementById('applicationSelect').addEventListener('change', function() {
+            const selectedApp = this.value;
+            const configSelections = document.getElementById('configSelections');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            if (selectedApp) {
+                loadingOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    const configSelect = document.getElementById('localConfigSelect');
+                    configSelect.innerHTML = '';
+                    const defaultConfigOption = document.createElement('option');
+                    defaultConfigOption.value = '';
+                    defaultConfigOption.text = 'Choose config...';
+                    defaultConfigOption.disabled = true;
+                    configSelect.appendChild(defaultConfigOption);
+                    if (allConfigs[selectedApp]) {
+                        allConfigs[selectedApp].forEach((config, index) => {
+                            const option = document.createElement('option');
+                            option.value = config;
+                            option.text = config;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
+                            configSelect.appendChild(option);
+                        });
+                    }
+
+                    const observedStateSelect = document.getElementById('observedStateSelect');
+                    observedStateSelect.innerHTML = '';
+                    const defaultObservedStateOption = document.createElement('option');
+                    defaultObservedStateOption.value = '';
+                    defaultObservedStateOption.text = 'Select observed states data';
+                    defaultObservedStateOption.disabled = true;
+                    observedStateSelect.appendChild(defaultObservedStateOption);
+                    if (allObservedStates[selectedApp]) {
+                        allObservedStates[selectedApp].forEach((state, index) => {
+                            const option = document.createElement('option');
+                            option.value = state;
+                            option.text = state;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
+                            observedStateSelect.appendChild(option);
+                        });
+                    }
+
+                    const plotSelect = document.getElementById('plotSelect');
+                    plotSelect.innerHTML = '';
+                    const defaultPlotOption = document.createElement('option');
+                    defaultPlotOption.value = '';
+                    defaultPlotOption.text = 'Choose plot...';
+                    defaultPlotOption.disabled = true;
+                    plotSelect.appendChild(defaultPlotOption);
+                    if (allPlotOptions[selectedApp]) {
+                        allPlotOptions[selectedApp].forEach((plot, index) => {
+                            const option = document.createElement('option');
+                            option.value = plot;
+                            option.text = plot;
+                            if (index === 0) {
+                                option.selected = true;
+                            }
+                            plotSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // New: Populate Experiment Config dropdown in Presets tab
+                    const experimentConfigSelect = document.getElementById('experimentConfigSelect');
+                    experimentConfigSelect.innerHTML = '';
+                    const defaultExperimentConfigOption = document.createElement('option');
+                    defaultExperimentConfigOption.value = '';
+                    defaultExperimentConfigOption.text = 'Choose experiment config...';
+                    defaultExperimentConfigOption.disabled = true;
+                    defaultExperimentConfigOption.selected = true;
+                    experimentConfigSelect.appendChild(defaultExperimentConfigOption);
+                    if (allExperimentConfigs[selectedApp]) {
+                        allExperimentConfigs[selectedApp].forEach((config, index) => {
+                            const option = document.createElement('option');
+                            option.value = config;
+                            option.text = config;
+                            // Remove the automatic selection of first option
+                            experimentConfigSelect.appendChild(option);
+                        });
+                    }
+
+                    // Add event listener for experiment config selection
+                    experimentConfigSelect.addEventListener('change', function() {
+                        const selectedConfig = this.value;
+                        if (selectedConfig && allExperimentConfigs[selectedApp]) {
+                            // Get the config data from the server
+                            fetch('/get_experiment_config', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    application: selectedApp,
+                                    config: selectedConfig
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.config) {
+                                    // Update agent checkboxes
+                                    const agentCheckboxes = document.querySelectorAll('input[name="agentType"]');
+                                    agentCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = data.config.agent_select.includes(checkbox.value);
+                                    });
+
+                                    // Update training parameters
+                                    document.getElementById('trainingEpisodes').value = data.config.number_training_episodes || 1000;
+                                    document.getElementById('trainingRepeats').value = data.config.number_training_repeats || 5;
+                                    // document.getElementById('trainingSeeds').value = data.config.number_training_seeds || 1;
+                                    document.getElementById('testEpisodes').value = data.config.number_test_episodes || 200;
+                                    document.getElementById('testRepeats').value = data.config.number_test_repeats || 10;
+
+                                    // Dynamically update agent-specific parameters
+                                    if (data.config.agent_parameters && agentParameterDefinitions) {
+                                        for (const agentId in data.config.agent_parameters) {
+                                            if (agentParameterDefinitions[agentId] && data.config.agent_parameters[agentId]) {
+                                                const agentParamsInConfig = data.config.agent_parameters[agentId];
+                                                const agentParamDefs = agentParameterDefinitions[agentId].params;
+                                                for (const paramKey in agentParamDefs) {
+                                                    const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                                                    if (inputElement && agentParamsInConfig.hasOwnProperty(paramKey)) {
+                                                        inputElement.value = agentParamsInConfig[paramKey];
+                                                    } else if (inputElement) {
+                                                        inputElement.value = agentParamDefs[paramKey].default;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Update adapter checkboxes
+                                    const adapterCheckboxes = document.querySelectorAll('input[name="adapter"]');
+                                    adapterCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = data.config.adapter_input_dict[checkbox.value] !== undefined;
+                                    });
+
+                                    // Show/hide parameter sections based on selected agents
+                                    document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                                        const event = new Event('change');
+                                        checkbox.dispatchEvent(event);
+                                    });
+                                }
+                            })
+                            .catch(error => console.error('Error loading experiment config:', error));
+                        }
+                    });
+
+                    configSelections.style.display = 'block';
+                    loadingOverlay.style.display = 'none';
+
+                    // Add adapter fetch and populate under each agent
+                    fetch('/get_adapters', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ application: selectedApp })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.adapters) {
+                            // Clear all adapter subgroups first
+                            document.querySelectorAll('.adapter-subgroup').forEach(subgroup => {
+                                subgroup.innerHTML = '';
+                            });
+                            
+                            // Populate adapters under each agent
+                            data.adapters.forEach(adapter => {
+                                const adapterDiv = document.createElement('div');
+                                adapterDiv.className = 'application-item';
+                                adapterDiv.innerHTML = `
+                                    <input type="checkbox" id="adapter-${adapter}" name="adapter" value="${adapter}" checked>
+                                    <label for="adapter-${adapter}">${adapter}</label>
+                                `;
+                                
+                                // Add to each agent's adapter subgroup
+                                document.querySelectorAll('.adapter-subgroup').forEach(subgroup => {
+                                    subgroup.appendChild(adapterDiv.cloneNode(true));
+                                });
+                            });
+                        }
+                    });
+
+                    // Fetch and populate available instructions
+                    fetch('/get_available_instructions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ application: selectedApp })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const instructionSelect = document.getElementById('instructionSelect');
+                        instructionSelect.innerHTML = '';
+                        const defaultInstructionOption = document.createElement('option');
+                        defaultInstructionOption.value = '';
+                        defaultInstructionOption.text = 'Choose instruction set...';
+                        defaultInstructionOption.disabled = true;
+                        defaultInstructionOption.selected = true;
+                        instructionSelect.appendChild(defaultInstructionOption);
+                        
+                        if (data.instructions && data.instructions.length > 0) {
+                            data.instructions.forEach(instruction => {
+                                const option = document.createElement('option');
+                                option.value = instruction;
+                                option.text = instruction;
+                                instructionSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Error loading instructions:', error));
+                }, 2000);
+
+                // Fetch and display prerender images
+                fetch('/get_prerender_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ application: selectedApp })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const prerenderImageSelect = document.getElementById('prerenderImageSelect');
+                    const prerenderImage = document.getElementById('prerenderImage');
+                    const additionalPrerenderImageSelect = document.getElementById('additionalPrerenderImageSelect');
+                    const additionalPrerenderImage = document.getElementById('additionalPrerenderImage');
+                    prerenderImageSelect.innerHTML = '';
+                    prerenderImage.style.display = 'none';
+                    additionalPrerenderImageSelect.innerHTML = '';
+                    additionalPrerenderImage.style.display = 'none';
+                    if (data.imagePaths) {
+                        data.imagePaths.forEach((imagePath, index) => {
+                            const option = document.createElement('option');
+                            option.value = imagePath;
+                            option.text = imagePath.split('/').pop();
+                            if (index === 0) {
+                                option.selected = true;
+                                prerenderImage.src = `/${imagePath}`;
+                                prerenderImage.style.display = 'block';
+                                additionalPrerenderImage.src = `/${imagePath}`;
+                                additionalPrerenderImage.style.display = 'block';
+                            }
+                            prerenderImageSelect.appendChild(option);
+                            additionalPrerenderImageSelect.appendChild(option.cloneNode(true));
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading prerender images:', error));
+            } else {
+                configSelections.style.display = 'none';
+            }
+        });
+
+        document.getElementById('prerenderImageSelect').addEventListener('change', function() {
+            const selectedImage = this.value;
+            const prerenderImage = document.getElementById('prerenderImage');
+            if (selectedImage) {
+                prerenderImage.src = `/${selectedImage}`;
+                prerenderImage.style.display = 'block';
+            } else {
+                prerenderImage.style.display = 'none';
+            }
+        });
+
+        document.getElementById('additionalPrerenderImageSelect').addEventListener('change', function() {
+            const selectedImage = this.value;
+            const additionalPrerenderImage = document.getElementById('additionalPrerenderImage');
+            if (selectedImage) {
+                additionalPrerenderImage.src = `/${selectedImage}`;
+                additionalPrerenderImage.style.display = 'block';
+            } else {
+                additionalPrerenderImage.style.display = 'none';
+            }
+        });
+
+        async function processInput() {
+            // Check if instruction preset is active
+            if (instructionPresetActive) {
+                alert('Cannot process input while an instruction preset is active. Please clear the preset first or use the preset instructions directly.');
+                return;
+            }
+            
+            const input = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const consoleOutput = document.getElementById('consoleOutput');
+            const loadingCircleSubmit = document.getElementById('loadingCircleSubmit');
+            const instructionMatchPlots = document.getElementById('instructionMatchPlots');
+
+            const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
+                .map(cb => cb.value);            
+
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const observedState = document.getElementById('observedStateSelect').value;
+            const selectedPlot = document.getElementById('plotSelect').value;
+            const trainingEpisodes = document.getElementById('trainingEpisodes').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
+            const llmModelSelect = document.getElementById('llmModelSelect').value;
+            const llmContextLength = document.getElementById('llmContextLength').value;
+            const llmNumInstructions = document.getElementById('llmNumInstructions').value;
+
+            if (!selectedApp) {
+                alert('Please select an application');
+                return;
+            }
+
+            input.disabled = true;
+            submitBtn.disabled = true;
+            loadingCircleSubmit.style.display = 'block';
+
+            try {
+                const response = await fetch('/process_input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userInput: input.value,
+                        selectedApps: [selectedApp],
+                        selectedAgents: selectedAgents,
+                        observedStateInput: observedState,
+                        localConfigInput: localConfig,
+                        selectedPlot: selectedPlot,
+                        trainingEpisodes: trainingEpisodes,
+                        enableLLMPlanner: enableLLMPlanner,
+                        llmModelSelect: llmModelSelect,
+                        llmContextLength: llmContextLength,
+                        llmNumInstructions: llmNumInstructions
+                    })
+                });
+
+                const data = await response.json();
+                loadingCircleSubmit.style.display = 'none';
+                input.disabled = false;
+                submitBtn.disabled = false;
+                consoleOutput.innerHTML = data.console_output;
+                instructionMatchPlots.innerHTML = '';
+                if (data.matchPlots && data.matchPlots.length > 0) {
+                    data.matchPlots.forEach(plot => {
+                        const img = document.createElement('img');
+                        img.src = `/${plot}?t=${new Date().getTime()}`;
+                        img.alt = 'Instruction match plot';
+                        img.className = 'shadow-effect';
+                        instructionMatchPlots.appendChild(img);
+                    });
+                }
+
+                // Handle LLM validation if enabled
+                const confirmationBlock = document.getElementById('confirmationBlock');
+                if (enableLLMPlanner) {
+                    // Show confirmation buttons even when LLM planner is enabled
+                    confirmationBlock.style.display = 'block';
+                    
+                    // Update button labels and question text for LLM validation
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = confirmationBlock.querySelector('p');
+                    
+                    correctBtn.textContent = 'Agree with LLM';
+                    incorrectBtn.textContent = 'Disagree with LLM';
+                    confirmationQuestion.textContent = 'Do you agree with the LLM assessment?';
+                    
+                    // Display LLM validation result but allow user to override
+                    if (data.llm_validation_result !== undefined) {
+                        const confirmationResult = document.getElementById('confirmationResult');
+                        if (data.llm_validation_result) {
+                            confirmationResult.innerHTML = '<br>✓ LLM validation: Instructions are complete and correct.<br><strong>Please confirm if you agree with this assessment:</strong>';
+                            confirmationResult.style.color = 'green';
+                        } else {
+                            confirmationResult.innerHTML = '<br>⚠ LLM validation: Instructions may be incomplete or need refinement.<br><strong>Please confirm if you agree with this assessment:</strong>';
+                            confirmationResult.style.color = 'orange';
+                        }
+                        
+                        // Store LLM validation result for later use
+                        window.currentLLMValidationResult = data.llm_validation_result;
+                    }
+                } else {
+                    // Show manual confirmation buttons when LLM planner is disabled
+                    confirmationBlock.style.display = 'block';
+                    
+                    // Reset button labels and question text to default
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = confirmationBlock.querySelector('p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
+                }
+            } catch (error) {
+                console.error('Error processing input:', error);
+                loadingCircleSubmit.style.display = 'none';
+                input.disabled = false;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function confirmResult(isCorrect) {
+            const confirmationResult = document.getElementById('confirmationResult');
+            const loadingCircleConfirm = document.getElementById('loadingCircleConfirm');
+            const user_input = document.getElementById('userInput').value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
+
+            confirmationResult.innerHTML = '';
+            loadingCircleConfirm.style.display = 'block';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            console.log(`Sending confirmation: isCorrect=${isCorrect}, userInput=${user_input}, enableLLMPlanner=${enableLLMPlanner}`);
+
+            const requestBody = {
+                isCorrect: isCorrect, 
+                userInput: user_input,
+                selectedApps: [selectedApp],
+            };
+
+            // Add LLM planner flag if enabled
+            if (enableLLMPlanner) {
+                requestBody.enableLLMPlanner = true;
+                requestBody.isLLMValidation = true;
+            }
+
+            fetch('/confirm_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Error response from server:', response);
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server response:', data);
+                confirmationResult.innerHTML = data.message;
+                confirmationResult.style.color = isCorrect ? 'green' : 'red';
+                loadingCircleConfirm.style.display = 'none';
+                document.getElementById('loadingOverlay').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error sending confirmation:', error);
+                confirmationResult.innerHTML = 'Error sending confirmation';
+                confirmationResult.style.color = 'red';
+                loadingCircleConfirm.style.display = 'none';
+                document.getElementById('loadingOverlay').style.display = 'none';
+            });
+        }
+
+
+
+        function clearPreviousJobState() {
+            if (jobEventSource) {
+                jobEventSource.close();
+                jobEventSource = null;
+            }
+            currentJobId = null;
+            // Clear real-time render display
+            const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+            realTimeRenderDisplay.style.display = 'none';
+            document.getElementById('realTimeRenderCarousel').innerHTML = '';
+            document.getElementById('realTimeRenderPhaseTitle').textContent = 'Waiting for first render...';
+            document.getElementById('realTimeRenderStatus').textContent = 'No figures available yet';
+            
+            // Clear recent training log
+            document.getElementById('recentTrainingLog').innerHTML = '';
+        }
+
+        async function runExperiment() {
+            clearPreviousJobState(); // Clear any state from a previous run
+
+            // Hide instructions and show loading
+            document.getElementById('experimentInstructions').style.display = 'none';
+            document.getElementById('experimentLoading').style.display = 'block';
+            document.getElementById('runExperimentBtn').disabled = true;
+
+            const selectedAgents = Array.from(document.querySelectorAll('input[name="agentType"]:checked'))
+                .map(cb => cb.value);
+
+            // Create agent_adapter_dict by collecting adapters for each selected agent
+            const agent_adapter_dict = {};
+            selectedAgents.forEach(agentId => {
+                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                if (adapterSubgroup) {
+                    const selectedAdapters = Array.from(adapterSubgroup.querySelectorAll('input[name="adapter"]:checked'))
+                        .map(cb => cb.value);
+                    if (selectedAdapters.length > 0) {
+                        agent_adapter_dict[agentId] = selectedAdapters;
+                    }
+                }
+            });
+
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const observedState = document.getElementById('observedStateSelect').value;
+            const selectedPlot = document.getElementById('plotSelect').value;
+
+            const trainingEpisodes = parseInt(document.getElementById('trainingEpisodes').value);
+            const trainingRepeats = parseInt(document.getElementById('trainingRepeats').value);
+            // const trainingSeeds = parseInt(document.getElementById('trainingSeeds').value);
+            const testEpisodes = parseInt(document.getElementById('testEpisodes').value);
+            const testRepeats = parseInt(document.getElementById('testRepeats').value);
+
+            if (!selectedApp) {
+                alert('Please select an application');
+                return;
+            }
+            
+            // Remove real-time render display setup
+            // const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+            // realTimeRenderDisplay.style.display = 'none';
+            const logContainer = document.getElementById('trainingLogOutputContainer');
+            logContainer.style.display = 'block'; 
+            const trainingLogOutput = document.getElementById('trainingLogOutput');
+            trainingLogOutput.innerHTML = '<p>Initializing experiment...</p>'; // Initial message
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            // loadingOverlay.style.display = 'flex'; // Only show for final results processing
+
+            const params = {
+                userInput: document.getElementById('userInput').value,
+                trainingEpisodes: trainingEpisodes,
+                trainingRepeats: trainingRepeats,
+                // trainingSeeds: trainingSeeds,
+                testEpisodes: testEpisodes,
+                testRepeats: testRepeats,
+                selectedAgents: selectedAgents,
+                agent_adapter_dict: agent_adapter_dict, // Send the new agent_adapter_dict
+                selectedApps: [selectedApp],
+                localConfigInput: localConfig,
+                observedStateInput: observedState,
+                selectedPlot: selectedPlot,
+                experimentConfigSelect: document.getElementById('experimentConfigSelect').value
+            };
+
+            // Add note if instruction preset is active
+            if (instructionPresetActive) {
+                const activePresetName = document.getElementById('activePresetName').textContent;
+                trainingLogOutput.innerHTML += `<p style="color: blue;"><strong>Note:</strong> Using instruction preset: ${activePresetName}</p>`;
+            }
+
+            if (agentParameterDefinitions) {
+                selectedAgents.forEach(agentId => {
+                    if (agentParameterDefinitions[agentId] && agentParameterDefinitions[agentId].params) {
+                        for (const paramKey in agentParameterDefinitions[agentId].params) {
+                            const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                            if (inputElement) {
+                                params[`${agentId}_${paramKey}`] = inputElement.value;
+                            }
+                        }
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch('/train_model', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(params)
+                });
+
+                // loadingOverlay.style.display = 'none'; // Handled by SSE and polling logic now
+
+                const data = await response.json(); // This is from /train_model, expecting {job_id: ...}
+                if (data.error) {
+                    console.error('Error starting training job:', data.error);
+                    trainingLogOutput.innerHTML = `<p style="color: red;">Error starting job: ${data.error}</p>`;
+                    return;
+                }
+
+                currentJobId = data.job_id;
+                if (!currentJobId) {
+                    trainingLogOutput.innerHTML = '<p style="color: red;">Failed to get Job ID from server.</p>';
+                    return;
+                }
+
+                trainingLogOutput.innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
+                
+                // Show real-time render display
+                const realTimeRenderDisplay = document.getElementById('realTimeRenderDisplay');
+                realTimeRenderDisplay.style.display = 'block';
+                document.getElementById('realTimeRenderPhaseTitle').textContent = 'Waiting for first render...';
+                document.getElementById('realTimeRenderCarousel').innerHTML = ''; // Clear previous figures
+                document.getElementById('realTimeRenderStatus').textContent = 'Initializing experiment...';
+                
+                // Update recent training log with initial message
+                document.getElementById('recentTrainingLog').innerHTML = `<p>Training job started with ID: ${currentJobId}. Waiting for updates...</p>`;
+
+                // Start SSE for job notifications
+                jobEventSource = new EventSource(`/stream_job_notifications/${currentJobId}`);
+
+                jobEventSource.onmessage = function(event) {
+                    const message = event.data;
+                    console.log("SSE Message:", message);
+                    
+                    // Update both the main training log and the recent training log
+                    let logMessage = '';
+                    let shouldUpdateRecentLog = false;
+                    
+                    if (message.startsWith("EVENT: RENDER_PHASE_TITLE:")) {
+                        const phaseTitle = message.substring("EVENT: RENDER_PHASE_TITLE:".length).trim();
+                        // Update real-time render phase title display
+                        document.getElementById('realTimeRenderPhaseTitle').textContent = phaseTitle;
+                        document.getElementById('realTimeRenderStatus').innerHTML = `<span style="color: orange;">⏳ Processing: ${phaseTitle}</span>`;
+                        // Log this change to the main log for visibility
+                        logMessage = `<p style="color: mediumpurple;"><strong>Phase:</strong> ${phaseTitle}</p>`;
+                        shouldUpdateRecentLog = true;
+                    } else if (message.startsWith("EVENT: RENDER_FIGURE:")) {
+                        // Handle real-time figure updates
+                        const figureData = message.substring("EVENT: RENDER_FIGURE:".length).trim();
+                        try {
+                            const figureInfo = JSON.parse(figureData);
+                            if (figureInfo.figure_path) {
+                                const carousel = document.getElementById('realTimeRenderCarousel');
+                                
+                                // Clear previous figures and show only the most recent
+                                carousel.innerHTML = '';
+                                
+                                // Create figure container
+                                const figureContainer = document.createElement('div');
+                                figureContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin: 10px;';
+                                
+                                // Create image element
+                                const imgElement = document.createElement('img');
+                                imgElement.src = `/${figureInfo.figure_path}?t=${new Date().getTime()}`;
+                                imgElement.alt = 'Experiment result';
+                                imgElement.className = 'shadow-effect';
+                                imgElement.style.cssText = 'max-width: 300px; max-height: 300px; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 5px;';
+                                
+                                // Create caption
+                                const caption = document.createElement('p');
+                                caption.textContent = figureInfo.filename || figureInfo.experiment_type || 'Experiment';
+                                caption.style.cssText = 'font-size: 12px; color: var(--text-color); margin: 0; font-weight: bold;';
+                                
+                                figureContainer.appendChild(imgElement);
+                                figureContainer.appendChild(caption);
+                                carousel.appendChild(figureContainer);
+                                
+                                document.getElementById('realTimeRenderStatus').innerHTML = `<span style="color: green;">Latest figure: ${figureInfo.filename || figureInfo.experiment_type || 'Experiment'}</span>`;
+                                logMessage = `<p style="color: green;"><strong>Figure rendered:</strong> ${figureInfo.figure_path}</p>`;
+                                shouldUpdateRecentLog = true;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing figure data:', e);
+                        }
+                    } else if (message.startsWith("EVENT: JOB_COMPLETE")) {
+                        logMessage = `<p><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Experiment completed - see Results tab for all figures';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
+                        fetchAndDisplayFinalResults(currentJobId);
+                    } else if (message.startsWith("EVENT: JOB_FAILED")) {
+                        logMessage = `<p style="color: red;"><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Experiment failed';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
+                        // Optionally try to fetch partial results or error details if your backend supports it
+                    } else if (message.startsWith("ERROR:")) {
+                        logMessage = `<p style="color: red;">${message}</p>`;
+                        shouldUpdateRecentLog = true;
+                        // Keep listening for JOB_FAILED, but log error
+                    } else if (message.startsWith("WARNING:")) {
+                        logMessage = `<p style="color: orange;">${message}</p>`;
+                        shouldUpdateRecentLog = true;
+                    } else if (message.startsWith("INFO:") || message.startsWith("EVENT:")) {
+                        logMessage = `<p>${message}</p>`;
+                        shouldUpdateRecentLog = true;
+                    } else if (message.startsWith("SSE_ERROR:") || message.includes("Job ID") && message.includes("not found")){
+                        logMessage = `<p style="color: red;"><strong>${message}</strong></p>`;
+                        document.getElementById('realTimeRenderStatus').textContent = 'Connection error';
+                        
+                        // Restore instructions and hide loading
+                        document.getElementById('experimentInstructions').style.display = 'block';
+                        document.getElementById('experimentLoading').style.display = 'none';
+                        document.getElementById('runExperimentBtn').disabled = false;
+                        
+                        if (jobEventSource) {
+                            jobEventSource.close();
+                            jobEventSource = null;
+                        }
+                        // Critical SSE error, stop everything for this job
+                    }
+                    
+                    // Update the main training log
+                    if (logMessage) {
+                        trainingLogOutput.innerHTML += logMessage;
+                    }
+                    
+                    // Update the recent training log with the most recent messages (keep last 10 messages)
+                    if (shouldUpdateRecentLog && logMessage) {
+                        const recentLog = document.getElementById('recentTrainingLog');
+                        const currentContent = recentLog.innerHTML;
+                        const messages = currentContent.split('</p>').filter(msg => msg.trim());
+                        
+                        // Add new message
+                        messages.push(logMessage.replace('<p>', '').replace('</p>', ''));
+                        
+                        // Keep only the last 10 messages
+                        const recentMessages = messages.slice(-10);
+                        
+                        // Reconstruct the HTML
+                        recentLog.innerHTML = recentMessages.map(msg => `<p>${msg}</p>`).join('');
+                        recentLog.scrollTop = recentLog.scrollHeight; // Auto-scroll to bottom
+                    }
+                    
+                    trainingLogOutput.scrollTop = trainingLogOutput.scrollHeight; // Auto-scroll
+                };
+
+                jobEventSource.onerror = function(err) {
+                    trainingLogOutput.innerHTML += "<p style='color: red;'><strong>Job notification stream error. Connection lost.</strong></p>";
+                    console.error("Job EventSource failed:", err);
+                    
+                    // Restore instructions and hide loading
+                    document.getElementById('experimentInstructions').style.display = 'block';
+                    document.getElementById('experimentLoading').style.display = 'none';
+                    document.getElementById('runExperimentBtn').disabled = false;
+                    
+                    // Close this specific EventSource instance
+                    if (jobEventSource) {
+                        jobEventSource.close();
+                        jobEventSource = null;
+                    }
+                };
+
+            } catch (error) {
+                console.error('Error initiating experiment run:', error);
+                trainingLogOutput.innerHTML = `<p style="color: red;">Failed to initiate experiment: ${error}</p>`;
+                
+                // Restore instructions and hide loading on error
+                document.getElementById('experimentInstructions').style.display = 'block';
+                document.getElementById('experimentLoading').style.display = 'none';
+                document.getElementById('runExperimentBtn').disabled = false;
+                
+                if (loadingOverlay) loadingOverlay.style.display = 'none'; // Ensure overlay is off on error
+            }
+        }
+
+        async function fetchAndDisplayFinalResults(jobId) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            const trainingLogOutput = document.getElementById('trainingLogOutput');
+            trainingLogOutput.innerHTML += `<p>Fetching final results for job ${jobId}...</p>`;
+
+            try {
+                const resultsResponse = await fetch(`/get_job_results/${jobId}`);
+                const jobResultsData = await resultsResponse.json();
+
+                if (jobResultsData.error) {
+                    trainingLogOutput.innerHTML += `<p style="color: red;">Error fetching final results: ${jobResultsData.error}</p>`;
+                    return;
+                }
+                
+                const data = jobResultsData.results; // Assuming results are nested under a 'results' key
+                if (!data || data.status === 'failed'){
+                    trainingLogOutput.innerHTML += `<p style="color: red;">Job ${jobId} failed or no results available. Error: ${data ? data.error : 'Unknown'}</p>`;
+                    return;
+                }
+
+                const instructionsSummary = document.getElementById('instructionsSummary');
+                const resultsContainer = document.getElementById('resultsContainer');
+                const varianceAnalysisContainer = document.getElementById('varianceAnalysisContainer');
+                instructionsSummary.innerHTML = '';
+                resultsContainer.innerHTML = '';
+                varianceAnalysisContainer.innerHTML = '';
+
+                const correctInstructionsResponse = await fetch('/get_correct_instructions');
+                const correctInstructionsData = await correctInstructionsResponse.json();
+                const correctInstructions = correctInstructionsData.correctInstructions;
+
+                correctInstructions.forEach((instruction, index) => {
+                    const instructionDiv = document.createElement('div');
+                    const instructions = instruction.split('\n').join(' - ');
+                    instructionDiv.innerHTML = `<b>Instruction ${index}:</b> ${instructions}`;
+                    instructionsSummary.appendChild(instructionDiv);
+                });
+
+                if (data.figures && data.figures.length > 0) {
+                    data.figures.forEach(figPath => {
+                        const img = document.createElement('img');
+                        // Ensure the image is loaded from the uploads directory
+                        let imgSrc = figPath.startsWith('uploads/') ? `/${figPath}` : `/uploads/${figPath}`;
+                        img.src = `${imgSrc}?t=${new Date().getTime()}`;
+                        img.alt = 'Analysis result';
+                        img.className = 'shadow-effect';
+                        
+                        const plotContainer = document.createElement('div');
+                        plotContainer.className = 'plot-container';
+                        plotContainer.style.marginBottom = '20px';
+                        
+                        const filename = figPath.split('/').pop().split('.')[0];
+                        const title = document.createElement('h3');
+                        title.textContent = filename.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        title.style.marginBottom = '10px';
+                        title.style.color = 'var(--text-color)';
+                        
+                        plotContainer.appendChild(title);
+                        plotContainer.appendChild(img);
+
+                        if (figPath.includes('variance_analysis')) {
+                            varianceAnalysisContainer.appendChild(plotContainer);
+                        } else {
+                            resultsContainer.appendChild(plotContainer);
+                        }
+                    });
+                } else {
+                     resultsContainer.innerHTML = '<p>No figures were generated or found for this experiment.</p>';
+                }
+
+            } catch (error) {
+                console.error('Error fetching final results:', error);
+                trainingLogOutput.innerHTML += `<p style="color: red;">Error fetching final results: ${error}</p>`;
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            
+            tabcontent = document.getElementsByClassName("tab-content");
+        
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            if (evt) {
+                evt.currentTarget.className += " active";
+            } else {
+                const defaultActiveButton = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+                if (defaultActiveButton) {
+                    defaultActiveButton.className += " active";
+                }            
+            }
+        }
+
+        window.onload = function() {
+            openTab(null, 'homeTab');
+            fetch('/load_data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data loaded successfully');
+                })
+                .catch(error => console.error('Error loading data:', error));
+        };
+
+        async function resetAllInstructions() {
+            if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset_all_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    document.getElementById('userInput').value = '';
+                    document.getElementById('consoleOutput').innerHTML = '';
+                    document.getElementById('instructionMatchPlots').innerHTML = '';
+                    document.getElementById('confirmationResult').innerHTML = '<p style="color: green;">All instructions have been reset.</p>';
+                    
+                    // Reset confirmation block to default state
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = document.querySelector('#confirmationBlock p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
+                    
+                    // Hide confirmation block
+                    document.getElementById('confirmationBlock').style.display = 'none';
+                    
+                    // Call newInstruction to reset any client-side counters or states related to current input if needed
+                    // This will also effectively reset global_input_count on server if new_instruction makes a call that implies it.
+                    // However, /reset_all_instructions already resets global_input_count on server.
+                    // For simple UI reset:
+                    fetch('/new_instruction', { method: 'POST' }) // This ensures any specific UI state tied to new_instruction is also reset
+                        .then(() => console.log("Client-side new instruction state also reset."))
+                        .catch(err => console.error("Error calling /new_instruction during reset:", err));
+                    
+                    alert(data.message);
+                } else {
+                    alert("Failed to reset instructions: " + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error resetting instructions:', error);
+                alert('An error occurred while trying to reset instructions.');
+            }
+        }
+
+        function loadInterfaceGuide() {
+            const guideContent = document.getElementById('interfaceGuideContent');
+            const loadingCircle = guideContent.querySelector('.loading-circle');
+            
+            fetch('/get_interface_guide')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        guideContent.innerHTML = `<p style="color: red;">Error loading guide: ${data.error}</p>`;
+                    } else {
+                        guideContent.innerHTML = data.content;
+                    }
+                })
+                .catch(error => {
+                    guideContent.innerHTML = `<p style="color: red;">Error loading guide: ${error}</p>`;
+                });
+        }
+
+        // Load applications overview
+        function loadApplicationsOverview() {
+            const overviewContainer = document.getElementById('applicationsOverview');
+            overviewContainer.innerHTML = '<div class="loading-circle"></div> Loading applications...';
+            
+            fetch('/get_all_applications_info')
+                .then(response => response.json())
+                .then(data => {
+                    displayApplications(data.applications);
+                })
+                .catch(error => {
+                    console.error('Error loading applications overview:', error);
+                    overviewContainer.innerHTML = '<p style="color: red;">Error loading applications overview</p>';
+                });
+        }
+
+        function displayApplications(applications) {
+            const overviewContainer = document.getElementById('applicationsOverview');
+            overviewContainer.innerHTML = '';
+            
+            applications.forEach(app => {
+                const card = createApplicationCard(app);
+                overviewContainer.appendChild(card);
+            });
+        }
+
+        function createApplicationCard(app) {
+            const card = document.createElement('div');
+            let cardClass = 'application-card';
+            
+            // Add update highlighting class if updates are available
+            if (app.is_downloaded && app.has_updates) {
+                cardClass += ' has-updates';
+            }
+            
+            card.className = cardClass;
+            
+            const statusClass = app.is_downloaded ? 'status-downloaded' : 'status-available';
+            let statusText = app.is_downloaded ? 'Downloaded' : 'Download';
+            
+            // Update status text if updates are available
+            if (app.is_downloaded && app.has_updates) {
+                statusText = 'Update Available';
+            }
+            
+            // Format last updated timestamp
+            let lastUpdatedText = 'Never';
+            if (app.last_updated) {
+                let date;
+                // Check if it's already a timestamp string (ISO format)
+                if (typeof app.last_updated === 'string') {
+                    date = new Date(app.last_updated);
+                } else {
+                    // Assume it's a Unix timestamp
+                    date = new Date(app.last_updated * 1000);
+                }
+                
+                // Check if date is valid
+                if (!isNaN(date.getTime())) {
+                    // Format the date in a more readable way
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    
+                    if (diffMinutes < 1) {
+                        lastUpdatedText = 'Just now';
+                    } else if (diffMinutes < 60) {
+                        lastUpdatedText = `${diffMinutes}m ago`;
+                    } else if (diffHours < 24) {
+                        lastUpdatedText = `${diffHours}h ago`;
+                    } else if (diffDays < 7) {
+                        lastUpdatedText = `${diffDays}d ago`;
+                    } else {
+                        lastUpdatedText = date.toLocaleDateString();
+                    }
+                } else {
+                    lastUpdatedText = 'Unknown';
+                }
+            }
+            
+            // Create repository URL
+            const repoUrl = `https://github.com/${app.github_user}/${app.repository}`;
+            
+            // Create the card content
+            let statusElement = '';
+            if (app.is_downloaded && app.has_updates) {
+                // For downloaded apps with updates, status is clickable and acts as update button
+                statusElement = `<div class="status ${statusClass} clickable" onclick="downloadApplication('${app.name}')">${statusText}</div>`;
+            } else if (app.is_downloaded) {
+                // For downloaded apps without updates, status is not clickable
+                statusElement = `<div class="status ${statusClass}">${statusText}</div>`;
+            } else {
+                // For available apps, status is clickable and acts as download button
+                statusElement = `<div class="status ${statusClass} clickable" onclick="downloadApplication('${app.name}')">${statusText}</div>`;
+            }
+            
+            const cardContent = `${statusElement}
+                <h4>${app.name}</h4>
+                <div class="metadata">
+                    <div>
+                        <a href="${repoUrl}" target="_blank" class="repo-link">${app.github_user}/${app.repository}</a>
+                    </div>
+                    <div class="last-updated">Updated: ${lastUpdatedText}</div>
+                </div>`;
+            
+            card.innerHTML = cardContent;
+            return card;
+        }
+
+        function downloadApplication(applicationName) {
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            // Show download status
+            downloadStatus.style.display = 'block';
+            statusText.textContent = `Checking for updates for ${applicationName}...`;
+            
+            // Disable all download buttons and clickable status elements
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
+            });
+            
+            fetch('/download_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    application_name: applicationName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'needs_confirmation') {
+                    // Show confirmation dialog
+                    showUpdateConfirmationDialog(applicationName, data.update_info);
+                } else if (data.status === 'success') {
+                    statusText.textContent = `Successfully downloaded ${applicationName}`;
+                    statusText.style.color = 'green';
+                    
+                    // Refresh application data and reload the interface
+                    setTimeout(() => {
+                        refreshApplicationData();
+                    }, 1000);
+                } else {
+                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('Error downloading application:', error);
+                statusText.textContent = `Error downloading ${applicationName}`;
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Re-enable download buttons and clickable status elements
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
+                // Hide download status after 5 seconds (only if not showing confirmation)
+                if (data && data.status !== 'needs_confirmation') {
+                    setTimeout(() => {
+                        downloadStatus.style.display = 'none';
+                        statusText.style.color = '';
+                    }, 5000);
+                }
+            });
+        }
+
+        function showUpdateConfirmationDialog(applicationName, updateInfo) {
+            const dialog = document.createElement('div');
+            dialog.className = 'update-confirmation-dialog';
+            dialog.innerHTML = `
+                <div class="dialog-content">
+                    <h3>Updates Available</h3>
+                    <p>There are updates available for <strong>${applicationName}</strong>:</p>
+                    <div class="update-info">
+                        <p><strong>Current version:</strong> ${updateInfo.current_commit_short}</p>
+                        <p><strong>Latest version:</strong> ${updateInfo.remote_commit_short}</p>
+                    </div>
+                    <p>Would you like to update to the latest version?</p>
+                    <div class="dialog-buttons">
+                        <button class="btn btn-primary" onclick="confirmUpdate('${applicationName}')">Update Now</button>
+                        <button class="btn btn-secondary" onclick="cancelUpdate()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .update-confirmation-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                .dialog-content {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                .update-info {
+                    background: #f5f5f5;
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin: 10px 0;
+                }
+                .dialog-buttons {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: flex-end;
+                    margin-top: 20px;
+                }
+                .btn {
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                .btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                }
+                .btn-secondary {
+                    background-color: #6c757d;
+                    color: white;
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(dialog);
+        }
+
+        function confirmUpdate(applicationName) {
+            // Remove dialog
+            const dialog = document.querySelector('.update-confirmation-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            
+            // Proceed with forced update
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            downloadStatus.style.display = 'block';
+            statusText.textContent = `Updating ${applicationName}...`;
+            
+            // Disable all download buttons and clickable status elements
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
+            });
+            
+            fetch('/download_application', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    application_name: applicationName,
+                    force_update: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    statusText.textContent = `Successfully updated ${applicationName}`;
+                    statusText.style.color = 'green';
+                    
+                    // Refresh application data and reload the interface
+                    setTimeout(() => {
+                        refreshApplicationData();
+                    }, 1000);
+                } else {
+                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating application:', error);
+                statusText.textContent = `Error updating ${applicationName}`;
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Re-enable download buttons and clickable status elements
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
+                // Hide download status after 5 seconds
+                setTimeout(() => {
+                    downloadStatus.style.display = 'none';
+                    statusText.style.color = '';
+                }, 5000);
+            });
+        }
+
+        function cancelUpdate() {
+            // Remove dialog
+            const dialog = document.querySelector('.update-confirmation-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            
+            // Hide download status
+            const downloadStatus = document.getElementById('downloadStatus');
+            downloadStatus.style.display = 'none';
+        }
+
+        function checkAllUpdates() {
+            const downloadStatus = document.getElementById('downloadStatus');
+            const statusText = document.getElementById('downloadStatusText');
+            
+            // Show status
+            downloadStatus.style.display = 'block';
+            statusText.textContent = 'Checking for updates on all applications...';
+            statusText.style.color = '';
+            
+            // Disable buttons during check
+            const checkButton = event.target;
+            const updateButton = checkButton.nextElementSibling;
+            checkButton.disabled = true;
+            updateButton.disabled = true;
+            
+            // Disable clickable status elements
+            document.querySelectorAll('.status.clickable').forEach(status => {
+                status.style.pointerEvents = 'none';
+                status.style.opacity = '0.6';
+            });
+            
+            fetch('/check_all_application_updates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    statusText.textContent = `Error: ${data.error}`;
+                    statusText.style.color = 'red';
+                } else {
+                    const totalChecked = data.total_checked;
+                    const hasUpdates = data.has_any_updates;
+                    const applications = data.applications;
+                    
+                    if (totalChecked === 0) {
+                        statusText.textContent = 'No downloaded applications found to check.';
+                        statusText.style.color = 'orange';
+                    } else if (hasUpdates) {
+                        statusText.textContent = `Found updates for ${Object.values(applications).filter(app => app.has_updates).length} out of ${totalChecked} applications.`;
+                        statusText.style.color = 'orange';
+                        
+                        // Show detailed update information
+                        showUpdateResultsDialog(applications);
+                    } else {
+                        statusText.textContent = `All ${totalChecked} applications are up to date.`;
+                        statusText.style.color = 'green';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking updates:', error);
+                statusText.textContent = 'Error checking for updates.';
+                statusText.style.color = 'red';
+            })
+            .finally(() => {
+                // Re-enable buttons
+                checkButton.disabled = false;
+                updateButton.disabled = false;
+                
+                // Re-enable clickable status elements
+                document.querySelectorAll('.status.clickable').forEach(status => {
+                    status.style.pointerEvents = 'auto';
+                    status.style.opacity = '1';
+                });
+                
+                // Hide status after 5 seconds
+                setTimeout(() => {
+                    downloadStatus.style.display = 'none';
+                    statusText.style.color = '';
+                }, 5000);
+            });
+        }
+
+        function showUpdateResultsDialog(applications) {
+            const dialog = document.createElement('div');
+            dialog.className = 'update-results-dialog';
+            
+            // Filter applications with updates
+            const appsWithUpdates = Object.entries(applications).filter(([name, info]) => info.has_updates);
+            const appsUpToDate = Object.entries(applications).filter(([name, info]) => !info.has_updates && !info.error);
+            const appsWithErrors = Object.entries(applications).filter(([name, info]) => info.error);
+            
+            dialog.innerHTML = `
+                <div class="dialog-content">
+                    <h3>Update Check Results</h3>
+                    <div class="update-summary">
+                        <p><strong>Applications with updates:</strong> ${appsWithUpdates.length}</p>
+                        <p><strong>Applications up to date:</strong> ${appsUpToDate.length}</p>
+                        ${appsWithErrors.length > 0 ? `<p><strong>Applications with errors:</strong> ${appsWithErrors.length}</p>` : ''}
+                    </div>
+                    
+                    ${appsWithUpdates.length > 0 ? `
+                        <div class="updates-section">
+                            <h4>Available Updates</h4>
+                            ${appsWithUpdates.map(([name, info]) => `
+                                <div class="update-item">
+                                    <strong>${name}</strong>
+                                    <div class="commit-info">
+                                        <span>Current: ${info.current_commit_short || 'Unknown'}</span>
+                                        <span>Latest: ${info.remote_commit_short || 'Unknown'}</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-primary" onclick="downloadApplication('${name}')">Update</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${appsWithErrors.length > 0 ? `
+                        <div class="errors-section">
+                            <h4>Errors</h4>
+                            ${appsWithErrors.map(([name, info]) => `
+                                <div class="error-item">
+                                    <strong>${name}</strong>
+                                    <span class="error-message">${info.error}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="dialog-buttons">
+                        <button class="btn btn-secondary" onclick="closeUpdateResultsDialog()">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .update-results-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                .update-results-dialog .dialog-content {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                }
+                .update-summary {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 4px;
+                    margin: 15px 0;
+                }
+                .updates-section, .errors-section {
+                    margin: 20px 0;
+                }
+                .update-item, .error-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    border: 1px solid #dee2e6;
+                    border-radius: 4px;
+                    margin: 5px 0;
+                }
+                .commit-info {
+                    display: flex;
+                    gap: 15px;
+                    font-size: 0.9em;
+                    color: #6c757d;
+                }
+                .error-message {
+                    color: #dc3545;
+                    font-size: 0.9em;
+                }
+                .btn-sm {
+                    padding: 4px 8px;
+                    font-size: 0.8em;
+                }
+                .dialog-buttons {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 20px;
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(dialog);
+        }
+
+        function closeUpdateResultsDialog() {
+            const dialog = document.querySelector('.update-results-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        }
+
+        function refreshApplicationData() {
+            // Refresh the application data on the server
+            fetch('/refresh_application_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Reload applications overview to update status
+                    loadApplicationsOverview();
+                    
+                    // Reload the application selector
+                    fetch('/get_applications')
+                        .then(response => response.json())
+                        .then(data => {
+                            const select = document.getElementById('applicationSelect');
+                            const noAppsMessage = document.getElementById('noApplicationsMessage');
+                            
+                            // Clear existing options
+                            select.innerHTML = '';
+                            
+                            if (data.applications && data.applications.length > 0) {
+                                const defaultOption = document.createElement('option');
+                                defaultOption.value = '';
+                                defaultOption.text = 'Choose application...';
+                                defaultOption.disabled = true;
+                                defaultOption.selected = true;
+                                select.appendChild(defaultOption);
+                                
+                                data.applications.forEach(app => {
+                                    const option = document.createElement('option');
+                                    option.value = app;
+                                    option.textContent = app;
+                                    select.appendChild(option);
+                                });
+                                
+                                noAppsMessage.style.display = 'none';
+                            } else {
+                                // No applications downloaded
+                                const defaultOption = document.createElement('option');
+                                defaultOption.value = '';
+                                defaultOption.text = 'No applications downloaded';
+                                defaultOption.disabled = true;
+                                defaultOption.selected = true;
+                                select.appendChild(defaultOption);
+                                
+                                noAppsMessage.style.display = 'block';
+                            }
+                        })
+                        .catch(error => console.error('Error refreshing applications:', error));
+                    
+                    // Refresh all options if they were updated
+                    if (data.options_updated) {
+                        fetch('/get_all_options')
+                            .then(response => response.json())
+                            .then(data => {
+                                allConfigs = data.localConfigs;
+                                allObservedStates = data.observedStates;
+                                allPlotOptions = data.plotOptions;
+                                allExperimentConfigs = data.experimentConfigs;
+                                console.log('Options refreshed after application download');
+                            })
+                            .catch(error => console.error('Error refreshing options:', error));
+                    }
+                }
+            })
+            .catch(error => console.error('Error refreshing application data:', error));
+        }
+
+        // Call this when the page loads
+        window.addEventListener('load', function() {
+            loadInterfaceGuide();
+        });
+
+        async function exportConfiguration() {
+            const exportStatus = document.getElementById('exportStatus');
+            exportStatus.innerHTML = '<div class="loading-circle"></div> Exporting configuration...';
+            
+            // Collect all configuration data
+            const config = {
+                application: document.getElementById('applicationSelect').value,
+                local_config: document.getElementById('localConfigSelect').value,
+                observed_state: document.getElementById('observedStateSelect').value,
+                selected_plot: document.getElementById('plotSelect').value,
+                training_episodes: parseInt(document.getElementById('trainingEpisodes').value),
+                training_repeats: parseInt(document.getElementById('trainingRepeats').value),
+                // training_seeds: parseInt(document.getElementById('trainingSeeds').value),
+                test_episodes: parseInt(document.getElementById('testEpisodes').value),
+                test_repeats: parseInt(document.getElementById('testRepeats').value),
+                selected_agents: Array.from(document.querySelectorAll('input[name="agentType"]:checked')).map(cb => cb.value),
+                agent_adapter_dict: {},
+                agent_parameters: {}
+            };
+
+            // Collect adapter selections
+            config.selected_agents.forEach(agentId => {
+                const adapterSubgroup = document.getElementById(`adapters-${agentId}`);
+                if (adapterSubgroup) {
+                    const selectedAdapters = Array.from(adapterSubgroup.querySelectorAll('input[name="adapter"]:checked'))
+                        .map(cb => cb.value);
+                    if (selectedAdapters.length > 0) {
+                        config.agent_adapter_dict[agentId] = selectedAdapters;
+                    }
+                }
+            });
+
+            // Collect agent parameters
+            if (agentParameterDefinitions) {
+                config.selected_agents.forEach(agentId => {
+                    if (agentParameterDefinitions[agentId] && agentParameterDefinitions[agentId].params) {
+                        config.agent_parameters[agentId] = {};
+                        for (const paramKey in agentParameterDefinitions[agentId].params) {
+                            const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                            if (inputElement) {
+                                config.agent_parameters[agentId][paramKey] = inputElement.value;
+                            }
+                        }
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch('/export_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    exportStatus.innerHTML = `<p style="color: green;">✓ ${data.message}</p>`;
+                } else {
+                    exportStatus.innerHTML = `<p style="color: red;">✗ Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                exportStatus.innerHTML = `<p style="color: red;">✗ Error exporting configuration: ${error}</p>`;
+            }
+        }
+
+        async function importConfiguration(input) {
+            const exportStatus = document.getElementById('exportStatus');
+            if (!input.files || !input.files[0]) {
+                return;
+            }
+
+            exportStatus.innerHTML = '<div class="loading-circle"></div> Importing configuration...';
+            
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const response = await fetch('/import_config', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Apply the imported configuration
+                    const config = data.config;
+                    
+                    // Set application
+                    const appSelect = document.getElementById('applicationSelect');
+                    if (config.application) {
+                        appSelect.value = config.application;
+                        appSelect.dispatchEvent(new Event('change'));
+                    }
+
+                    // Set training parameters
+                    if (config.training_episodes) document.getElementById('trainingEpisodes').value = config.training_episodes;
+                    if (config.training_repeats) document.getElementById('trainingRepeats').value = config.training_repeats;
+                    // if (config.training_seeds) document.getElementById('trainingSeeds').value = config.training_seeds;
+                    if (config.test_episodes) document.getElementById('testEpisodes').value = config.test_episodes;
+                    if (config.test_repeats) document.getElementById('testRepeats').value = config.test_repeats;
+
+                    // Set agents and adapters
+                    if (config.selected_agents) {
+                        document.querySelectorAll('input[name="agentType"]').forEach(checkbox => {
+                            checkbox.checked = config.selected_agents.includes(checkbox.value);
+                            checkbox.dispatchEvent(new Event('change'));
+                        });
+                    }
+
+                    // Set agent parameters
+                    if (config.agent_parameters) {
+                        for (const agentId in config.agent_parameters) {
+                            for (const paramKey in config.agent_parameters[agentId]) {
+                                const inputElement = document.getElementById(`${agentId}_${paramKey}`);
+                                if (inputElement) {
+                                    inputElement.value = config.agent_parameters[agentId][paramKey];
+                                }
+                            }
+                        }
+                    }
+
+                    exportStatus.innerHTML = `<p style="color: green;">✓ Configuration imported successfully</p>`;
+                } else {
+                    exportStatus.innerHTML = `<p style="color: red;">✗ Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                exportStatus.innerHTML = `<p style="color: red;">✗ Error importing configuration: ${error}</p>`;
+            }
+
+            // Clear the file input
+            input.value = '';
+        }
+
+        async function importInstructions() {
+            const instructionSelect = document.getElementById('instructionSelect');
+            const selectedInstruction = instructionSelect.value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+            
+            if (!selectedInstruction || !selectedApp) {
+                alert('Please select both an application and an instruction set to import.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/get_instruction_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        application: selectedApp,
+                        instruction_name: selectedInstruction
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.instruction_data) {
+                    // Parse the instruction data and populate the user input
+                    const instructionData = data.instruction_data;
+                    
+                    // Check if the instruction data has the expected structure
+                    if (typeof instructionData === 'string') {
+                        // If it's a simple string, use it directly
+                        document.getElementById('userInput').value = instructionData;
+                    } else if (Array.isArray(instructionData)) {
+                        // If it's an array, join with newlines
+                        document.getElementById('userInput').value = instructionData.join('\n');
+                    } else if (typeof instructionData === 'object') {
+                        // Handle the nested structure with instruction descriptions
+                        const instructions = [];
+                        const consoleOutput = document.getElementById('consoleOutput');
+                        let consoleHTML = '<br><b>Imported Instruction Set:</b><br>';
+                        
+                        // Parse the nested structure
+                        for (const instrKey in instructionData) {
+                            if (instructionData[instrKey] && typeof instructionData[instrKey] === 'object') {
+                                const instrObj = instructionData[instrKey];
+                                
+                                for (const subInstrKey in instrObj) {
+                                    if (instrObj[subInstrKey] && typeof instrObj[subInstrKey] === 'object') {
+                                        const subInstrObj = instrObj[subInstrKey];
+                                        
+                                        // Extract instruction description
+                                        if (subInstrObj.instr_description) {
+                                            instructions.push(subInstrObj.instr_description);
+                                            consoleHTML += `<b>${subInstrKey}:</b> <i>${subInstrObj.instr_description}</i><br>`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Update console output with instruction descriptions
+                        consoleOutput.innerHTML = consoleHTML;
+                        
+                        // Set the user input to the extracted instructions
+                        if (instructions.length > 0) {
+                            document.getElementById('userInput').value = instructions.join('\n');
+                        } else {
+                            // Fallback to JSON if no descriptions found
+                            document.getElementById('userInput').value = JSON.stringify(instructionData, null, 2);
+                        }
+                    }
+                    
+                    // Enable preset mode
+                    enableInstructionPreset(selectedInstruction);
+                    
+                    alert(`Successfully imported instruction set: ${selectedInstruction}`);
+                } else {
+                    alert('No instruction data found for the selected instruction set.');
+                }
+            } catch (error) {
+                console.error('Error importing instructions:', error);
+                alert('Error importing instructions. Please try again.');
+            }
+        }
+
+        function enableInstructionPreset(presetName) {
+            instructionPresetActive = true;
+            
+            // Show preset status indicator
+            const statusDiv = document.getElementById('instructionPresetStatus');
+            const presetNameSpan = document.getElementById('activePresetName');
+            statusDiv.style.display = 'block';
+            presetNameSpan.textContent = presetName;
+            
+            // Show experiment note
+            const experimentNote = document.getElementById('presetExperimentNote');
+            experimentNote.style.display = 'block';
+            
+            // Disable user input
+            const userInput = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const newInstructionBtn = document.getElementById('newInstructionBtn');
+            
+            userInput.disabled = true;
+            submitBtn.disabled = true;
+            newInstructionBtn.disabled = true;
+            
+            // Show disabled overlay
+            const overlay = document.getElementById('inputDisabledOverlay');
+            overlay.style.display = 'block';
+            
+            // Add visual styling to indicate disabled state
+            userInput.style.backgroundColor = '#f5f5f5';
+            userInput.style.color = '#666';
+            
+            // Hide confirmation block since preset instructions don't need validation
+            const confirmationBlock = document.getElementById('confirmationBlock');
+            confirmationBlock.style.display = 'none';
+            
+            // Clear any existing confirmation result
+            const confirmationResult = document.getElementById('confirmationResult');
+            confirmationResult.innerHTML = '';
+        }
+
+        function clearInstructionPreset() {
+            instructionPresetActive = false;
+            
+            // Hide preset status indicator
+            const statusDiv = document.getElementById('instructionPresetStatus');
+            statusDiv.style.display = 'none';
+            
+            // Hide experiment note
+            const experimentNote = document.getElementById('presetExperimentNote');
+            experimentNote.style.display = 'none';
+            
+            // Enable user input
+            const userInput = document.getElementById('userInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const newInstructionBtn = document.getElementById('newInstructionBtn');
+            
+            userInput.disabled = false;
+            submitBtn.disabled = false;
+            newInstructionBtn.disabled = false;
+            
+            // Hide disabled overlay
+            const overlay = document.getElementById('inputDisabledOverlay');
+            overlay.style.display = 'none';
+            
+            // Restore normal styling
+            userInput.style.backgroundColor = '';
+            userInput.style.color = '';
+            
+            // Clear the instruction select dropdown
+            const instructionSelect = document.getElementById('instructionSelect');
+            instructionSelect.value = '';
+            
+            // Show confirmation block so user can validate new instructions
+            const confirmationBlock = document.getElementById('confirmationBlock');
+            confirmationBlock.style.display = 'block';
+            
+            // Reset confirmation block to default state
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const confirmationQuestion = confirmationBlock.querySelector('p');
+            
+            correctBtn.textContent = 'Correct';
+            incorrectBtn.textContent = 'Incorrect';
+            confirmationQuestion.textContent = 'Was the result correct?';
+            
+            // Clear any existing confirmation result
+            const confirmationResult = document.getElementById('confirmationResult');
+            confirmationResult.innerHTML = '';
+        }
+
+        // Modify the newInstruction function to also clear preset mode
+        function newInstruction() {
+            // Clear preset mode if active
+            if (instructionPresetActive) {
+                clearInstructionPreset();
+            }
+            
+            document.getElementById('userInput').value = '';
+            document.getElementById('consoleOutput').innerHTML = '';
+            document.getElementById('instructionMatchPlots').innerHTML = '';
+            document.getElementById('confirmationResult').innerHTML = '';
+            
+            // Reset confirmation block to default state
+            const correctBtn = document.getElementById('correctBtn');
+            const incorrectBtn = document.getElementById('incorrectBtn');
+            const confirmationQuestion = document.querySelector('#confirmationBlock p');
+            
+            correctBtn.textContent = 'Correct';
+            incorrectBtn.textContent = 'Incorrect';
+            confirmationQuestion.textContent = 'Was the result correct?';
+            
+            // Hide confirmation block until next input
+            document.getElementById('confirmationBlock').style.display = 'none';
+            
+            fetch('/new_instruction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ instruction: document.getElementById('userInput').value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('New instruction processed:', data);
+                // Clear the match plots
+                document.getElementById('instructionMatchPlots').innerHTML = '';
+            })
+            .catch(error => console.error('Error processing new instruction:', error));
+        }
+
+        // Modify the resetAllInstructions function to also clear preset mode
+        async function resetAllInstructions() {
+            if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset_all_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Clear preset mode if active
+                    if (instructionPresetActive) {
+                        clearInstructionPreset();
+                    }
+                    
+                    document.getElementById('userInput').value = '';
+                    document.getElementById('consoleOutput').innerHTML = '';
+                    document.getElementById('instructionMatchPlots').innerHTML = '';
+                    document.getElementById('confirmationResult').innerHTML = '<p style="color: green;">All instructions have been reset.</p>';
+                    
+                    // Reset confirmation block to default state
+                    const correctBtn = document.getElementById('correctBtn');
+                    const incorrectBtn = document.getElementById('incorrectBtn');
+                    const confirmationQuestion = document.querySelector('#confirmationBlock p');
+                    
+                    correctBtn.textContent = 'Correct';
+                    incorrectBtn.textContent = 'Incorrect';
+                    confirmationQuestion.textContent = 'Was the result correct?';
+                    
+                    // Hide confirmation block
+                    document.getElementById('confirmationBlock').style.display = 'none';
+                    
+                    // Call newInstruction to reset any client-side counters or states related to current input if needed
+                    // This will also effectively reset global_input_count on server if new_instruction makes a call that implies it.
+                    // However, /reset_all_instructions already resets global_input_count on server.
+                    // For simple UI reset:
+                    fetch('/new_instruction', { method: 'POST' }) // This ensures any specific UI state tied to new_instruction is also reset
+                        .then(() => console.log("Client-side new instruction state also reset."))
+                        .catch(err => console.error("Error calling /new_instruction during reset:", err));
+                    
+                    alert(data.message);
+                } else {
+                    alert("Failed to reset instructions: " + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error resetting instructions:', error);
+                alert('An error occurred while trying to reset instructions.');
+            }
+        }
+
+    </script>
+</body>
+</html>

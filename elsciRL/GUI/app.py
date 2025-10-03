@@ -1,6 +1,5 @@
 import sys
 import os
-import httpimport
 import shutil
 from datetime import datetime
 import json
@@ -10,25 +9,51 @@ import uuid
 from flask import Response # Added Response for SSE
 import requests
 from markdown import markdown
-import torch
 # App tools
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
-# elsci methods
-from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
-from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
-from elsciRL.experiments.standard import Experiment as STANDARD_RL
+# Try to import optional dependencies
+try:
+    import httpimport
+    import torch
+    # elsci methods
+    from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
+    from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
+    from elsciRL.experiments.standard import Experiment as STANDARD_RL
+    
+    # elsciRL LLM Instruction Following
+    from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
+    from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_validator import LLMInstructionValidator
+    
+    # Analysis
+    import matplotlib
+    matplotlib.use('Agg')
+    from elsciRL.analysis.combined_variance_visual import combined_variance_analysis_graph as COMBINED_VARIANCE_ANALYSIS_GRAPH
+    
+    DEPENDENCIES_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Some dependencies are missing: {e}")
+    print("Running in limited mode - some features may not be available")
+    DEPENDENCIES_AVAILABLE = False
+    
+    # Create dummy classes for missing dependencies
+    class DummyClass:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __call__(self, *args, **kwargs):
+            return self
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+    
+    elsci_search = DummyClass
+    elsciRLOptimize = DummyClass
+    STANDARD_RL = DummyClass
+    LLMTaskBreakdown = DummyClass
+    LLMInstructionValidator = DummyClass
+    COMBINED_VARIANCE_ANALYSIS_GRAPH = DummyClass
+
 # Get application data
 from elsciRL.application_suite.import_data import Applications
-
-# elsciRL LLM Instruction Following
-from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
-from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_validator import LLMInstructionValidator
-
-# Analysis
-import matplotlib
-matplotlib.use('Agg')
-from elsciRL.analysis.combined_variance_visual import combined_variance_analysis_graph as COMBINED_VARIANCE_ANALYSIS_GRAPH
 
 # LLM API Setup
 # - only import if user has selected to use LLM
@@ -135,8 +160,10 @@ class WebApp:
                         self.downloaded_apps.append('Classroom')
                     else:
                         print("Failed to auto-download Classroom application")
+                        print("Please download an application manually using the Applications section")
                 except Exception as e:
                     print(f"Error auto-downloading Classroom application: {e}")
+                    print("Please download an application manually using the Applications section")
             
             if self.downloaded_apps:
                 self.pull_app_data = self.application_data.pull(problem_selection=self.downloaded_apps)
@@ -173,7 +200,7 @@ class WebApp:
     def home(self):
         template_path = os.path.join(app.template_folder, 'index.html')
         print(f"Trying to get HTML file from: {template_path}")
-        return render_template('index.html', agent_parameter_definitions=self.AGENT_PARAMETER_DEFINITIONS)
+        return render_template('index.html')
 
     def get_applications(self):
         """Get only downloaded applications that are available for use"""
@@ -403,22 +430,30 @@ class WebApp:
         if selected_application == '':
             return []
         
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
         try:
             adapters = list(self.pull_app_data[selected_application]['adapters'].keys())
             return adapters
         except:
-            print("Error fetching adapters...")
+            print(f"Error fetching adapters for {selected_application}...")
             return []
     
     def get_available_instructions(self, selected_application: str = ''):
         if selected_application == '':
             return []
         
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
         try:
             instructions = list(self.pull_app_data[selected_application]['instructions'].keys())
             return instructions
         except:
-            print("Error fetching instructions...")
+            print(f"Error fetching instructions for {selected_application}...")
             return []
     
     def get_instruction_data(self, selected_application: str = '', instruction_name: str = ''):
@@ -436,33 +471,75 @@ class WebApp:
             return None
     
     def get_observed_states(self, selected_application):
+        if not selected_application or len(selected_application) == 0:
+            return []
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
         try:
-            observed_states = list(self.pull_app_data[selected_application[0]]['prerender_data'].keys())
+            app_name = selected_application[0]  # For now, just handle the first application
+            print(f"Getting observed states for application: {app_name}")
+            print(f"Available applications in pull_app_data: {list(self.pull_app_data.keys())}")
+            
+            if not self.pull_app_data:
+                print("No applications have been downloaded yet. Please download an application first.")
+                return []
+            
+            if app_name not in self.pull_app_data:
+                print(f"Application {app_name} not found in pull_app_data")
+                print(f"Available applications: {list(self.pull_app_data.keys())}")
+                return []
+            
+            app_data = self.pull_app_data[app_name]
+            print(f"App data keys: {list(app_data.keys())}")
+            
+            if 'prerender_data' not in app_data:
+                print(f"No prerender_data found for {app_name}")
+                print(f"This usually means the application hasn't been downloaded yet or the prerender data is missing")
+                return []
+            
+            prerender_data = app_data['prerender_data']
+            print(f"Prerender data keys: {list(prerender_data.keys())}")
+            
+            observed_states = list(prerender_data.keys())
+            print(f"Returning observed states: {observed_states}")
             return observed_states
-        except:
-            print("Error fetching observed states...")
+        except Exception as e:
+            print(f"Error fetching observed states for {selected_application[0] if selected_application else 'unknown'}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def get_local_configs(self, selected_application:str=''):
         if selected_application == '':
             return []
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
             
         try:
             local_configs = list(self.pull_app_data[selected_application]['local_configs'].keys())
             return local_configs
         except:
-            print("Application data not found...")
+            print(f"Application data not found for {selected_application}...")
             return []
 
     def get_plot_options(self, selected_application: str = ''):
         if selected_application == '':
             return []
         
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
         try:
             plot_options = list(self.pull_app_data[selected_application]['local_analysis'].keys())
             return plot_options
         except:
-            print("Error fetching plot options...")
+            print(f"Error fetching plot options for {selected_application}...")
             return []
 
     def get_all_options(self):
@@ -853,15 +930,10 @@ Example of environment language structure: {results[application][instr]['sub_goa
             
             job_queue.put(f"EVENT: Starting training for application: {application}")
 
-            if len(self.instruction_results_validated) > 0:
-                if application not in self.instruction_results_validated:
-                    error_msg = f"No instruction results found for {application}"
-                    job_queue.put(f"ERROR: {error_msg}")
-                    self.job_results[job_id] = {'figures': [], 'error': error_msg, 'status': 'failed'}
-                    self.active_jobs[job_id]['status'] = 'failed'
-                    job_queue.put("EVENT: RENDER_PHASE_TITLE: Experiment Failed")
-                    job_queue.put("EVENT: JOB_FAILED")
-                    return
+            # Check if there are validated instructions for this application
+            # If there are validated instructions but none for this app, that's fine - we'll run standard RL
+            if len(self.instruction_results_validated) > 0 and application not in self.instruction_results_validated:
+                job_queue.put(f"INFO: No validated instructions found for {application}. Running standard RL experiment.")
             
             engine_class = self.pull_app_data[application]['engine']
             local_config = self.pull_app_data[application]['local_configs'][config_input]
@@ -1185,17 +1257,21 @@ Example of environment language structure: {results[application][instr]['sub_goa
             job_queue.put("EVENT: JOB_FAILED")
 
     def train_model(self):
-        data = request.json
-        job_id = str(uuid.uuid4())
-        
-        job_queue = queue.Queue()
-        thread = threading.Thread(target=self._perform_training_async, args=(job_id, data))
-        
-        self.active_jobs[job_id] = {'queue': job_queue, 'thread': thread, 'status': 'initializing'}
-        self.job_results.pop(job_id, None)
-        
-        thread.start()
-        return jsonify({'job_id': job_id})
+        try:
+            data = request.json
+            job_id = str(uuid.uuid4())
+            
+            job_queue = queue.Queue()
+            thread = threading.Thread(target=self._perform_training_async, args=(job_id, data))
+            
+            self.active_jobs[job_id] = {'queue': job_queue, 'thread': thread, 'status': 'initializing'}
+            self.job_results.pop(job_id, None)
+            
+            thread.start()
+            return jsonify({'job_id': job_id})
+        except Exception as e:
+            print(f"Error in train_model: {e}")
+            return jsonify({'error': f'Error starting training: {str(e)}'}), 500
 
     def upload_file(self):
         if 'file' not in request.files:
@@ -1211,7 +1287,7 @@ Example of environment language structure: {results[application][instr]['sub_goa
     def new_instruction(self):
         self.global_input_count = len(self.correct_instructions)
         self.user_feedback_count = 0
-        return jsonify({'status': 'success'})
+        return {'status': 'success'}
 
     def confirm_result(self):
         data = request.json
@@ -1433,17 +1509,24 @@ def get_observed_states_route():
     data = request.get_json()
     selected_applications = data.get('applications', [])
     observed_states = WebApp_instance.get_observed_states(selected_applications)
+    
+    # Format response to match frontend expectations
+    # The frontend expects: { observedStates: { app_name: [list_of_states] } }
+    response_data = {}
+    for app_name in selected_applications:
+        response_data[app_name] = observed_states
+    
     return jsonify({
-        'observedStates': observed_states
+        'observedStates': response_data
     })
 
 @app.route('/get_local_configs', methods=['POST'])
 def get_local_configs_route():
     data = request.get_json()
-    selected_application = data.get('application', [])
+    selected_application = data.get('application', '')
     local_configs = WebApp_instance.get_local_configs(selected_application)
     return jsonify({
-        'localConfigs': local_configs
+        'localConfigs': {selected_application: local_configs} if selected_application else {}
     })
 
 @app.route('/get_plot_options', methods=['POST'])
@@ -1452,7 +1535,7 @@ def get_plot_options_route():
     selected_application = data.get('application', '')
     plot_options = WebApp_instance.get_plot_options(selected_application)
     return jsonify({
-        'plotOptions': plot_options
+        'plotOptions': {selected_application: plot_options} if selected_application else {}
     })
 
 @app.route('/get_all_options')
@@ -1470,10 +1553,161 @@ def get_prerender_image_route():
         return jsonify({'imagePaths': image_paths})
     return jsonify({'error': 'No prerender images found'}), 404
 
+@app.route('/get_application_readme', methods=['POST'])
+def get_application_readme_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    if not application:
+        return jsonify({'error': 'No application selected'}), 400
+    
+    try:
+        # Ensure data is loaded
+        if WebApp_instance.pull_app_data is None:
+            WebApp_instance.load_data()
+        
+        if application not in WebApp_instance.pull_app_data:
+            return jsonify({'error': 'Application not found'}), 404
+        
+        app_data = WebApp_instance.pull_app_data[application]
+        if 'readme_files' not in app_data:
+            return jsonify({'error': 'No README files found for this application'}), 404
+        
+        readme_files = app_data['readme_files']
+        if not readme_files:
+            return jsonify({'error': 'No README files found for this application'}), 404
+        
+        # Return the first README file found (usually README.md)
+        readme_name = list(readme_files.keys())[0]
+        readme_content = readme_files[readme_name]
+        
+        return jsonify({
+            'readme_name': readme_name,
+            'readme_content': readme_content
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching README: {str(e)}'}), 500
+
+@app.route('/get_available_instruction_presets', methods=['POST'])
+def get_available_instruction_presets_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    if not application:
+        return jsonify({'error': 'No application selected'}), 400
+    
+    try:
+        # Get instruction files from import data
+        from elsciRL.application_suite.import_data import Applications
+        applications_data = Applications().data
+        
+        if application not in applications_data:
+            return jsonify({'error': 'Application not found'}), 404
+        
+        app_data = applications_data[application]
+        instruction_files = app_data.get('instruction_filenames', {})
+        
+        # Convert to list format for frontend
+        presets = []
+        for preset_name, filename in instruction_files.items():
+            presets.append({
+                'name': preset_name,
+                'filename': filename,
+                'description': f'Preset instruction plan: {preset_name}'
+            })
+        
+        return jsonify({
+            'presets': presets,
+            'count': len(presets)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching instruction presets: {str(e)}'}), 500
+
+@app.route('/load_instruction_preset', methods=['POST'])
+def load_instruction_preset_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    preset_name = data.get('preset_name', '')
+    
+    if not application or not preset_name:
+        return jsonify({'error': 'Missing application or preset name'}), 400
+    
+    try:
+        # Ensure data is loaded
+        if WebApp_instance.pull_app_data is None:
+            WebApp_instance.load_data()
+        
+        if application not in WebApp_instance.pull_app_data:
+            return jsonify({'error': 'Application not found'}), 404
+        
+        app_data = WebApp_instance.pull_app_data[application]
+        if 'instructions' not in app_data:
+            return jsonify({'error': 'No instruction files found for this application'}), 404
+        
+        instructions = app_data['instructions']
+        if preset_name not in instructions:
+            return jsonify({'error': f'Preset "{preset_name}" not found'}), 404
+        
+        instruction_data = instructions[preset_name]
+        
+        return jsonify({
+            'preset_name': preset_name,
+            'instruction_data': instruction_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error loading instruction preset: {str(e)}'}), 500
+
+@app.route('/get_variance_results')
+def get_variance_results_route():
+    try:
+        # Get the uploads directory
+        uploads_dir = WebApp_instance.uploads_dir
+        if not os.path.exists(uploads_dir):
+            return jsonify({'results': [], 'message': 'No uploads directory found'})
+        
+        # Look for variance analysis files
+        variance_files = []
+        for filename in os.listdir(uploads_dir):
+            if 'variance' in filename.lower() and filename.endswith('.png'):
+                file_path = os.path.join(uploads_dir, filename)
+                file_size = os.path.getsize(file_path)
+                file_modified = os.path.getmtime(file_path)
+                
+                # Extract information from filename
+                file_info = {
+                    'filename': filename,
+                    'path': f'uploads/{filename}',
+                    'size': file_size,
+                    'modified': file_modified,
+                    'type': 'variance_analysis'
+                }
+                
+                # Try to extract analysis type from filename
+                if 'training' in filename.lower():
+                    file_info['analysis_type'] = 'Training Variance Analysis'
+                elif 'testing' in filename.lower():
+                    file_info['analysis_type'] = 'Testing Variance Analysis'
+                else:
+                    file_info['analysis_type'] = 'Variance Analysis'
+                
+                variance_files.append(file_info)
+        
+        # Sort by modification time (newest first)
+        variance_files.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return jsonify({
+            'results': variance_files,
+            'count': len(variance_files)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching variance results: {str(e)}'}), 500
+
 @app.route('/new_instruction', methods=['POST'])
 def new_instruction_route():
     response = WebApp_instance.new_instruction()
-    return response
+    return jsonify(response)
 
 @app.route('/get_correct_instructions')
 def get_correct_instructions_route():
@@ -1524,6 +1758,10 @@ def get_experiment_config_route():
     config_name_req = data.get('config', '')
     
     return WebApp_instance.get_experiment_config(application, config_name_req)
+
+@app.route('/get_agent_definitions')
+def get_agent_definitions_route():
+    return jsonify(WebApp_instance.AGENT_PARAMETER_DEFINITIONS)
 
 @app.route('/stream_job_notifications/<job_id>')
 def stream_job_notifications_route(job_id):

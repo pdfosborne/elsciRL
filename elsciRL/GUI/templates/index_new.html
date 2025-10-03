@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Demo WebApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .loading-circle {
+            border: 8px solid var(--border-color);
+            border-top: 8px solid var(--button-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+
+        .loading-circle-left {
+            margin-right: 10px;
+            margin-left: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .training-params {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .training-params input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .training-params label {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .form-select {
+            width: 200px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .applications-checklist {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .application-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .application-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .application-item label {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .config-section {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .config-group {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .config-group h3 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .select-container {
+            margin-bottom: 15px;
+        }
+
+        .select-container label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .select-container select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .select-container select:focus {
+            outline: none;
+            border-color: var(--button-color);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .checkbox-container label {
+            color: var(--text-color);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--button-color);
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        /* New Layout Styles */
+        .main-layout {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--background-color);
+        }
+
+        .left-sidebar {
+            width: 300px;
+            background-color: var(--box-color);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .right-sidebar {
+            width: 250px;
+            background-color: var(--box-color);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .sidebar-block {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .sidebar-block-header {
+            background-color: var(--button-color);
+            color: white;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .sidebar-block-header:hover {
+            background-color: var(--button-hover-color);
+        }
+
+        .sidebar-block-content {
+            padding: 15px;
+            display: none;
+            background-color: white;
+        }
+
+        .sidebar-block-content.active {
+            display: block;
+        }
+
+        .sidebar-block-header .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-block-header.active .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .main-content-section {
+            display: none;
+            background-color: var(--box-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .main-content-section.active {
+            display: block;
+        }
+
+        .right-sidebar-section {
+            background-color: var(--box-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-section img {
+            width: 60px;
+            height: 60px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .left-sidebar, .right-sidebar {
+                width: 100%;
+                max-height: none;
+            }
+            
+            .left-sidebar {
+                order: 1;
+            }
+            
+            .main-content {
+                order: 2;
+            }
+            
+            .right-sidebar {
+                order: 3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-circle"></div>
+    </div>
+    
+    <div class="main-layout">
+        <!-- Left Sidebar -->
+        <div class="left-sidebar">
+            <div class="logo-section">
+                <a href="https://elsci.org">
+                    <img src="https://raw.githubusercontent.com/pdfosborne/elsciRL-Wiki/refs/heads/main/Resources/images/elsciRL_julylogo_black_outline.png" alt="elsciRL-Logo">
+                </a>
+            </div>
+
+            <!-- Home Block -->
+            <div class="sidebar-block">
+                <div class="sidebar-block-header active" onclick="toggleBlock(this)">
+                    <span>Home</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="sidebar-block-content active">
+                    <h3>Welcome to elsciRL</h3>
+                    <p>This web application helps you run reinforcement learning experiments with various agents and adapters. Follow these steps to get started:</p>
+                    
+                    <h4>1. Application Setup</h4>
+                    <p>In the <b>Applications</b> section:</p>
+                    <ul>
+                        <li>Select your desired application/environment</li>
+                        <li>Choose a local configuration for the problem</li>
+                        <li>Select observed state data if needed</li>
+                        <li>Pick an analysis file for results visualization</li>
+                    </ul>
+
+                    <h4>2. Configuration</h4>
+                    <p>In the <b>Experiment</b> section:</p>
+                    <ul>
+                        <li>Optionally import a preset configuration</li>
+                        <li>Set training parameters (episodes, repeats, seeds)</li>
+                        <li>Set testing parameters</li>
+                        <li>Select your agents and their adapters</li>
+                    </ul>
+
+                    <h4>3. Instructions</h4>
+                    <p>In the <b>Instructions</b> section:</p>
+                    <ul>
+                        <li>Enter your task instructions</li>
+                        <li>Review and validate the matched results</li>
+                        <li>Use LLM assistance for better instruction matching</li>
+                    </ul>
+
+                    <h4>4. Training</h4>
+                    <p>Click the <b>Train Model</b> button in the right sidebar to start training with your validated instructions.</p>
+
+                    <h4>5. Results</h4>
+                    <p>View your experiment results, including training progress, test results, and analysis plots.</p>
+                </div>
+            </div>
+
+            <!-- Applications Block -->
+            <div class="sidebar-block">
+                <div class="sidebar-block-header" onclick="toggleBlock(this)">
+                    <span>Applications</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="sidebar-block-content">
+                    <div class="config-group">
+                        <h3>Application Selection</h3>
+                        <div class="select-container">
+                            <label for="applicationSelect">Select Application:</label>
+                            <select id="applicationSelect" onchange="loadApplicationData()">
+                                <option value="">Loading applications...</option>
+                            </select>
+                        </div>
+                        <div id="applicationInfo" style="margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; display: none;">
+                            <p><strong>Status:</strong> <span id="appStatus"></span></p>
+                            <p><strong>Last Updated:</strong> <span id="appLastUpdated"></span></p>
+                            <p><strong>Components:</strong> <span id="appComponents"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <h3>Configuration</h3>
+                        <div class="select-container">
+                            <label for="localConfigSelect">Local Config:</label>
+                            <select id="localConfigSelect" onchange="loadConfigData()">
+                                <option value="">Select application first</option>
+                            </select>
+                        </div>
+                        <div class="select-container">
+                            <label for="observedStateSelect">Observed State:</label>
+                            <select id="observedStateSelect">
+                                <option value="">Select application first</option>
+                            </select>
+                        </div>
+                        <div class="select-container">
+                            <label for="plotSelect">Analysis Plot:</label>
+                            <select id="plotSelect">
+                                <option value="">Select application first</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <h3>Application Management</h3>
+                        <div class="button-group">
+                            <button onclick="refreshApplications()">Refresh Apps</button>
+                            <button onclick="checkAllUpdates()">Check Updates</button>
+                        </div>
+                        <div id="updateStatus" style="margin-top: 10px; display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiment Block -->
+            <div class="sidebar-block">
+                <div class="sidebar-block-header" onclick="toggleBlock(this)">
+                    <span>Experiment</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="sidebar-block-content">
+                    <div class="config-group">
+                        <h3>Training Parameters</h3>
+                        <div class="training-params">
+                            <label for="trainingEpisodes">Episodes:</label>
+                            <input type="number" id="trainingEpisodes" value="1000" min="1">
+                        </div>
+                        <div class="training-params">
+                            <label for="trainingRepeats">Repeats:</label>
+                            <input type="number" id="trainingRepeats" value="5" min="1">
+                        </div>
+                        <div class="training-params">
+                            <label for="testEpisodes">Test Episodes:</label>
+                            <input type="number" id="testEpisodes" value="200" min="1">
+                        </div>
+                        <div class="training-params">
+                            <label for="testRepeats">Test Repeats:</label>
+                            <input type="number" id="testRepeats" value="10" min="1">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <h3>Agent Selection</h3>
+                        <div id="agentSelection">
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="agent_Qlearntab" value="Qlearntab" checked>
+                                <label for="agent_Qlearntab">Q-Learning</label>
+                            </div>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="agent_DQN" value="DQN">
+                                <label for="agent_DQN">Deep Q-Network</label>
+                            </div>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="agent_LLM_Ollama" value="LLM_Ollama">
+                                <label for="agent_LLM_Ollama">LLM Ollama</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <h3>Configuration Management</h3>
+                        <div class="button-group">
+                            <button onclick="exportConfig()">Export Config</button>
+                            <button onclick="document.getElementById('importConfigFile').click()">Import Config</button>
+                            <input type="file" id="importConfigFile" accept=".json" style="display: none;" onchange="importConfig(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Config Block -->
+            <div class="sidebar-block">
+                <div class="sidebar-block-header" onclick="toggleBlock(this)">
+                    <span>Agent Config</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="sidebar-block-content">
+                    <div id="agentConfigContainer">
+                        <!-- Agent configuration forms will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Instructions Section -->
+            <div id="instructionsSection" class="main-content-section active">
+                <h2>Instructions</h2>
+                <div class="input-console-container">
+                    <div class="input-section">
+                        <h3>Enter Your Instructions</h3>
+                        <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
+                        <div class="button-group">
+                            <button id="submitBtn" onclick="processInput()">Process Instructions</button>
+                            <button id="retryBtn" onclick="newInstruction()" style="display: none;">New Instruction</button>
+                        </div>
+                        
+                        <!-- LLM Settings -->
+                        <div class="config-group" style="margin-top: 20px;">
+                            <h3>LLM Settings</h3>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="enableLLMPlanner">
+                                <label for="enableLLMPlanner">Enable LLM Instruction Planner</label>
+                            </div>
+                            <div class="input-group">
+                                <label for="llmModelSelect">LLM Model:</label>
+                                <select id="llmModelSelect">
+                                    <option value="llama3.2">llama3.2</option>
+                                    <option value="qwen3:0.6b">qwen3:0.6b</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="llmContextLength">Context Length:</label>
+                                <input type="number" id="llmContextLength" value="1000" min="100" max="4000">
+                            </div>
+                            <div class="input-group">
+                                <label for="llmNumInstructions">Number of Instructions:</label>
+                                <input type="number" id="llmNumInstructions" value="1" min="1" max="10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="console-section">
+                        <h3>Results</h3>
+                        <div id="consoleOutput"></div>
+                        <div id="confirmationBlock" style="display: none;">
+                            <p>Was the result correct?</p>
+                            <div class="button-group">
+                                <button id="correctBtn" onclick="confirmResult(true)">Correct</button>
+                                <button id="incorrectBtn" onclick="confirmResult(false)">Incorrect</button>
+                            </div>
+                            <div id="confirmationResult"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="image-section">
+                        <h3>Instruction Match Plots</h3>
+                        <div id="instructionMatchPlots"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="main-content-section">
+                <h2>Results</h2>
+                <div id="realTimeRenderDisplay" style="display: none;">
+                    <h3 id="realTimeRenderPhaseTitle">Training in Progress...</h3>
+                    <div id="realTimeRenderStatus">Initializing...</div>
+                    <div id="realTimeRenderCarousel"></div>
+                </div>
+                <div id="resultsContent">
+                    <p>Results will appear here after training is complete.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="right-sidebar">
+            <div class="right-sidebar-section">
+                <h3>Train Model</h3>
+                <p>Start training with your validated instructions.</p>
+                <button id="trainModelBtn" onclick="startTraining()" style="width: 100%; padding: 15px; font-size: 16px; font-weight: bold;">
+                    Train Model
+                </button>
+                <div id="trainingStatus" style="margin-top: 15px; display: none;">
+                    <div class="loading-circle-left"></div>
+                    <span>Training in progress...</span>
+                </div>
+            </div>
+
+            <div class="right-sidebar-section">
+                <h3>Quick Actions</h3>
+                <div class="button-group" style="flex-direction: column;">
+                    <button onclick="resetAllInstructions()">Reset All Instructions</button>
+                    <button onclick="loadData()">Reload Data</button>
+                    <button onclick="toggleMainSection('instructionsSection')">Instructions</button>
+                    <button onclick="toggleMainSection('resultsSection')">Results</button>
+                </div>
+            </div>
+
+            <div class="right-sidebar-section">
+                <h3>Status</h3>
+                <div id="statusInfo">
+                    <p><strong>Instructions:</strong> <span id="instructionCount">0</span></p>
+                    <p><strong>Applications:</strong> <span id="appCount">0</span></p>
+                    <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let instructionPresetActive = false;
+        let currentJobId = null;
+        let eventSource = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApplications();
+            loadAllOptions();
+            updateStatus();
+        });
+
+        // Toggle sidebar blocks
+        function toggleBlock(header) {
+            const content = header.nextElementSibling;
+            const isActive = content.classList.contains('active');
+            
+            // Close all other blocks
+            document.querySelectorAll('.sidebar-block-content').forEach(block => {
+                block.classList.remove('active');
+            });
+            document.querySelectorAll('.sidebar-block-header').forEach(h => {
+                h.classList.remove('active');
+            });
+            
+            // Toggle current block
+            if (!isActive) {
+                content.classList.add('active');
+                header.classList.add('active');
+            }
+        }
+
+        // Toggle main content sections
+        function toggleMainSection(sectionId) {
+            document.querySelectorAll('.main-content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // Load applications
+        async function loadApplications() {
+            try {
+                const response = await fetch('/get_applications');
+                const data = await response.json();
+                
+                const select = document.getElementById('applicationSelect');
+                select.innerHTML = '<option value="">Select an application...</option>';
+                
+                data.applications.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app;
+                    option.textContent = app;
+                    select.appendChild(option);
+                });
+                
+                document.getElementById('appCount').textContent = data.applications.length;
+            } catch (error) {
+                console.error('Error loading applications:', error);
+            }
+        }
+
+        // Load application data
+        async function loadApplicationData() {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            if (!selectedApp) return;
+
+            try {
+                // Load configs, observed states, and plots
+                const [configsRes, statesRes, plotsRes] = await Promise.all([
+                    fetch('/get_local_configs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ application: selectedApp })
+                    }),
+                    fetch('/get_observed_states', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ applications: [selectedApp] })
+                    }),
+                    fetch('/get_plot_options', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ application: selectedApp })
+                    })
+                ]);
+
+                const [configsData, statesData, plotsData] = await Promise.all([
+                    configsRes.json(),
+                    statesRes.json(),
+                    plotsRes.json()
+                ]);
+
+                // Update dropdowns
+                updateSelect('localConfigSelect', configsData.localConfigs[selectedApp] || []);
+                updateSelect('observedStateSelect', statesData.observedStates[selectedApp] || []);
+                updateSelect('plotSelect', plotsData.plotOptions[selectedApp] || []);
+
+            } catch (error) {
+                console.error('Error loading application data:', error);
+            }
+        }
+
+        // Update select dropdown
+        function updateSelect(selectId, options) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select an option...</option>';
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+        }
+
+        // Load all options
+        async function loadAllOptions() {
+            try {
+                const response = await fetch('/get_all_options');
+                const data = await response.json();
+                console.log('All options loaded:', data);
+            } catch (error) {
+                console.error('Error loading all options:', error);
+            }
+        }
+
+        // Process input
+        async function processInput() {
+            const userInput = document.getElementById('userInput').value;
+            if (!userInput.trim()) {
+                alert('Please enter some instructions.');
+                return;
+            }
+
+            const selectedApp = document.getElementById('applicationSelect').value;
+            if (!selectedApp) {
+                alert('Please select an application first.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Processing... <div class="loading-circle"></div>';
+
+            try {
+                const formData = {
+                    userInput: userInput,
+                    selectedApps: [selectedApp],
+                    localConfigInput: document.getElementById('localConfigSelect').value,
+                    observedStateInput: document.getElementById('observedStateSelect').value,
+                    enableLLMPlanner: document.getElementById('enableLLMPlanner').checked,
+                    llmModelSelect: document.getElementById('llmModelSelect').value,
+                    LLMContextLength: document.getElementById('llmContextLength').value,
+                    llmNumInstructions: document.getElementById('llmNumInstructions').value
+                };
+
+                const response = await fetch('/process_input', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                // Update console output
+                document.getElementById('consoleOutput').innerHTML = data.console_output;
+                
+                // Update match plots
+                const plotsContainer = document.getElementById('instructionMatchPlots');
+                plotsContainer.innerHTML = '';
+                if (data.matchPlots && data.matchPlots.length > 0) {
+                    data.matchPlots.forEach(plotPath => {
+                        const img = document.createElement('img');
+                        img.src = '/' + plotPath;
+                        img.style.maxWidth = '100%';
+                        img.style.margin = '10px';
+                        plotsContainer.appendChild(img);
+                    });
+                }
+
+                // Show confirmation block
+                document.getElementById('confirmationBlock').style.display = 'block';
+                
+                // Update buttons
+                submitBtn.style.display = 'none';
+                retryBtn.style.display = 'inline-block';
+
+            } catch (error) {
+                console.error('Error processing input:', error);
+                alert('An error occurred while processing your input.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Process Instructions';
+            }
+        }
+
+        // Confirm result
+        async function confirmResult(isCorrect) {
+            const userInput = document.getElementById('userInput').value;
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const enableLLMPlanner = document.getElementById('enableLLMPlanner').checked;
+
+            try {
+                const response = await fetch('/confirm_result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userInput: userInput,
+                        selectedApps: [selectedApp],
+                        isCorrect: isCorrect,
+                        enableLLMPlanner: enableLLMPlanner,
+                        isLLMValidation: false
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById('confirmationResult').innerHTML = data.message;
+                
+                // Update instruction count
+                updateStatus();
+
+            } catch (error) {
+                console.error('Error confirming result:', error);
+                alert('An error occurred while confirming the result.');
+            }
+        }
+
+        // New instruction
+        function newInstruction() {
+            document.getElementById('userInput').value = '';
+            document.getElementById('consoleOutput').innerHTML = '';
+            document.getElementById('instructionMatchPlots').innerHTML = '';
+            document.getElementById('confirmationResult').innerHTML = '';
+            document.getElementById('confirmationBlock').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('retryBtn').style.display = 'none';
+
+            fetch('/new_instruction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instruction: document.getElementById('userInput').value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('New instruction processed:', data);
+            })
+            .catch(error => console.error('Error processing new instruction:', error));
+        }
+
+        // Start training
+        async function startTraining() {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            if (!selectedApp) {
+                alert('Please select an application first.');
+                return;
+            }
+
+            const trainBtn = document.getElementById('trainModelBtn');
+            const trainingStatus = document.getElementById('trainingStatus');
+            
+            trainBtn.disabled = true;
+            trainingStatus.style.display = 'block';
+
+            try {
+                const formData = {
+                    selectedApps: [selectedApp],
+                    localConfigInput: document.getElementById('localConfigSelect').value,
+                    observedStateInput: document.getElementById('observedStateSelect').value,
+                    selectedPlot: document.getElementById('plotSelect').value,
+                    trainingEpisodes: parseInt(document.getElementById('trainingEpisodes').value),
+                    trainingRepeats: parseInt(document.getElementById('trainingRepeats').value),
+                    testEpisodes: parseInt(document.getElementById('testEpisodes').value),
+                    testRepeats: parseInt(document.getElementById('testRepeats').value),
+                    selectedAgents: Array.from(document.querySelectorAll('#agentSelection input[type="checkbox"]:checked')).map(cb => cb.value),
+                    agent_adapter_dict: {} // Will be populated by server
+                };
+
+                const response = await fetch('/train_model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (data.job_id) {
+                    currentJobId = data.job_id;
+                    startJobMonitoring(data.job_id);
+                    toggleMainSection('resultsSection');
+                } else {
+                    alert('Error starting training: ' + (data.error || 'Unknown error'));
+                }
+
+            } catch (error) {
+                console.error('Error starting training:', error);
+                alert('An error occurred while starting training.');
+            } finally {
+                trainBtn.disabled = false;
+                trainingStatus.style.display = 'none';
+            }
+        }
+
+        // Start job monitoring
+        function startJobMonitoring(jobId) {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource(`/stream_job_notifications/${jobId}`);
+            
+            eventSource.onmessage = function(event) {
+                const message = event.data;
+                console.log('Job notification:', message);
+                
+                if (message.startsWith('EVENT: ')) {
+                    const eventType = message.substring(7);
+                    
+                    if (eventType.startsWith('RENDER_PHASE_TITLE: ')) {
+                        document.getElementById('realTimeRenderPhaseTitle').textContent = eventType.substring(20);
+                    } else if (eventType.startsWith('RENDER_FIGURE: ')) {
+                        const figureData = JSON.parse(eventType.substring(15));
+                        addFigureToCarousel(figureData);
+                    } else if (eventType === 'JOB_COMPLETE') {
+                        document.getElementById('realTimeRenderStatus').textContent = 'Training completed successfully!';
+                        eventSource.close();
+                    } else if (eventType === 'JOB_FAILED') {
+                        document.getElementById('realTimeRenderStatus').textContent = 'Training failed. Check console for details.';
+                        eventSource.close();
+                    } else {
+                        document.getElementById('realTimeRenderStatus').textContent = eventType;
+                    }
+                } else if (message.startsWith('ERROR: ')) {
+                    document.getElementById('realTimeRenderStatus').textContent = message;
+                }
+            };
+
+            eventSource.onerror = function(event) {
+                console.error('EventSource failed:', event);
+                document.getElementById('realTimeRenderStatus').textContent = 'Connection lost. Training may still be running.';
+            };
+
+            document.getElementById('realTimeRenderDisplay').style.display = 'block';
+        }
+
+        // Add figure to carousel
+        function addFigureToCarousel(figureData) {
+            const carousel = document.getElementById('realTimeRenderCarousel');
+            const figureDiv = document.createElement('div');
+            figureDiv.innerHTML = `
+                <img src="/${figureData.figure_path}" alt="${figureData.experiment_type}" style="max-width: 100%; height: auto;">
+                <p><strong>${figureData.experiment_type}</strong><br>
+                <small>${new Date(figureData.timestamp).toLocaleString()}</small></p>
+            `;
+            carousel.appendChild(figureDiv);
+        }
+
+        // Reset all instructions
+        async function resetAllInstructions() {
+            if (!confirm("Are you sure you want to reset all instructions and their validation states? This action cannot be undone.")) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/reset_all_instructions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    newInstruction();
+                    alert(data.message);
+                    updateStatus();
+                } else {
+                    alert("Failed to reset instructions: " + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error resetting instructions:', error);
+                alert('An error occurred while trying to reset instructions.');
+            }
+        }
+
+        // Load data
+        async function loadData() {
+            try {
+                const response = await fetch('/load_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    loadApplications();
+                    loadAllOptions();
+                    updateStatus();
+                    alert('Data reloaded successfully.');
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('An error occurred while loading data.');
+            }
+        }
+
+        // Update status
+        function updateStatus() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        }
+
+        // Export config
+        async function exportConfig() {
+            const config = {
+                application: document.getElementById('applicationSelect').value,
+                localConfig: document.getElementById('localConfigSelect').value,
+                observedState: document.getElementById('observedStateSelect').value,
+                plot: document.getElementById('plotSelect').value,
+                trainingEpisodes: document.getElementById('trainingEpisodes').value,
+                trainingRepeats: document.getElementById('trainingRepeats').value,
+                testEpisodes: document.getElementById('testEpisodes').value,
+                testRepeats: document.getElementById('testRepeats').value,
+                selectedAgents: Array.from(document.querySelectorAll('#agentSelection input[type="checkbox"]:checked')).map(cb => cb.value),
+                llmSettings: {
+                    enabled: document.getElementById('enableLLMPlanner').checked,
+                    model: document.getElementById('llmModelSelect').value,
+                    contextLength: document.getElementById('llmContextLength').value,
+                    numInstructions: document.getElementById('llmNumInstructions').value
+                }
+            };
+
+            try {
+                const response = await fetch('/export_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert('Configuration exported successfully!');
+                } else {
+                    alert('Error exporting configuration: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error exporting config:', error);
+                alert('An error occurred while exporting configuration.');
+            }
+        }
+
+        // Import config
+        async function importConfig(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/import_config', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Apply the imported configuration
+                    const config = data.config;
+                    if (config.application) document.getElementById('applicationSelect').value = config.application;
+                    if (config.localConfig) document.getElementById('localConfigSelect').value = config.localConfig;
+                    if (config.observedState) document.getElementById('observedStateSelect').value = config.observedState;
+                    if (config.plot) document.getElementById('plotSelect').value = config.plot;
+                    if (config.trainingEpisodes) document.getElementById('trainingEpisodes').value = config.trainingEpisodes;
+                    if (config.trainingRepeats) document.getElementById('trainingRepeats').value = config.trainingRepeats;
+                    if (config.testEpisodes) document.getElementById('testEpisodes').value = config.testEpisodes;
+                    if (config.testRepeats) document.getElementById('testRepeats').value = config.testRepeats;
+                    
+                    // Update agent checkboxes
+                    document.querySelectorAll('#agentSelection input[type="checkbox"]').forEach(cb => {
+                        cb.checked = config.selectedAgents && config.selectedAgents.includes(cb.value);
+                    });
+                    
+                    // Update LLM settings
+                    if (config.llmSettings) {
+                        document.getElementById('enableLLMPlanner').checked = config.llmSettings.enabled || false;
+                        if (config.llmSettings.model) document.getElementById('llmModelSelect').value = config.llmSettings.model;
+                        if (config.llmSettings.contextLength) document.getElementById('llmContextLength').value = config.llmSettings.contextLength;
+                        if (config.llmSettings.numInstructions) document.getElementById('llmNumInstructions').value = config.llmSettings.numInstructions;
+                    }
+                    
+                    alert('Configuration imported successfully!');
+                } else {
+                    alert('Error importing configuration: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error importing config:', error);
+                alert('An error occurred while importing configuration.');
+            }
+            
+            // Reset file input
+            input.value = '';
+        }
+
+        // Refresh applications
+        async function refreshApplications() {
+            try {
+                const response = await fetch('/refresh_application_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    loadApplications();
+                    alert('Applications refreshed successfully!');
+                } else {
+                    alert('Error refreshing applications: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error refreshing applications:', error);
+                alert('An error occurred while refreshing applications.');
+            }
+        }
+
+        // Check all updates
+        async function checkAllUpdates() {
+            try {
+                const response = await fetch('/check_all_application_updates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                const updateStatus = document.getElementById('updateStatus');
+                
+                if (data.has_any_updates) {
+                    updateStatus.innerHTML = '<p style="color: orange;">Updates available for some applications.</p>';
+                    updateStatus.style.display = 'block';
+                } else {
+                    updateStatus.innerHTML = '<p style="color: green;">All applications are up to date.</p>';
+                    updateStatus.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking updates:', error);
+                alert('An error occurred while checking for updates.');
+            }
+        }
+
+        // Load config data
+        async function loadConfigData() {
+            // This function can be expanded to load specific configuration data
+            // when a local config is selected
+        }
+    </script>
+</body>
+</html>

@@ -7,7 +7,7 @@ scipy>=1.10.1
 torch
 tqdm
 httpimport
-sentence-transformers'
+sentence-transformers
 gymnasium
 stable-baselines3
 ollama

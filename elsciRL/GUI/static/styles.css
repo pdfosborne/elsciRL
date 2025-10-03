@@ -23,6 +23,133 @@ body {
   padding: 0;
 }
 
+/* New Layout Styles */
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+
+.left-sidebar {
+  width: 300px;
+  background-color: var(--box-color);
+  border-right: 1px solid var(--border-color);
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.right-sidebar {
+  width: 250px;
+  background-color: var(--box-color);
+  border-left: 1px solid var(--border-color);
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.sidebar-block {
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sidebar-block-header {
+  background-color: var(--button-color);
+  color: white;
+  padding: 12px 15px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-block-header:hover {
+  background-color: var(--button-hover-color);
+}
+
+.sidebar-block-content {
+  padding: 15px;
+  display: none;
+  background-color: white;
+}
+
+.sidebar-block-content.active {
+  display: block;
+}
+
+.sidebar-block-header .toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.sidebar-block-header.active .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.main-content-section {
+  display: none;
+  background-color: var(--box-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.main-content-section.active {
+  display: block;
+}
+
+.right-sidebar-section {
+  background-color: var(--box-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo-section img {
+  width: 60px;
+  height: 60px;
+}
+
+@media (max-width: 1024px) {
+  .main-layout {
+    flex-direction: column;
+  }
+  
+  .left-sidebar, .right-sidebar {
+    width: 100%;
+    max-height: none;
+  }
+  
+  .left-sidebar {
+    order: 1;
+  }
+  
+  .main-content {
+    order: 2;
+  }
+  
+  .right-sidebar {
+    order: 3;
+  }
+}
+
 .container {
   max-width: 1250px;
   margin: 0 auto;
