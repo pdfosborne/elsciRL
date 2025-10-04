@@ -7,9 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="loading-overlay" id="loadingOverlay">
-                                <div class="loading-circle"></div>
-                            </div>
     
     <div class="main-layout">
         <!-- Left Sidebar -->
@@ -632,13 +629,13 @@
 
         // Update application overview selection to match dropdown selection
         function updateApplicationOverviewSelection(selectedApp) {
-            // Remove previous selection
-            document.querySelectorAll('.app-card').forEach(card => {
+            // Remove previous selection from both old and new card types
+            document.querySelectorAll('.app-card, .app-card-compact').forEach(card => {
                 card.classList.remove('selected');
             });
             
             // Find and select the corresponding card
-            const appCards = document.querySelectorAll('.app-card');
+            const appCards = document.querySelectorAll('.app-card, .app-card-compact');
             appCards.forEach(card => {
                 const appName = card.querySelector('h4').textContent;
                 if (appName === selectedApp) {
@@ -1483,17 +1480,22 @@
                 if (data.applications && data.applications.length > 0) {
                     let html = '<div class="applications-overview">';
                     
-                    // Filter to only show downloaded applications
-                    const downloadedApps = data.applications.filter(app => app.is_downloaded);
+                    // Filter to only show downloaded applications and sort alphabetically
+                    const downloadedApps = data.applications.filter(app => app.is_downloaded).sort((a, b) => a.name.localeCompare(b.name));
                     
                     if (downloadedApps.length > 0) {
-                        html += '<h3>Downloaded Applications</h3>';
-                        html += '<div class="app-grid">';
+                        html += `
+                            <div class="overview-layout">
+                                <div class="applications-section">
+                                    <h3>Downloaded Applications</h3>
+                                    <div class="app-grid-compact">
+                        `;
+                        
                         downloadedApps.forEach(app => {
                             html += `
-                                <div class="app-card" onclick="selectApplication('${app.name}', this)">
+                                <div class="app-card-compact" onclick="selectApplication('${app.name}', this)">
                                     <h4>${app.name}</h4>
-                                    <div class="app-details">
+                                    <div class="app-details-compact">
                                         <p><strong>Components:</strong> ${app.adapters_count} adapters, ${app.configs_count} configs, ${app.experiment_configs_count} experiments</p>
                                         ${app.description ? `<p><strong>Description:</strong> ${app.description}</p>` : ''}
                                         ${app.github_user ? `<p><strong>Author:</strong> ${app.github_user}</p>` : ''}
@@ -1501,67 +1503,54 @@
                                 </div>
                             `;
                         });
-                        html += '</div>';
-                    }
-                    
-                    // Add configuration selection section
-                    html += `
-                        <div id="applicationConfigSection" style="display: none; margin-top: 30px;">
-                            <h3>Configuration Selection</h3>
-                            <div class="config-selection-grid">
-                                <!-- Local Config Selection -->
-                                <div class="config-selection-card">
-                                    <h4>Local Configuration</h4>
-                                    <div id="overviewLocalConfigOptions" class="config-options-container">
-                                        <p style="color: #666; font-style: italic;">Select an application to see available configurations</p>
+                        
+                        html += `
                                     </div>
                                 </div>
                                 
-                                <!-- Analysis Plot Selection -->
-                                <div class="config-selection-card">
-                                    <h4>Analysis Plot</h4>
-                                    <div id="overviewPlotOptions" class="config-options-container">
-                                        <p style="color: #666; font-style: italic;">Select an application to see available plots</p>
+                                <div class="configuration-section">
+                                    <h3>Configuration Selection</h3>
+                                    <div id="applicationConfigSection" class="config-selection-compact">
+                                        <div class="config-selection-grid">
+                                            <!-- Local Config Selection -->
+                                            <div class="config-selection-card">
+                                                <h4>Local Configuration</h4>
+                                                <div id="overviewLocalConfigOptions" class="config-options-container">
+                                                    <p style="color: #666; font-style: italic;">Select an application to see available configurations</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Selected Configuration Summary -->
+                                        <div id="overviewConfigSummary" style="display: none; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px;">
+                                            <div id="overviewSelectedConfigs">
+                                                <div id="overviewLocalConfigSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
+                                                        <span style="margin-right: 8px;">⚙️</span>Local Configuration
+                                                    </h5>
+                                                    <div id="overviewLocalConfigValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
+                                                    <div id="overviewLocalConfigContent" style="display: none; margin-top: 10px;">
+                                                        <div style="color: #666; font-size: 0.9em; margin-bottom: 8px;">Configuration Details:</div>
+                                                        <pre id="overviewLocalConfigJson" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; font-size: 0.85em; color: #333; overflow-x: auto; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+                                                    </div>
+                                                    <div style="color: #666; font-size: 0.9em;">Configuration file for the selected application</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Selected Configuration Summary -->
-                            <div id="overviewConfigSummary" style="display: none; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div id="overviewSelectedConfigs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
-                                    <div id="overviewLocalConfigSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                        <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
-                                            <span style="margin-right: 8px;">⚙️</span>Local Configuration
-                                        </h5>
-                                        <div id="overviewLocalConfigValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
-                                        <div id="overviewLocalConfigContent" style="display: none; margin-top: 10px;">
-                                            <div style="color: #666; font-size: 0.9em; margin-bottom: 8px;">Configuration Details:</div>
-                                            <pre id="overviewLocalConfigJson" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; font-size: 0.85em; color: #333; overflow-x: auto; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
-                                        </div>
-                                        <div style="color: #666; font-size: 0.9em;">Configuration file for the selected application</div>
-                                    </div>
-                                    <div id="overviewPlotSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                        <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
-                                            <span style="margin-right: 8px;">📊</span>Analysis Plot
-                                        </h5>
-                                        <div id="overviewPlotValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
-                                        <div style="color: #666; font-size: 0.9em;">Visualization type for analysis results</div>
-                                    </div>
+                            <!-- Selected Application Details Section -->
+                            <div id="selectedApplicationDetails" style="display: none; margin-top: 30px;">
+                                <h3>Selected Application Details</h3>
+                                <div id="selectedAppContent">
+                                    <p>Select an application to view details, prerender image, and README.</p>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                     
-                    // Add selected application details section
-                    html += `
-                        <div id="selectedApplicationDetails" style="display: none;">
-                            <h3>Selected Application Details</h3>
-                            <div id="selectedAppContent">
-                                <p>Select an application to view details, prerender image, and README.</p>
-                    </div>
-                </div>
-            `;
-            
                     html += '</div>';
                     contentDiv.innerHTML = html;
                 } else {
@@ -2304,12 +2293,15 @@
         // Select application and load its details
         async function selectApplication(applicationName, eventElement = null) {
             try {
+                // Show loading overlay
+                showLoadingOverlay('Loading application data...');
+                
                 const selectedAppDiv = document.getElementById('selectedApplicationDetails');
                 const selectedAppContent = document.getElementById('selectedAppContent');
                 const configSection = document.getElementById('applicationConfigSection');
                 
-                // Remove previous selection
-                document.querySelectorAll('.app-card').forEach(card => {
+                // Remove previous selection from both old and new card types
+                document.querySelectorAll('.app-card, .app-card-compact').forEach(card => {
                     card.classList.remove('selected');
                 });
                 
@@ -2318,7 +2310,7 @@
                     eventElement.classList.add('selected');
                 } else {
                     // Find the card by application name if eventElement not provided
-                    const cards = document.querySelectorAll('.app-card');
+                    const cards = document.querySelectorAll('.app-card, .app-card-compact');
                     cards.forEach(card => {
                         const cardTitle = card.querySelector('h4');
                         if (cardTitle && cardTitle.textContent === applicationName) {
@@ -2336,8 +2328,10 @@
                 }
                 
                 // Show configuration section and load options
-                configSection.style.display = 'block';
-                await loadOverviewConfigurationOptions(applicationName);
+                if (configSection) {
+                    configSection.style.display = 'block';
+                    await loadOverviewConfigurationOptions(applicationName);
+                }
                 
                 // Show loading state
                 selectedAppContent.innerHTML = '<div class="loading-message"><p>Loading application details...</p></div>';
@@ -2397,6 +2391,9 @@
                 
                 selectedAppContent.innerHTML = html;
                 
+                // Hide loading overlay when all data is loaded
+                hideLoadingOverlay();
+                
             } catch (error) {
                 console.error('Error loading application details:', error);
                 const selectedAppContent = document.getElementById('selectedAppContent');
@@ -2406,6 +2403,9 @@
                         <p>Please try again.</p>
                     </div>
                 `;
+                
+                // Hide loading overlay even on error
+                hideLoadingOverlay();
             }
         }
 
@@ -2600,16 +2600,32 @@
         // Load configuration options for the overview tab
         async function loadOverviewConfigurationOptions(applicationName) {
             try {
+                // Update loading message
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    const messageElement = overlay.querySelector('.loading-message');
+                    if (messageElement) {
+                        messageElement.textContent = 'Loading configuration options...';
+                    }
+                }
+                
+                // Clear previous configuration summary
+                const configSummary = document.getElementById('overviewConfigSummary');
+                if (configSummary) {
+                    configSummary.style.display = 'none';
+                }
+                
+                // Clear previous configuration content
+                const configContent = document.getElementById('overviewLocalConfigContent');
+                if (configContent) {
+                    configContent.style.display = 'none';
+                }
+                
                 // First refresh application data to ensure we have the latest cached data
                 await refreshApplicationData();
-                // Load configuration data (excluding observed states)
-                const [configsRes, plotsRes, allOptionsRes] = await Promise.all([
+                // Load configuration data (only local configs)
+                const [configsRes, allOptionsRes] = await Promise.all([
                     fetch('/get_local_configs', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ application: applicationName })
-                    }),
-                    fetch('/get_plot_options', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ application: applicationName })
@@ -2619,43 +2635,48 @@
                     })
                 ]);
 
-                const [configsData, plotsData, allOptionsData] = await Promise.all([
+                const [configsData, allOptionsData] = await Promise.all([
                     configsRes.json(),
-                    plotsRes.json(),
                     allOptionsRes.json()
                 ]);
 
                 // Load local configs
                 loadOverviewConfigSection('overviewLocalConfigOptions', 'localConfig', configsData.localConfigs[applicationName] || []);
                 
-                // Load plot options
-                loadOverviewConfigSection('overviewPlotOptions', 'plotOptions', plotsData.plotOptions[applicationName] || []);
-                
                 // Load experiment configurations
                 loadOverviewConfigSection('overviewExperimentConfigOptions', 'experimentConfig', allOptionsData.experimentConfigs[applicationName] || []);
                 
                 // Auto-select first options if available
                 const localConfigs = configsData.localConfigs[applicationName] || [];
-                const plotOptions = plotsData.plotOptions[applicationName] || [];
                 const experimentConfigs = allOptionsData.experimentConfigs[applicationName] || [];
                 
                 if (localConfigs.length > 0) {
+                    // Update loading message
+                    const overlay = document.getElementById('loadingOverlay');
+                    if (overlay) {
+                        const messageElement = overlay.querySelector('.loading-message');
+                        if (messageElement) {
+                            messageElement.textContent = 'Loading configuration preview...';
+                        }
+                    }
+                    
                     // Select first local config
                     const firstConfig = localConfigs[0];
+                    console.log('Auto-selecting first config:', firstConfig, 'for application:', applicationName);
                     updateOverviewConfigDisplay('localConfig', firstConfig);
                     updateHiddenFormFields('localConfig', firstConfig);
-                    fetchConfigContent(firstConfig);
-                }
-                
-                if (plotOptions.length > 0) {
-                    // Select first plot option
-                    const firstPlot = plotOptions[0];
-                    updateOverviewConfigDisplay('plotOptions', firstPlot);
-                    updateHiddenFormFields('plotOptions', firstPlot);
-                } else {
-                    // Clear plot selection if no options available
-                    updateOverviewConfigDisplay('plotOptions', '');
-                    updateHiddenFormFields('plotOptions', '');
+                    fetchConfigContent(firstConfig, applicationName);
+                    
+                    // Show the configuration summary section
+                    document.getElementById('overviewConfigSummary').style.display = 'block';
+                    
+                    // Ensure the first button is visually selected
+                    setTimeout(() => {
+                        const firstButton = document.querySelector('#overviewLocalConfigOptions .config-option-btn');
+                        if (firstButton) {
+                            firstButton.classList.add('selected');
+                        }
+                    }, 100);
                 }
                 
                 if (experimentConfigs.length > 0) {
@@ -2672,7 +2693,7 @@
                 }
                 
                 // Show summary section if there are any configurations available
-                const hasConfigs = localConfigs.length > 0 || plotOptions.length > 0;
+                const hasConfigs = localConfigs.length > 0;
                 if (hasConfigs) {
                     document.getElementById('overviewConfigSummary').style.display = 'block';
                 }
@@ -2727,7 +2748,10 @@
             
             // If it's a local config, fetch and display the JSON content
             if (configType === 'localConfig') {
-                fetchConfigContent(option);
+                // Get the current application from the selected card
+                const selectedCard = document.querySelector('.app-card-compact.selected');
+                const applicationName = selectedCard ? selectedCard.querySelector('h4').textContent : null;
+                fetchConfigContent(option, applicationName);
             }
             
             // Update the hidden form fields for compatibility (only for localConfig and plotOptions)
@@ -2737,9 +2761,13 @@
         }
 
         // Fetch configuration content from backend
-        async function fetchConfigContent(configName) {
-            const selectedApp = document.getElementById('applicationSelect').value;
-            if (!selectedApp || !configName) return;
+        async function fetchConfigContent(configName, applicationName = null) {
+            const selectedApp = applicationName || document.getElementById('applicationSelect').value;
+            console.log('fetchConfigContent called with:', { configName, applicationName, selectedApp });
+            if (!selectedApp || !configName) {
+                console.log('fetchConfigContent: Missing required parameters');
+                return;
+            }
 
             // Show loading state
             const contentDiv = document.getElementById('overviewLocalConfigContent');
@@ -2778,8 +2806,11 @@
 
         // Display configuration content
         function displayConfigContent(configData) {
+            console.log('displayConfigContent called with:', configData);
             const contentDiv = document.getElementById('overviewLocalConfigContent');
             const jsonPre = document.getElementById('overviewLocalConfigJson');
+            
+            console.log('Elements found:', { contentDiv, jsonPre });
             
             if (contentDiv && jsonPre) {
                 // Format JSON with proper indentation
@@ -2788,6 +2819,9 @@
                 jsonPre.style.color = '#333';
                 jsonPre.style.fontStyle = 'normal';
                 contentDiv.style.display = 'block';
+                console.log('Configuration content displayed');
+            } else {
+                console.log('Missing elements for displaying config content');
             }
         }
 
@@ -2803,6 +2837,73 @@
             }
         }
 
+        // Show loading overlay
+        function showLoadingOverlay(message = 'Loading...') {
+            // Remove existing overlay if any
+            hideLoadingOverlay();
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                backdrop-filter: blur(2px);
+            `;
+            
+            const loadingContent = document.createElement('div');
+            loadingContent.style.cssText = `
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                text-align: center;
+                max-width: 300px;
+                width: 90%;
+            `;
+            
+            const spinner = document.createElement('div');
+            spinner.style.cssText = `
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid var(--button-color);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px auto;
+            `;
+            
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            messageElement.className = 'loading-message';
+            messageElement.style.cssText = `
+                margin: 0;
+                color: var(--text-color);
+                font-size: 16px;
+                font-weight: 500;
+            `;
+            
+            loadingContent.appendChild(spinner);
+            loadingContent.appendChild(messageElement);
+            overlay.appendChild(loadingContent);
+            document.body.appendChild(overlay);
+        }
+
+        // Hide loading overlay
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
         // Update overview configuration display with pretty format
         function updateOverviewConfigDisplay(configType, option) {
             if (configType === 'localConfig') {
@@ -2814,11 +2915,6 @@
                     valueElement.style.color = 'var(--button-color)';
                     valueElement.style.backgroundColor = '#e3f2fd';
                     valueElement.style.borderLeftColor = 'var(--button-color)';
-                }
-                
-                // Hide content div initially, it will be shown when content is loaded
-                if (contentDiv) {
-                    contentDiv.style.display = 'none';
                 }
             } else if (configType === 'plotOptions') {
                 const valueElement = document.getElementById('overviewPlotValue');

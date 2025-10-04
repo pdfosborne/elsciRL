@@ -542,6 +542,48 @@ label[title][for]:hover::before {
     100% { transform: rotate(360deg); }
 }
 
+/* Loading Overlay Styles */
+#loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+}
+
+#loadingOverlay .loading-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 300px;
+    width: 90%;
+}
+
+#loadingOverlay .loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--button-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto;
+}
+
+#loadingOverlay .loading-message {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 16px;
+    font-weight: 500;
+}
+
 /* Training Parameters Styles */
 .training-params {
   margin-bottom: 6px;
@@ -789,6 +831,123 @@ label[title][for]:hover::before {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Overview Layout - Side by Side */
+.overview-layout {
+    display: grid;
+    grid-template-columns: 30% 70%;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.applications-section {
+    min-height: 400px;
+}
+
+.configuration-section {
+    min-height: 400px;
+}
+
+/* Compact Application Grid */
+.app-grid-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--input-background-color);
+}
+
+.app-card-compact {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 1px 3px var(--shadow-color);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.app-card-compact:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px var(--shadow-color);
+    border-color: var(--button-color);
+}
+
+.app-card-compact.selected {
+    border-color: var(--button-color);
+    background-color: rgba(0, 122, 255, 0.1);
+    box-shadow: 0 2px 6px var(--shadow-color);
+}
+
+.app-card-compact h4 {
+    margin: 0 0 8px 0;
+    color: var(--button-color);
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.app-card-compact.selected h4 {
+    color: var(--button-color);
+}
+
+.app-details-compact {
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+.app-details-compact p {
+    margin: 3px 0;
+    color: var(--text-color);
+}
+
+/* Configuration Selection Compact */
+.config-selection-compact {
+    padding: 15px;
+    background-color: var(--input-background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.config-selection-compact .config-selection-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.config-selection-compact .config-selection-card {
+    padding: 12px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.config-selection-compact .config-selection-card h4 {
+    margin: 0 0 8px 0;
+    color: var(--button-color);
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .overview-layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .applications-section,
+    .configuration-section {
+        min-height: auto;
+    }
+}
+
+/* Original Grid Styles (kept for backward compatibility) */
 .app-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
