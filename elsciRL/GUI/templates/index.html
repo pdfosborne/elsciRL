@@ -299,6 +299,246 @@
             color: var(--text-color);
         }
 
+        /* Configuration Selection Styles */
+        .config-selection {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--input-background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .config-selection h5 {
+            margin: 0 0 15px 0;
+            color: var(--button-color);
+            font-size: 1.1em;
+        }
+
+        .config-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .config-button {
+            background-color: var(--button-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+
+        .config-button:hover {
+            background-color: var(--button-hover-color);
+        }
+
+        .config-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .config-dropdown {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .config-dropdown.show {
+            display: block;
+        }
+
+        .config-dropdown select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+            font-size: 0.9em;
+        }
+
+        .config-dropdown label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .config-dropdown p {
+            margin: 5px 0;
+            color: var(--text-color);
+            font-size: 0.9em;
+        }
+
+        .config-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .config-actions button {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .config-actions .apply-btn {
+            background-color: var(--button-color);
+            color: white;
+        }
+
+        .config-actions .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Button-based Configuration Selection Styles */
+        .config-option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .config-option-button {
+            background-color: var(--input-background-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+        }
+
+        .config-option-button:hover {
+            border-color: var(--button-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+        }
+
+        .config-option-button.selected {
+            border-color: var(--button-color);
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .config-option-button.selected::after {
+            content: "✓";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: var(--button-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .config-option-title {
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .config-option-description {
+            color: var(--text-color);
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .config-option-meta {
+            color: #666;
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        /* Overview Configuration Styles */
+        .config-option-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            margin: 2px;
+        }
+
+        .config-option-btn:hover {
+            border-color: var(--button-color);
+            background-color: #f8f9fa;
+        }
+
+        .config-option-btn.selected {
+            background-color: var(--button-color);
+            border-color: var(--button-color);
+            color: white;
+        }
+
+        .config-selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-selection-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            background-color: var(--input-background-color);
+        }
+
+        .config-selection-card h4 {
+            margin: 0 0 15px 0;
+            color: var(--button-color);
+        }
+
+        .config-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .config-section-title {
+            color: var(--button-color);
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .config-clear-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .config-clear-btn:hover {
+            background-color: #c82333;
+        }
+
+        .no-options-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+            background-color: var(--input-background-color);
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
         .download-btn {
             background-color: var(--button-color);
             color: white;
@@ -837,24 +1077,30 @@
 
                     <div class="config-group">
                         <h3>Configuration</h3>
+                        
+                        <!-- Local Config Selection -->
                         <div class="select-container">
-                            <label for="localConfigSelect">Local Config:</label>
-                            <select id="localConfigSelect" onchange="loadConfigData()">
+                            <label for="localConfigSelect">Local Configuration:</label>
+                            <select id="localConfigSelect" onchange="updateConfigSummary()">
                                 <option value="">Select application first</option>
-                                    </select>
-                                </div>
-                            <div class="select-container">
-                            <label for="observedStateSelect">Observed State:</label>
-                            <select id="observedStateSelect">
+                            </select>
+                        </div>
+                        
+                        <!-- Observed States Selection -->
+                        <div class="select-container">
+                            <label for="observedStateSelect">Observed States:</label>
+                            <select id="observedStateSelect" onchange="updateConfigSummary()">
                                 <option value="">Select application first</option>
-                                </select>
-                            </div>
-                            <div class="select-container">
+                            </select>
+                        </div>
+                        
+                        <!-- Analysis Plot Selection -->
+                        <div class="select-container">
                             <label for="plotSelect">Analysis Plot:</label>
-                            <select id="plotSelect">
+                            <select id="plotSelect" onchange="updateConfigSummary()">
                                 <option value="">Select application first</option>
-                                </select>
-                            </div>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="config-group">
@@ -954,6 +1200,24 @@
                     <h2>Instructions</h2>
                     <div class="input-console-container">
                         <div class="input-section">
+                            <!-- Observed States Selection -->
+                            <div class="config-group" style="margin-bottom: 20px;">
+                                <h3>Observed States</h3>
+                                <div class="select-container">
+                                    <label for="instructionsObservedStateSelect">Select Observed States:</label>
+                                    <select id="instructionsObservedStateSelect" onchange="updateInstructionsObservedStates()">
+                                        <option value="">Select an application first</option>
+                                    </select>
+                                </div>
+                                <div id="instructionsObservedStatesInfo" style="margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; display: none;">
+                                    <p><strong>Selected States:</strong> <span id="instructionsObservedStatesSummary">None</span></p>
+                                    <div id="instructionsObservedStatesPreview" style="margin-top: 10px; display: none;">
+                                        <div style="color: #666; font-size: 0.9em; margin-bottom: 8px;">Preview of first value:</div>
+                                        <pre id="instructionsObservedStatesContent" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; font-size: 0.85em; color: #333; overflow-x: auto; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <h3>Enter Your Instructions</h3>
                             <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
                             <div class="button-group">
@@ -1305,10 +1569,11 @@
                     adaptersRes.json()
                 ]);
 
-                // Update dropdowns
-                updateSelect('localConfigSelect', configsData.localConfigs[selectedApp] || []);
-                updateSelect('observedStateSelect', statesData.observedStates[selectedApp] || []);
-                updateSelect('plotSelect', plotsData.plotOptions[selectedApp] || []);
+                // Load configuration options as dropdowns
+                loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData);
+                
+                // Load observed states for instructions tab
+                loadInstructionsObservedStates(selectedApp, statesData);
                 
                 // Update adapters
                 availableAdapters = adaptersData.adapters || [];
@@ -1340,6 +1605,13 @@
                     card.classList.add('selected');
                 }
             });
+            
+            // Show configuration section and load options
+            const configSection = document.getElementById('applicationConfigSection');
+            if (configSection) {
+                configSection.style.display = 'block';
+                loadOverviewConfigurationOptions(selectedApp);
+            }
         }
 
         // Update select dropdown
@@ -2092,6 +2364,54 @@
                         html += '</div>';
                     }
                     
+                    // Add configuration selection section
+                    html += `
+                        <div id="applicationConfigSection" style="display: none; margin-top: 30px;">
+                            <h3>Configuration Selection</h3>
+                            <div class="config-selection-grid">
+                                <!-- Local Config Selection -->
+                                <div class="config-selection-card">
+                                    <h4>Local Configuration</h4>
+                                    <div id="overviewLocalConfigOptions" class="config-options-container">
+                                        <p style="color: #666; font-style: italic;">Select an application to see available configurations</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Analysis Plot Selection -->
+                                <div class="config-selection-card">
+                                    <h4>Analysis Plot</h4>
+                                    <div id="overviewPlotOptions" class="config-options-container">
+                                        <p style="color: #666; font-style: italic;">Select an application to see available plots</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Configuration Summary -->
+                            <div id="overviewConfigSummary" style="display: none; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div id="overviewSelectedConfigs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                                    <div id="overviewLocalConfigSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
+                                            <span style="margin-right: 8px;">⚙️</span>Local Configuration
+                                        </h5>
+                                        <div id="overviewLocalConfigValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
+                                        <div id="overviewLocalConfigContent" style="display: none; margin-top: 10px;">
+                                            <div style="color: #666; font-size: 0.9em; margin-bottom: 8px;">Configuration Details:</div>
+                                            <pre id="overviewLocalConfigJson" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; font-size: 0.85em; color: #333; overflow-x: auto; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+                                        </div>
+                                        <div style="color: #666; font-size: 0.9em;">Configuration file for the selected application</div>
+                                    </div>
+                                    <div id="overviewPlotSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
+                                            <span style="margin-right: 8px;">📊</span>Analysis Plot
+                                        </h5>
+                                        <div id="overviewPlotValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
+                                        <div style="color: #666; font-size: 0.9em;">Visualization type for analysis results</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
                     // Add selected application details section
                     html += `
                         <div id="selectedApplicationDetails" style="display: none;">
@@ -2116,6 +2436,485 @@
                         <p>Please try refreshing the page.</p>
                     </div>
                 `;
+            }
+        }
+
+        // Configuration selection functions
+        function showConfigDropdown(configType) {
+            // Hide all other dropdowns
+            document.querySelectorAll('.config-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+            
+            // Show the selected dropdown
+            const dropdown = document.getElementById(configType + 'Dropdown');
+            if (dropdown) {
+                dropdown.classList.add('show');
+            }
+        }
+
+        function hideConfigDropdown(configType) {
+            const dropdown = document.getElementById(configType + 'Dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function applyConfig(configType) {
+            const selectElement = document.getElementById(configType + 'Select');
+            const selectedValue = selectElement.value;
+            const displayElement = document.getElementById('selected' + configType.charAt(0).toUpperCase() + configType.slice(1));
+            
+            if (selectedValue) {
+                displayElement.textContent = `${configType.charAt(0).toUpperCase() + configType.slice(1)}: ${selectedValue}`;
+                
+                // Update the main application form if it exists
+                updateMainApplicationForm(configType, selectedValue);
+            }
+            
+            // Hide the dropdown
+            hideConfigDropdown(configType);
+        }
+
+        function updateMainApplicationForm(configType, selectedValue) {
+            // Update the main application form dropdowns
+            if (configType === 'localConfig') {
+                const localConfigSelect = document.getElementById('localConfigInput');
+                if (localConfigSelect) {
+                    localConfigSelect.value = selectedValue;
+                }
+            } else if (configType === 'observedStates') {
+                const observedStatesSelect = document.getElementById('observedStateInput');
+                if (observedStatesSelect) {
+                    observedStatesSelect.value = selectedValue;
+                }
+            } else if (configType === 'plotOptions') {
+                const plotSelect = document.getElementById('selectedPlot');
+                if (plotSelect) {
+                    plotSelect.value = selectedValue;
+                }
+            }
+        }
+
+        async function loadApplicationConfigurations(applicationName) {
+            try {
+                // Show loading state
+                const configButtons = document.querySelectorAll('.config-button');
+                configButtons.forEach(button => {
+                    button.disabled = true;
+                    button.textContent = 'Loading...';
+                });
+                
+                // Load local configs
+                const localConfigsResponse = await fetch('/get_local_configs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: applicationName })
+                });
+                const localConfigsData = await localConfigsResponse.json();
+                
+                const localConfigSelect = document.getElementById('localConfigSelect');
+                if (localConfigSelect && localConfigsData.localConfigs[applicationName]) {
+                    localConfigSelect.innerHTML = '<option value="">Select a local config...</option>';
+                    localConfigsData.localConfigs[applicationName].forEach(config => {
+                        localConfigSelect.innerHTML += `<option value="${config}">${config}</option>`;
+                    });
+                } else {
+                    localConfigSelect.innerHTML = '<option value="">No local configs available</option>';
+                }
+
+                // Load observed states
+                const observedStatesResponse = await fetch('/get_observed_states', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ applications: [applicationName] })
+                });
+                const observedStatesData = await observedStatesResponse.json();
+                
+                const observedStatesSelect = document.getElementById('observedStatesSelect');
+                if (observedStatesSelect && observedStatesData.observedStates[applicationName]) {
+                    observedStatesSelect.innerHTML = '<option value="">Select observed states...</option>';
+                    observedStatesData.observedStates[applicationName].forEach(state => {
+                        observedStatesSelect.innerHTML += `<option value="${state}">${state}</option>`;
+                    });
+                } else {
+                    observedStatesSelect.innerHTML = '<option value="">No observed states available</option>';
+                }
+
+                // Load plot options
+                const plotOptionsResponse = await fetch('/get_plot_options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ application: applicationName })
+                });
+                const plotOptionsData = await plotOptionsResponse.json();
+                
+                const plotOptionsSelect = document.getElementById('plotOptionsSelect');
+                if (plotOptionsSelect && plotOptionsData.plotOptions[applicationName]) {
+                    plotOptionsSelect.innerHTML = '<option value="">Select a plot option...</option>';
+                    plotOptionsData.plotOptions[applicationName].forEach(plot => {
+                        plotOptionsSelect.innerHTML += `<option value="${plot}">${plot}</option>`;
+                    });
+                } else {
+                    plotOptionsSelect.innerHTML = '<option value="">No plot options available</option>';
+                }
+
+                // Restore button states
+                const configButtonsRestore = document.querySelectorAll('.config-button');
+                configButtonsRestore.forEach(button => {
+                    button.disabled = false;
+                });
+                
+                // Restore specific button text
+                const localConfigBtn = document.querySelector('button[onclick="showConfigDropdown(\'localConfig\')"]');
+                const observedStatesBtn = document.querySelector('button[onclick="showConfigDropdown(\'observedStates\')"]');
+                const plotOptionsBtn = document.querySelector('button[onclick="showConfigDropdown(\'plotOptions\')"]');
+                
+                if (localConfigBtn) localConfigBtn.textContent = 'Select Local Config';
+                if (observedStatesBtn) observedStatesBtn.textContent = 'Select Observed States';
+                if (plotOptionsBtn) plotOptionsBtn.textContent = 'Select Analysis Plot';
+
+            } catch (error) {
+                console.error('Error loading application configurations:', error);
+                
+                // Restore button states even on error
+                const configButtonsError = document.querySelectorAll('.config-button');
+                configButtonsError.forEach(button => {
+                    button.disabled = false;
+                });
+            }
+        }
+
+        function applyAllConfigurations() {
+            // Apply all currently selected configurations to the main form
+            const localConfigValue = document.getElementById('localConfigSelect').value;
+            const observedStatesValue = document.getElementById('observedStatesSelect').value;
+            const plotOptionsValue = document.getElementById('plotOptionsSelect').value;
+            
+            if (localConfigValue) {
+                updateMainApplicationForm('localConfig', localConfigValue);
+            }
+            if (observedStatesValue) {
+                updateMainApplicationForm('observedStates', observedStatesValue);
+            }
+            if (plotOptionsValue) {
+                updateMainApplicationForm('plotOptions', plotOptionsValue);
+            }
+            
+            // Show success message
+            alert('All selected configurations have been applied to the experiment form!');
+        }
+
+        function clearAllConfigurations() {
+            // Clear all selected configurations
+            document.getElementById('selectedLocalConfigSummary').textContent = 'Local Config: None';
+            document.getElementById('selectedObservedStatesSummary').textContent = 'Observed States: None';
+            document.getElementById('selectedPlotOptionsSummary').textContent = 'Analysis Plot: None';
+            
+            // Clear button selections
+            document.querySelectorAll('.config-option-button').forEach(button => {
+                button.classList.remove('selected');
+            });
+            
+            // Hide clear button and summary
+            document.querySelector('.config-clear-btn').style.display = 'none';
+            document.getElementById('selectedConfigSummary').style.display = 'none';
+        }
+
+        // Load configuration dropdowns
+        function loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData) {
+            // Load local configs
+            loadConfigDropdown('localConfigSelect', configsData.localConfigs[selectedApp] || []);
+            
+            // Load observed states
+            loadConfigDropdown('observedStateSelect', statesData.observedStates[selectedApp] || []);
+            
+            // Load plot options
+            loadConfigDropdown('plotSelect', plotsData.plotOptions[selectedApp] || []);
+        }
+
+        // Load configuration dropdown
+        function loadConfigDropdown(selectId, options) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select an option...</option>';
+            
+            if (options && options.length > 0) {
+                options.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option;
+                    optionElement.textContent = option;
+                    select.appendChild(optionElement);
+                });
+                
+                // Default to first option
+                select.selectedIndex = 1; // Index 1 because index 0 is the placeholder
+            } else {
+                select.innerHTML = '<option value="">No options available</option>';
+            }
+            
+            // Update summary after loading
+            updateConfigSummary();
+        }
+
+        // Load observed states for instructions tab
+        function loadInstructionsObservedStates(selectedApp, statesData) {
+            const select = document.getElementById('instructionsObservedStateSelect');
+            select.innerHTML = '<option value="">Select an option...</option>';
+            
+            const states = statesData.observedStates[selectedApp] || [];
+            
+            if (states.length > 0) {
+                states.forEach(state => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = state;
+                    optionElement.textContent = state;
+                    select.appendChild(optionElement);
+                });
+                
+                // Default to first option
+                select.selectedIndex = 1; // Index 1 because index 0 is the placeholder
+                updateInstructionsObservedStates();
+            } else {
+                select.innerHTML = '<option value="">No observed states available</option>';
+            }
+        }
+
+        // Update instructions observed states display
+        function updateInstructionsObservedStates() {
+            const selectedState = document.getElementById('instructionsObservedStateSelect').value;
+            const summaryElement = document.getElementById('instructionsObservedStatesSummary');
+            const infoElement = document.getElementById('instructionsObservedStatesInfo');
+            const previewElement = document.getElementById('instructionsObservedStatesPreview');
+            const contentElement = document.getElementById('instructionsObservedStatesContent');
+            
+            if (summaryElement) {
+                summaryElement.textContent = selectedState || 'None';
+            }
+            
+            if (infoElement) {
+                infoElement.style.display = selectedState ? 'block' : 'none';
+            }
+            
+            // Show/hide preview section
+            if (previewElement) {
+                previewElement.style.display = selectedState ? 'block' : 'none';
+            }
+            
+            // Fetch and display preview if a state is selected
+            if (selectedState) {
+                fetchObservedStatesPreview(selectedState);
+            } else if (contentElement) {
+                contentElement.textContent = '';
+            }
+            
+            // Update the main experiment form dropdown for compatibility
+            const mainSelect = document.getElementById('observedStateSelect');
+            if (mainSelect) {
+                mainSelect.value = selectedState;
+            }
+        }
+
+        // Fetch observed states preview content
+        async function fetchObservedStatesPreview(stateFileName) {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            if (!selectedApp || !stateFileName) return;
+
+            const contentElement = document.getElementById('instructionsObservedStatesContent');
+            if (!contentElement) return;
+
+            // Show loading state
+            contentElement.textContent = 'Loading observed states preview...';
+            contentElement.style.color = '#666';
+            contentElement.style.fontStyle = 'italic';
+
+            try {
+                const response = await fetch('/get_observed_states_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        application: selectedApp,
+                        state_file: stateFileName
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error fetching observed states content:', data.error);
+                    contentElement.textContent = `Error: ${data.error}`;
+                    contentElement.style.color = '#dc3545';
+                    contentElement.style.fontStyle = 'normal';
+                } else {
+                    displayObservedStatesPreview(data.content);
+                }
+            } catch (error) {
+                console.error('Error fetching observed states content:', error);
+                contentElement.textContent = 'Failed to load observed states preview';
+                contentElement.style.color = '#dc3545';
+                contentElement.style.fontStyle = 'normal';
+            }
+        }
+
+        // Display observed states preview content
+        function displayObservedStatesPreview(content) {
+            const contentElement = document.getElementById('instructionsObservedStatesContent');
+            if (!contentElement) return;
+
+            try {
+                // Try to parse as JSON and get the first value
+                let previewContent;
+                if (typeof content === 'string') {
+                    const parsed = JSON.parse(content);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        previewContent = JSON.stringify(parsed[0], null, 2);
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        // Get the first key-value pair
+                        const firstKey = Object.keys(parsed)[0];
+                        previewContent = JSON.stringify({ [firstKey]: parsed[firstKey] }, null, 2);
+                    } else {
+                        previewContent = JSON.stringify(parsed, null, 2);
+                    }
+                } else if (Array.isArray(content) && content.length > 0) {
+                    previewContent = JSON.stringify(content[0], null, 2);
+                } else if (typeof content === 'object' && content !== null) {
+                    // Get the first key-value pair
+                    const firstKey = Object.keys(content)[0];
+                    previewContent = JSON.stringify({ [firstKey]: content[firstKey] }, null, 2);
+                } else {
+                    previewContent = JSON.stringify(content, null, 2);
+                }
+
+                contentElement.textContent = previewContent;
+                contentElement.style.color = '#333';
+                contentElement.style.fontStyle = 'normal';
+            } catch (error) {
+                console.error('Error formatting observed states preview:', error);
+                contentElement.textContent = 'Error formatting preview content';
+                contentElement.style.color = '#dc3545';
+                contentElement.style.fontStyle = 'normal';
+            }
+        }
+
+        // Update configuration summary
+        function updateConfigSummary() {
+            const localConfig = document.getElementById('localConfigSelect').value;
+            const observedState = document.getElementById('observedStateSelect').value;
+            const plot = document.getElementById('plotSelect').value;
+            
+            // Update summary display if it exists
+            const localConfigSummary = document.getElementById('selectedLocalConfigSummary');
+            const observedStatesSummary = document.getElementById('selectedObservedStatesSummary');
+            const plotSummary = document.getElementById('selectedPlotOptionsSummary');
+            
+            if (localConfigSummary) {
+                localConfigSummary.textContent = `Local Config: ${localConfig || 'None'}`;
+            }
+            if (observedStatesSummary) {
+                observedStatesSummary.textContent = `Observed States: ${observedState || 'None'}`;
+            }
+            if (plotSummary) {
+                plotSummary.textContent = `Analysis Plot: ${plot || 'None'}`;
+            }
+        }
+
+        // New button-based configuration functions (for overview tab)
+        function loadConfigurationOptions(selectedApp, configsData, statesData, plotsData) {
+            // Load local configs
+            loadConfigSection('localConfig', configsData.localConfigs[selectedApp] || []);
+            
+            // Load observed states
+            loadConfigSection('observedStates', statesData.observedStates[selectedApp] || []);
+            
+            // Load plot options
+            loadConfigSection('plotOptions', plotsData.plotOptions[selectedApp] || []);
+        }
+
+        function loadConfigSection(configType, options) {
+            const section = document.getElementById(configType + 'Section');
+            const grid = document.getElementById(configType + 'Grid');
+            
+            if (!options || options.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            grid.innerHTML = '';
+            
+            options.forEach(option => {
+                const button = document.createElement('div');
+                button.className = 'config-option-button';
+                button.onclick = () => selectConfigOption(configType, option, button);
+                
+                // Create summary information based on config type
+                let title, description, meta;
+                switch(configType) {
+                    case 'localConfig':
+                        title = option;
+                        description = `Configuration file for ${option}`;
+                        meta = 'Local configuration';
+                        break;
+                    case 'observedStates':
+                        title = option;
+                        description = `Observed states data: ${option}`;
+                        meta = 'State data';
+                        break;
+                    case 'plotOptions':
+                        title = option;
+                        description = `Analysis plot: ${option}`;
+                        meta = 'Visualization';
+                        break;
+                }
+                
+                button.innerHTML = `
+                    <div class="config-option-title">${title}</div>
+                    <div class="config-option-description">${description}</div>
+                    <div class="config-option-meta">${meta}</div>
+                `;
+                
+                grid.appendChild(button);
+            });
+        }
+
+        function selectConfigOption(configType, option, buttonElement) {
+            // Remove selection from other buttons in the same section
+            const section = buttonElement.closest('.config-option-grid');
+            section.querySelectorAll('.config-option-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            buttonElement.classList.add('selected');
+            
+            // Update summary
+            const summaryElement = document.getElementById('selected' + configType.charAt(0).toUpperCase() + configType.slice(1) + 'Summary');
+            summaryElement.textContent = `${configType.charAt(0).toUpperCase() + configType.slice(1)}: ${option}`;
+            
+            // Show summary and clear button
+            document.getElementById('selectedConfigSummary').style.display = 'block';
+            document.querySelector('.config-clear-btn').style.display = 'inline-block';
+            
+            // Update the hidden form fields for compatibility
+            updateHiddenFormFields(configType, option);
+        }
+
+        function updateHiddenFormFields(configType, option) {
+            // Update hidden form fields for compatibility with existing code
+            if (configType === 'localConfig') {
+                const hiddenSelect = document.getElementById('localConfigSelect');
+                if (hiddenSelect) {
+                    hiddenSelect.value = option;
+                }
+            } else if (configType === 'observedStates') {
+                const hiddenSelect = document.getElementById('observedStateSelect');
+                if (hiddenSelect) {
+                    hiddenSelect.value = option;
+                }
+            } else if (configType === 'plotOptions') {
+                const hiddenSelect = document.getElementById('plotSelect');
+                if (hiddenSelect) {
+                    hiddenSelect.value = option;
+                }
             }
         }
 
@@ -2189,6 +2988,7 @@
             try {
                 const selectedAppDiv = document.getElementById('selectedApplicationDetails');
                 const selectedAppContent = document.getElementById('selectedAppContent');
+                const configSection = document.getElementById('applicationConfigSection');
                 
                 // Remove previous selection
                 document.querySelectorAll('.app-card').forEach(card => {
@@ -2216,6 +3016,10 @@
                     // Trigger the change event to load application data
                     loadApplicationData();
                 }
+                
+                // Show configuration section and load options
+                configSection.style.display = 'block';
+                await loadOverviewConfigurationOptions(applicationName);
                 
                 // Show loading state
                 selectedAppContent.innerHTML = '<div class="loading-message"><p>Loading application details...</p></div>';
@@ -2271,6 +3075,7 @@
                     html += '<p>No README available for this application.</p>';
                     html += '</div>';
                 }
+                
                 
                 selectedAppContent.innerHTML = html;
                 
@@ -2471,6 +3276,256 @@
                         <p>Please try again.</p>
                     </div>
                 `;
+            }
+        }
+
+        // Load configuration options for the overview tab
+        async function loadOverviewConfigurationOptions(applicationName) {
+            try {
+                // Load configuration data (excluding observed states)
+                const [configsRes, plotsRes] = await Promise.all([
+                    fetch('/get_local_configs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ application: applicationName })
+                    }),
+                    fetch('/get_plot_options', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ application: applicationName })
+                    })
+                ]);
+
+                const [configsData, plotsData] = await Promise.all([
+                    configsRes.json(),
+                    plotsRes.json()
+                ]);
+
+                // Load local configs
+                loadOverviewConfigSection('overviewLocalConfigOptions', 'localConfig', configsData.localConfigs[applicationName] || []);
+                
+                // Load plot options
+                loadOverviewConfigSection('overviewPlotOptions', 'plotOptions', plotsData.plotOptions[applicationName] || []);
+                
+                // Auto-select first options if available
+                const localConfigs = configsData.localConfigs[applicationName] || [];
+                const plotOptions = plotsData.plotOptions[applicationName] || [];
+                
+                if (localConfigs.length > 0) {
+                    // Select first local config
+                    const firstConfig = localConfigs[0];
+                    updateOverviewConfigDisplay('localConfig', firstConfig);
+                    updateHiddenFormFields('localConfig', firstConfig);
+                    fetchConfigContent(firstConfig);
+                }
+                
+                if (plotOptions.length > 0) {
+                    // Select first plot option
+                    const firstPlot = plotOptions[0];
+                    updateOverviewConfigDisplay('plotOptions', firstPlot);
+                    updateHiddenFormFields('plotOptions', firstPlot);
+                } else {
+                    // Clear plot selection if no options available
+                    updateOverviewConfigDisplay('plotOptions', '');
+                    updateHiddenFormFields('plotOptions', '');
+                }
+                
+                // Show summary section if there are any configurations available
+                const hasConfigs = localConfigs.length > 0 || plotOptions.length > 0;
+                if (hasConfigs) {
+                    document.getElementById('overviewConfigSummary').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error loading overview configuration options:', error);
+            }
+        }
+
+        // Load configuration section for overview
+        function loadOverviewConfigSection(containerId, configType, options) {
+            const container = document.getElementById(containerId);
+            
+            if (!options || options.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-style: italic;">No options available</p>';
+                return;
+            }
+            
+            let html = '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+            
+            options.forEach((option, index) => {
+                // Add 'selected' class to the first option
+                const selectedClass = index === 0 ? ' selected' : '';
+                html += `
+                    <button class="config-option-btn${selectedClass}" 
+                            onclick="selectOverviewConfig('${configType}', '${option}', this)">
+                        ${option}
+                    </button>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Select configuration option in overview
+        function selectOverviewConfig(configType, option, buttonElement) {
+            // Remove selection from other buttons in the same section
+            const container = buttonElement.parentElement;
+            container.querySelectorAll('.config-option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Select this button
+            buttonElement.classList.add('selected');
+            
+            // Update summary with pretty format
+            updateOverviewConfigDisplay(configType, option);
+            
+            // Show summary section
+            document.getElementById('overviewConfigSummary').style.display = 'block';
+            
+            // If it's a local config, fetch and display the JSON content
+            if (configType === 'localConfig') {
+                fetchConfigContent(option);
+            }
+            
+            // Update the hidden form fields for compatibility (only for localConfig and plotOptions)
+            if (configType === 'localConfig' || configType === 'plotOptions') {
+                updateHiddenFormFields(configType, option);
+            }
+        }
+
+        // Fetch configuration content from backend
+        async function fetchConfigContent(configName) {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            if (!selectedApp || !configName) return;
+
+            // Show loading state
+            const contentDiv = document.getElementById('overviewLocalConfigContent');
+            const jsonPre = document.getElementById('overviewLocalConfigJson');
+            
+            if (contentDiv && jsonPre) {
+                contentDiv.style.display = 'block';
+                jsonPre.textContent = 'Loading configuration...';
+                jsonPre.style.color = '#666';
+                jsonPre.style.fontStyle = 'italic';
+            }
+
+            try {
+                const response = await fetch('/get_local_config_content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        application: selectedApp,
+                        config: configName
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error fetching config content:', data.error);
+                    displayConfigError(data.error);
+                } else {
+                    displayConfigContent(data.config);
+                }
+            } catch (error) {
+                console.error('Error fetching config content:', error);
+                displayConfigError('Failed to load configuration content');
+            }
+        }
+
+        // Display configuration content
+        function displayConfigContent(configData) {
+            const contentDiv = document.getElementById('overviewLocalConfigContent');
+            const jsonPre = document.getElementById('overviewLocalConfigJson');
+            
+            if (contentDiv && jsonPre) {
+                // Format JSON with proper indentation
+                const formattedJson = JSON.stringify(configData, null, 2);
+                jsonPre.textContent = formattedJson;
+                jsonPre.style.color = '#333';
+                jsonPre.style.fontStyle = 'normal';
+                contentDiv.style.display = 'block';
+            }
+        }
+
+        // Display configuration error
+        function displayConfigError(errorMessage) {
+            const contentDiv = document.getElementById('overviewLocalConfigContent');
+            const jsonPre = document.getElementById('overviewLocalConfigJson');
+            
+            if (contentDiv && jsonPre) {
+                jsonPre.textContent = `Error: ${errorMessage}`;
+                jsonPre.style.color = '#dc3545';
+                contentDiv.style.display = 'block';
+            }
+        }
+
+        // Update overview configuration display with pretty format
+        function updateOverviewConfigDisplay(configType, option) {
+            if (configType === 'localConfig') {
+                const valueElement = document.getElementById('overviewLocalConfigValue');
+                const contentDiv = document.getElementById('overviewLocalConfigContent');
+                
+                if (valueElement) {
+                    valueElement.textContent = option;
+                    valueElement.style.color = 'var(--button-color)';
+                    valueElement.style.backgroundColor = '#e3f2fd';
+                    valueElement.style.borderLeftColor = 'var(--button-color)';
+                }
+                
+                // Hide content div initially, it will be shown when content is loaded
+                if (contentDiv) {
+                    contentDiv.style.display = 'none';
+                }
+            } else if (configType === 'plotOptions') {
+                const valueElement = document.getElementById('overviewPlotValue');
+                if (valueElement) {
+                    if (option) {
+                        valueElement.textContent = option;
+                        valueElement.style.color = 'var(--button-color)';
+                        valueElement.style.backgroundColor = '#e3f2fd';
+                        valueElement.style.borderLeftColor = 'var(--button-color)';
+                    } else {
+                        // Clear the display when no option is selected
+                        valueElement.textContent = 'None selected';
+                        valueElement.style.color = '#666';
+                        valueElement.style.backgroundColor = '#f8f9fa';
+                        valueElement.style.borderLeftColor = 'var(--button-color)';
+                    }
+                }
+            }
+        }
+
+        // Reset overview configuration display
+        function resetOverviewConfigDisplay() {
+            const localConfigValue = document.getElementById('overviewLocalConfigValue');
+            const plotValue = document.getElementById('overviewPlotValue');
+            const contentDiv = document.getElementById('overviewLocalConfigContent');
+            
+            if (localConfigValue) {
+                localConfigValue.textContent = 'None selected';
+                localConfigValue.style.color = '#666';
+                localConfigValue.style.backgroundColor = '#f8f9fa';
+                localConfigValue.style.borderLeftColor = 'var(--button-color)';
+            }
+            if (plotValue) {
+                plotValue.textContent = 'None selected';
+                plotValue.style.color = '#666';
+                plotValue.style.backgroundColor = '#f8f9fa';
+                plotValue.style.borderLeftColor = 'var(--button-color)';
+            }
+            
+            // Hide JSON content
+            if (contentDiv) {
+                contentDiv.style.display = 'none';
+            }
+            
+            // Hide summary section
+            const summarySection = document.getElementById('overviewConfigSummary');
+            if (summarySection) {
+                summarySection.style.display = 'none';
             }
         }
 

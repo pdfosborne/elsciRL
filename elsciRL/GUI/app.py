@@ -1407,6 +1407,68 @@ Example of environment language structure: {results[application][instr]['sub_goa
             print(f"Error getting experiment config: {str(e)}")
             return jsonify({'error': 'Failed to get experiment config'}), 500
 
+    def get_local_config_content(self, application, config_name):
+        if not application or not config_name:
+            return jsonify({'error': 'Missing application or config parameter'}), 400
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
+        try:
+            # Debug: Print available applications and local configs
+            print(f"Available applications: {list(self.pull_app_data.keys())}")
+            if application in self.pull_app_data:
+                print(f"Available local configs for {application}: {list(self.pull_app_data[application]['local_configs'].keys())}")
+            
+            local_config = self.pull_app_data[application]['local_configs'][config_name]
+            if local_config is None: 
+                return jsonify({'error': f'Local config "{config_name}" for app "{application}" is null.'}), 404
+            return jsonify({'config': local_config})
+        except KeyError as e:
+            print(f"KeyError: {e}")
+            print(f"Application '{application}' exists: {application in self.pull_app_data}")
+            if application in self.pull_app_data:
+                print(f"Local configs available: {list(self.pull_app_data[application]['local_configs'].keys())}")
+            return jsonify({'error': f'Local config "{config_name}" not found for app "{application}".'}), 404
+        except Exception as e:
+            print(f"Error getting local config content: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': 'Failed to get local config content'}), 500
+
+    def get_observed_states_content(self, application, state_file):
+        """Get the content of a specific observed states file"""
+        if not application or not state_file:
+            return jsonify({'error': 'Missing application or state_file parameter'}), 400
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
+        try:
+            # Debug: Print available applications and observed states
+            print(f"Available applications: {list(self.pull_app_data.keys())}")
+            if application in self.pull_app_data:
+                print(f"Available prerender data for {application}: {list(self.pull_app_data[application]['prerender_data'].keys())}")
+            
+            # Observed states are stored under 'prerender_data' in the cache
+            observed_state = self.pull_app_data[application]['prerender_data'][state_file]
+            if observed_state is None: 
+                return jsonify({'error': f'Observed state "{state_file}" for app "{application}" is null.'}), 404
+            return jsonify({'content': observed_state})
+        except KeyError as e:
+            print(f"KeyError: {e}")
+            print(f"Application '{application}' exists: {application in self.pull_app_data}")
+            if application in self.pull_app_data:
+                print(f"Prerender data available: {list(self.pull_app_data[application]['prerender_data'].keys())}")
+            return jsonify({'error': f'Observed state "{state_file}" not found for app "{application}".'}), 404
+        except Exception as e:
+            print(f"Error getting observed states content: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': 'Failed to get observed states content'}), 500
+
 # ----------------------------------------------------------------
 
 # Initialize WebApp
@@ -1758,6 +1820,22 @@ def get_experiment_config_route():
     config_name_req = data.get('config', '')
     
     return WebApp_instance.get_experiment_config(application, config_name_req)
+
+@app.route('/get_local_config_content', methods=['POST'])
+def get_local_config_content_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    config_name = data.get('config', '')
+    
+    return WebApp_instance.get_local_config_content(application, config_name)
+
+@app.route('/get_observed_states_content', methods=['POST'])
+def get_observed_states_content_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    state_file = data.get('state_file', '')
+    
+    return WebApp_instance.get_observed_states_content(application, state_file)
 
 @app.route('/get_agent_definitions')
 def get_agent_definitions_route():
