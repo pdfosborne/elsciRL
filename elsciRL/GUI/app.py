@@ -2055,6 +2055,64 @@ def import_config():
             'message': str(e)
         }), 500
 
+@app.route('/get_ollama_models')
+def get_ollama_models():
+    """Get available Ollama models from the user's system"""
+    try:
+        import subprocess
+        import json
+        
+        # Run ollama list command to get available models
+        result = subprocess.run(['ollama', 'list'], 
+                              capture_output=True, 
+                              text=True, 
+                              timeout=10)
+        
+        if result.returncode != 0:
+            return jsonify({
+                'status': 'error',
+                'message': f'Ollama not available: {result.stderr}',
+                'models': []
+            }), 500
+        
+        # Parse the output to extract model names
+        models = []
+        lines = result.stdout.strip().split('\n')
+        
+        # Skip the header line and parse model names
+        for line in lines[1:]:  # Skip header "NAME    ID    SIZE    MODIFIED"
+            if line.strip():
+                # Extract model name (first column)
+                model_name = line.split()[0]
+                models.append({
+                    'name': model_name,
+                    'display_name': model_name
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'models': models
+        })
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'status': 'error',
+            'message': 'Ollama command timed out',
+            'models': []
+        }), 500
+    except FileNotFoundError:
+        return jsonify({
+            'status': 'error',
+            'message': 'Ollama not installed or not in PATH',
+            'models': []
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Error fetching Ollama models: {str(e)}',
+            'models': []
+        }), 500
+
 if __name__ == '__main__':
     if not os.path.exists(os.path.join(WebApp_instance.global_save_dir, 'uploads')):
         os.makedirs(os.path.join(WebApp_instance.global_save_dir, 'uploads'))

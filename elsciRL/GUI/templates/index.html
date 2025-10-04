@@ -244,10 +244,12 @@
                         </div>
                                 <div class="input-group">
                                     <label for="llmModelSelect">LLM Model:</label>
-                                    <select id="llmModelSelect">
-                                        <option value="llama3.2">llama3.2</option>
-                                        <option value="qwen3:0.6b">qwen3:0.6b</option>
-                                    </select>
+                                    <div class="llm-model-container">
+                                        <select id="llmModelSelect">
+                                            <option value="">Loading models...</option>
+                                        </select>
+                                        <button type="button" onclick="refreshOllamaModels()" class="ollama-refresh-btn">Refresh</button>
+                                    </div>
                     </div>
                                 <div class="input-group">
                                     <label for="llmContextLength">Context Length:</label>
@@ -363,6 +365,7 @@
             loadApplications();
             loadAllApplicationsInfo();
             loadAllOptions();
+            loadOllamaModels();
             loadAgentDefinitions();
             updateAdapterSelection(); // Initialize adapter selection with first option selected
             loadInterfaceGuide(); // Load the interface guide
@@ -1127,6 +1130,85 @@
 
             // Reset file input
             input.value = '';
+        }
+
+        // Load available Ollama models
+        async function loadOllamaModels() {
+            try {
+                const response = await fetch('/get_ollama_models');
+                const data = await response.json();
+                
+                const selectElement = document.getElementById('llmModelSelect');
+                if (!selectElement) return;
+                
+                // Clear existing options
+                selectElement.innerHTML = '';
+                
+                if (data.status === 'success' && data.models.length > 0) {
+                    // Add models to select
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.name;
+                        option.textContent = model.display_name;
+                        selectElement.appendChild(option);
+                    });
+                    
+                    // Set default selection if none exists
+                    if (!selectElement.value && data.models.length > 0) {
+                        selectElement.value = data.models[0].name;
+                    }
+                } else {
+                    // Show error or no models message, but provide fallback options
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = data.message || 'No models available';
+                    option.disabled = true;
+                    selectElement.appendChild(option);
+                    
+                    // Add some common fallback models
+                    const fallbackModels = [
+                        { name: 'llama3.2', display_name: 'llama3.2 (fallback)' },
+                        { name: 'qwen3:0.6b', display_name: 'qwen3:0.6b (fallback)' }
+                    ];
+                    
+                    fallbackModels.forEach(model => {
+                        const fallbackOption = document.createElement('option');
+                        fallbackOption.value = model.name;
+                        fallbackOption.textContent = model.display_name;
+                        selectElement.appendChild(fallbackOption);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading Ollama models:', error);
+                const selectElement = document.getElementById('llmModelSelect');
+                if (selectElement) {
+                    selectElement.innerHTML = '<option value="" disabled>Error loading models</option>';
+                }
+            }
+        }
+
+        // Refresh Ollama models
+        async function refreshOllamaModels() {
+            const selectElement = document.getElementById('llmModelSelect');
+            const refreshButton = document.querySelector('.ollama-refresh-btn');
+            
+            if (selectElement) {
+                selectElement.innerHTML = '<option value="">Loading models...</option>';
+            }
+            
+            if (refreshButton) {
+                refreshButton.disabled = true;
+                refreshButton.textContent = 'Loading...';
+            }
+            
+            try {
+                await loadOllamaModels();
+            } finally {
+                if (refreshButton) {
+                    refreshButton.disabled = false;
+                    refreshButton.textContent = 'Refresh';
+                }
+            }
         }
 
         // Refresh application data in backend

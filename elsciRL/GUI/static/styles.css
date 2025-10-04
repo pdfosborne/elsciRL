@@ -1519,3 +1519,35 @@ label[title][for]:hover::before {
     font-size: 12px;
 }
 
+/* Ollama Model Refresh Button */
+.ollama-refresh-btn {
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.ollama-refresh-btn:hover {
+    background-color: var(--button-hover-color);
+}
+
+.ollama-refresh-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.llm-model-container {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.llm-model-container select {
+    flex: 1;
+}
+
