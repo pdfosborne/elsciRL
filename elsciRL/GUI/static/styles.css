@@ -123,8 +123,8 @@ body {
 }
 
 .logo-section img {
-  width: 60px;
-  height: 60px;
+  width: 120px;
+  height: 120px;
 }
 
 @media (max-width: 1024px) {

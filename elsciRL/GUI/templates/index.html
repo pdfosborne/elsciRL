@@ -111,13 +111,6 @@
                             </select>
                         </div>
                         
-                        <!-- Experiment Configuration Selection -->
-                        <div class="select-container">
-                            <label for="experimentConfigSelect">Experiment Configuration:</label>
-                            <select id="experimentConfigSelect" onchange="loadExperimentConfig()">
-                                <option value="">Select application first</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="config-group">
@@ -336,6 +329,18 @@
             </div>
 
             <div class="right-sidebar-section">
+                <h3>Experiment Configuration</h3>
+                <p>Select a preset experiment configuration for the chosen application.</p>
+                <div class="input-group input-group-margin-bottom">
+                    <label for="experimentConfigSelect" class="preset-label">Select configuration:</label>
+                    <select id="experimentConfigSelect" onchange="loadExperimentConfig()" class="preset-select">
+                        <option value="">Select application first</option>
+                    </select>
+                </div>
+                <div id="experimentConfigDescription" class="preset-description"></div>
+            </div>
+
+            <div class="right-sidebar-section">
                 <h3>Status</h3>
                 <div id="statusInfo">
                     <p><strong>Instructions:</strong> <span id="instructionCount">0</span></p>
@@ -533,6 +538,9 @@
                 
                 if (data.status === 'success') {
                     alert(`Successfully ${forceUpdate ? 'updated' : 'downloaded'} ${appName}!`);
+                    // Refresh application data in backend first
+                    await refreshApplicationData();
+                    // Then refresh the frontend displays
                     loadAllApplicationsInfo(); // Refresh the lists
                     loadApplications(); // Refresh the dropdown
                 } else if (data.status === 'needs_confirmation') {
@@ -555,6 +563,8 @@
             if (!selectedApp) return;
 
             try {
+                // First refresh application data to ensure we have the latest cached data
+                await refreshApplicationData();
                 // Load configs, observed states, plots, adapters, and experiment configs
                 const [configsRes, statesRes, plotsRes, adaptersRes, experimentConfigsRes] = await Promise.all([
                     fetch('/get_local_configs', {
@@ -605,6 +615,12 @@
 
                 // Load preset instructions for this application
                 loadPresetInstructions();
+
+                // Clear experiment configuration description
+                const experimentConfigDescription = document.getElementById('experimentConfigDescription');
+                if (experimentConfigDescription) {
+                    experimentConfigDescription.textContent = '';
+                }
 
             } catch (error) {
                 console.error('Error loading application data:', error);
@@ -1111,6 +1127,30 @@
 
             // Reset file input
             input.value = '';
+        }
+
+        // Refresh application data in backend
+        async function refreshApplicationData() {
+            try {
+                console.log('Refreshing application data...');
+                const response = await fetch('/refresh_application_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    console.log('Application data refreshed successfully');
+                    return true;
+                } else {
+                    console.error('Error refreshing application data:', data.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error refreshing application data:', error);
+                return false;
+            }
         }
 
         // Refresh applications
@@ -1848,8 +1888,14 @@
         async function loadExperimentConfig() {
             const selectedApp = document.getElementById('applicationSelect').value;
             const selectedConfig = document.getElementById('experimentConfigSelect').value;
+            const descriptionElement = document.getElementById('experimentConfigDescription');
             
-            if (!selectedApp || !selectedConfig) return;
+            if (!selectedApp || !selectedConfig) {
+                if (descriptionElement) {
+                    descriptionElement.textContent = '';
+                }
+                return;
+            }
             
             try {
                 const response = await fetch('/get_experiment_config', {
@@ -1865,16 +1911,28 @@
                 
                 if (data.error) {
                     console.error('Error loading experiment config:', data.error);
-                    alert('Error loading experiment configuration: ' + data.error);
+                    if (descriptionElement) {
+                        descriptionElement.textContent = `Error: ${data.error}`;
+                        descriptionElement.style.color = '#dc3545';
+                    }
                     return;
                 }
                 
                 // Apply the experiment configuration to the form
                 applyExperimentConfig(data.config);
                 
+                // Show success message in description
+                if (descriptionElement) {
+                    descriptionElement.textContent = `✓ Loaded configuration: ${selectedConfig}`;
+                    descriptionElement.style.color = '#28a745';
+                }
+                
             } catch (error) {
                 console.error('Error loading experiment config:', error);
-                alert('Error loading experiment configuration: ' + error.message);
+                if (descriptionElement) {
+                    descriptionElement.textContent = `Error: ${error.message}`;
+                    descriptionElement.style.color = '#dc3545';
+                }
             }
         }
         
@@ -2463,6 +2521,8 @@
         // Load configuration options for the overview tab
         async function loadOverviewConfigurationOptions(applicationName) {
             try {
+                // First refresh application data to ensure we have the latest cached data
+                await refreshApplicationData();
                 // Load configuration data (excluding observed states)
                 const [configsRes, plotsRes, allOptionsRes] = await Promise.all([
                     fetch('/get_local_configs', {
