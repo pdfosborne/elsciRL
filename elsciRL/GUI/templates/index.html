@@ -530,6 +530,9 @@
         // Download application
         async function downloadApplication(appName, forceUpdate = false) {
             try {
+                // Show loading overlay
+                showLoadingOverlay(`Downloading ${appName}...`);
+                
                 const response = await fetch('/download_application', {
                                 method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -542,22 +545,45 @@
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    alert(`Successfully ${forceUpdate ? 'updated' : 'downloaded'} ${appName}!`);
+                    // Update loading message
+                    const overlay = document.getElementById('loadingOverlay');
+                    if (overlay) {
+                        const messageElement = overlay.querySelector('.loading-message');
+                        if (messageElement) {
+                            messageElement.textContent = `Successfully ${forceUpdate ? 'updated' : 'downloaded'} ${appName}! Refreshing data...`;
+                        }
+                    }
+                    
                     // Refresh application data in backend first
                     await refreshApplicationData();
                     // Then refresh the frontend displays
                     loadAllApplicationsInfo(); // Refresh the lists
                     loadApplications(); // Refresh the dropdown
+                    loadApplicationOverview(); // Refresh the application overview tab
+                    
+                    // Hide loading overlay after a brief delay to show success message
+                    setTimeout(() => {
+                        hideLoadingOverlay();
+                        alert(`Successfully ${forceUpdate ? 'updated' : 'downloaded'} ${appName}!`);
+                    }, 1000);
+                    
                 } else if (data.status === 'needs_confirmation') {
+                    // Hide loading overlay for confirmation dialog
+                    hideLoadingOverlay();
+                    
                     if (confirm(`${data.message}\n\nDo you want to proceed with the update?`)) {
                         // User confirmed, try again with force update
                         downloadApplication(appName, true);
                     }
                 } else {
+                    // Hide loading overlay and show error
+                    hideLoadingOverlay();
                     alert(`Error: ${data.message}`);
                 }
             } catch (error) {
                 console.error('Error downloading application:', error);
+                // Hide loading overlay and show error
+                hideLoadingOverlay();
                 alert('An error occurred while downloading the application.');
             }
         }
@@ -1287,6 +1313,7 @@
                 if (data.status === 'success') {
                     loadApplications();
                     loadAllApplicationsInfo();
+                    loadApplicationOverview(); // Refresh the application overview tab
                     alert('Applications refreshed successfully!');
                 } else {
                     alert('Error refreshing applications: ' + data.message);
@@ -1300,6 +1327,9 @@
         // Check all updates
         async function checkAllUpdates() {
             try {
+                // Show loading overlay
+                showLoadingOverlay('Checking for updates...');
+                
                 const response = await fetch('/check_all_application_updates', {
                 method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -1308,6 +1338,22 @@
                 const data = await response.json();
                 const updateStatus = document.getElementById('updateStatus');
                 
+                // Update loading message
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    const messageElement = overlay.querySelector('.loading-message');
+                    if (messageElement) {
+                        messageElement.textContent = 'Refreshing application data...';
+                    }
+                }
+                
+                // Refresh the applications info to show updated status
+                await loadAllApplicationsInfo();
+                loadApplicationOverview(); // Refresh the application overview tab
+                
+                // Hide loading overlay and show results
+                hideLoadingOverlay();
+                
                 if (data.has_any_updates) {
                     updateStatus.innerHTML = '<p style="color: orange;">Updates available for some applications.</p>';
                     updateStatus.style.display = 'block';
@@ -1315,11 +1361,10 @@
                     updateStatus.innerHTML = '<p style="color: green;">All applications are up to date.</p>';
                     updateStatus.style.display = 'block';
                 }
-                
-                // Refresh the applications info to show updated status
-                loadAllApplicationsInfo();
             } catch (error) {
                 console.error('Error checking updates:', error);
+                // Hide loading overlay and show error
+                hideLoadingOverlay();
                 alert('An error occurred while checking for updates.');
             }
         }
