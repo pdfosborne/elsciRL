@@ -1494,12 +1494,9 @@
                                 <div class="app-card" onclick="selectApplication('${app.name}', this)">
                                     <h4>${app.name}</h4>
                                     <div class="app-details">
-                                        <p><strong>Status:</strong> ${app.has_updates ? '🔄 Updates available' : '✅ Up to date'}</p>
                                         <p><strong>Components:</strong> ${app.adapters_count} adapters, ${app.configs_count} configs, ${app.experiment_configs_count} experiments</p>
-                                        ${app.has_prerender_data ? '<p><strong>Prerender Data:</strong> ✅ Available</p>' : ''}
-                                        ${app.has_instructions ? '<p><strong>Instructions:</strong> ✅ Available</p>' : ''}
-                                        ${app.has_analysis ? '<p><strong>Analysis:</strong> ✅ Available</p>' : ''}
-                                        ${app.last_updated ? `<p><strong>Last Updated:</strong> ${formatTimestamp(app.last_updated)}</p>` : ''}
+                                        ${app.description ? `<p><strong>Description:</strong> ${app.description}</p>` : ''}
+                                        ${app.github_user ? `<p><strong>Author:</strong> ${app.github_user}</p>` : ''}
                                     </div>
                                 </div>
                             `;

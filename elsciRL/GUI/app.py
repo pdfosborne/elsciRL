@@ -283,6 +283,7 @@ class WebApp:
                 'name': app_name,
                 'github_user': app_data.get('github_user', ''),
                 'repository': app_data.get('repository', ''),
+                'description': app_data.get('description', ''),
                 'commit_id': app_data.get('commit_id', '*'),
                 'is_downloaded': is_downloaded,
                 'last_updated': last_updated,

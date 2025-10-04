@@ -17,6 +17,7 @@ class Applications:
             "Sailing":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Sailing",
+                "description": "A simple sailing simulation turning a boat left/right against a fixed wind.",
                 "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine.py",
@@ -39,6 +40,7 @@ class Applications:
             "Classroom":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Classroom",
+                "description": "A simple GirdWorld problem where the agent moves paper around a Classroom (up,down,left,right) to recycle whilst avoiding the trash bin.",
                 "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine.py",
@@ -62,6 +64,7 @@ class Applications:
             "Gym-FrozenLake":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-GymFrozenLake",
+                "description": "A simple GridWorld problem where the agent moves up,down,left,right to reach the goal whilst avoiding the holes.",
                 "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine.py",
@@ -84,6 +87,7 @@ class Applications:
             "Chess":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Chess",
+                "description": "The Python Chess library with options for limiting game length.",
                 "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine.py",
@@ -139,6 +143,7 @@ class Applications:
             "Maze":{
                 "github_user": "pdfosborne",
                 "repository": "elsciRL-App-Maze",
+                "description": "A set of GridWorld maze problems where the agent moves up,down,left,right to reach the goal.",
                 "commit_id": "*",
                 "engine_folder": "environment",
                 "engine_filename": "engine.py",
