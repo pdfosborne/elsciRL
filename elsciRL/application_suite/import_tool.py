@@ -59,7 +59,8 @@ class PullApplications:
             try:
                 with open(self.log_file, 'r') as f:
                     self.import_log = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
+            except (json.JSONDecodeError, FileNotFoundError) as e:
+                print(f"Failed to load import log: {e}")
                 self.import_log = {}
         else:
             self.import_log = {}
@@ -277,7 +278,11 @@ class PullApplications:
             
             # Load metadata
             with open(metadata_file, 'r') as f:
-                metadata = json.load(f)
+                try:
+                    metadata = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse cache metadata for {problem}: {e}")
+                    return None
             
             # Check if cache is valid by comparing commit_id and source data
             cached_commit = metadata.get('commit_id')
@@ -325,7 +330,11 @@ class PullApplications:
             metadata_file = self._get_cache_metadata_file(problem)
             if os.path.exists(metadata_file):
                 with open(metadata_file, 'r') as f:
-                    data['cache_metadata'] = json.load(f)
+                    try:
+                        data['cache_metadata'] = json.load(f)
+                    except json.JSONDecodeError as e:
+                        print(f"Failed to parse cache metadata for {problem}: {e}")
+                        data['cache_metadata'] = {}
             
             # Use cached import data if available, otherwise use current import_data
             if import_data is None:
@@ -336,25 +345,23 @@ class PullApplications:
             data['source'] = {str(cache_root_path): import_data}
 
             # Load engine
-            engine_dir = os.path.join(cache_dir, 'engine')
+            engine_dir = os.path.join(cache_dir, import_data.get('engine_folder', self.imports[problem]['engine_folder']))
+            print(">>>> Engine dir: ", engine_dir)
             if os.path.exists(engine_dir):
-                engine_files = [f for f in os.listdir(engine_dir) if f.endswith('.py')]
-                if engine_files:
-                    try:
-                        # Get the engine filename from the import data
-                        engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
-                        engine_file_path = os.path.join(engine_dir, engine_filename)
-                        
-                        # Load module directly from file path
-                        engine_module_name = engine_filename.split('.')[0]
-                        spec = importlib.util.spec_from_file_location(engine_module_name, engine_file_path)
-                        engine_module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(engine_module)
-                        
-                        data['engine'] = engine_module.Engine
-                        print(f"Loaded cached engine: {engine_filename}")
-                    except Exception as e:
-                        print(f"Failed to load cached engine: {e}")
+                try:
+                    # Get the engine filename from the import data
+                    engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
+                    engine_file_path = os.path.join(engine_dir, engine_filename)
+                    
+                    # Load module directly from file path
+                    engine_module_name = engine_filename.split('.')[0]
+                    spec = importlib.util.spec_from_file_location(engine_module_name, engine_file_path)
+                    engine_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(engine_module)
+
+                    data['engine'] = engine_module.Engine
+                except Exception as e:
+                    print(f"Failed to load cached engine: {e}")
             
             # Load adapters
             adapters_dir = os.path.join(cache_dir, 'adapters')
@@ -446,7 +453,12 @@ class PullApplications:
                                 data['prerender_data'][data_name] = jsonl_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    data['prerender_data'][data_name] = json.loads(f.read())
+                                    content = f.read()
+                                    try:
+                                        data['prerender_data'][data_name] = json.loads(content)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, treat as plain text
+                                        data['prerender_data'][data_name] = content
                             print(f"Loaded cached prerender data: {data_name}")
                             break
                 
@@ -474,7 +486,12 @@ class PullApplications:
                                 data['prerender_data_encoded'][data_name] = json_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    text_data = json.loads(f.read())
+                                    content = f.read()
+                                    try:
+                                        text_data = json.loads(content)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, treat as plain text
+                                        text_data = content
                                 data['prerender_data_encoded'][data_name] = text_data
                             print(f"Loaded cached encoded prerender data: {data_name}")
                             break
@@ -866,7 +883,12 @@ class PullApplications:
                                         data = json.load(f)
                                 elif prerender.endswith('.txt'):
                                     with open(prerender_path, 'r') as f:
-                                        data = json.loads(f.read())
+                                        content = f.read()
+                                        try:
+                                            data = json.loads(content)
+                                        except json.JSONDecodeError:
+                                            # If not valid JSON, treat as plain text
+                                            data = content
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender data: {prerender}")
                                 print(f"Pulling prerender data for {prerender_name}...")
@@ -900,7 +922,12 @@ class PullApplications:
                                 elif prerender.endswith('.txt'):
                                     # If not numeric, load as text
                                     with open(prerender_path, 'r') as f:
-                                        data = json.loads(f.read())
+                                        content = f.read()
+                                        try:
+                                            data = json.loads(content)
+                                        except json.JSONDecodeError:
+                                            # If not valid JSON, treat as plain text
+                                            data = content
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender encoded data: {prerender}")
                                 print(f"Pulling prerender encoded data for {prerender_name}...")
@@ -1040,6 +1067,34 @@ class PullApplications:
                     print("No cache directory found")
         except Exception as e:
             print(f"Failed to clear cache: {e}")
+    
+    def clear_corrupted_cache(self, problem=None):
+        """Clear cache files that have JSON parsing errors."""
+        try:
+            if problem:
+                # Check specific problem cache
+                cache_dir = self._get_cache_dir(problem)
+                metadata_file = self._get_cache_metadata_file(problem)
+                
+                if os.path.exists(metadata_file):
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            json.load(f)
+                        print(f"Cache metadata for {problem} is valid")
+                    except json.JSONDecodeError as e:
+                        print(f"Cache metadata for {problem} is corrupted: {e}")
+                        if os.path.exists(cache_dir):
+                            import shutil
+                            shutil.rmtree(cache_dir)
+                            print(f"Cleared corrupted cache for {problem}")
+            else:
+                # Check all cache files
+                if os.path.exists(self.cache_dir):
+                    for problem_dir in os.listdir(self.cache_dir):
+                        if os.path.isdir(os.path.join(self.cache_dir, problem_dir)):
+                            self.clear_corrupted_cache(problem_dir)
+        except Exception as e:
+            print(f"Failed to clear corrupted cache: {e}")
     
     def get_cache_info(self):
         """Get information about cached data."""
