@@ -235,6 +235,11 @@
                             <!-- LLM Settings -->
                             <div class="config-group config-group-margin-top">
                                 <h3>LLM Settings</h3>
+                                <div id="ollamaStatusMessage" class="ollama-status-message" style="display: none;">
+                                    <p style="color: #dc3545; font-weight: bold; margin: 10px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+                                        ⚠️ Ollama is missing that is required to use LLM tools
+                                    </p>
+                                </div>
                                 <div class="checkbox-container">
                                     <input type="checkbox" id="enableLLMPlanner">
                                     <label for="enableLLMPlanner">Enable LLM Instruction Planner</label>
@@ -1136,12 +1141,28 @@
                 const data = await response.json();
                 
                 const selectElement = document.getElementById('llmModelSelect');
+                const statusMessage = document.getElementById('ollamaStatusMessage');
+                const enableLLMCheckbox = document.getElementById('enableLLMPlanner');
+                const contextLengthInput = document.getElementById('llmContextLength');
+                const numInstructionsInput = document.getElementById('llmNumInstructions');
+                const refreshButton = document.querySelector('.ollama-refresh-btn');
+                
                 if (!selectElement) return;
                 
                 // Clear existing options
                 selectElement.innerHTML = '';
                 
+                // Check if Ollama is available
                 if (data.status === 'success' && data.models.length > 0) {
+                    // Ollama is available - enable all LLM settings
+                    if (statusMessage) statusMessage.style.display = 'none';
+                    
+                    // Enable all LLM controls
+                    if (enableLLMCheckbox) enableLLMCheckbox.disabled = false;
+                    if (contextLengthInput) contextLengthInput.disabled = false;
+                    if (numInstructionsInput) numInstructionsInput.disabled = false;
+                    if (refreshButton) refreshButton.disabled = false;
+                    
                     // Add models to select
                     data.models.forEach(model => {
                         const option = document.createElement('option');
@@ -1155,29 +1176,47 @@
                         selectElement.value = data.models[0].name;
                     }
                 } else {
-                    // Show error or no models message, but provide fallback options
+                    // Ollama is not available - disable all LLM settings
+                    if (statusMessage) statusMessage.style.display = 'block';
+                    
+                    // Disable all LLM controls
+                    if (enableLLMCheckbox) {
+                        enableLLMCheckbox.disabled = true;
+                        enableLLMCheckbox.checked = false;
+                    }
+                    if (contextLengthInput) contextLengthInput.disabled = true;
+                    if (numInstructionsInput) numInstructionsInput.disabled = true;
+                    if (refreshButton) refreshButton.disabled = true;
+                    
+                    // Show error message in select
                     const option = document.createElement('option');
                     option.value = '';
-                    option.textContent = data.message || 'No models available';
+                    option.textContent = 'Ollama not available';
                     option.disabled = true;
                     selectElement.appendChild(option);
-                    
-                    // Add some common fallback models
-                    const fallbackModels = [
-                        { name: 'llama3.2', display_name: 'llama3.2 (fallback)' },
-                        { name: 'qwen3:0.6b', display_name: 'qwen3:0.6b (fallback)' }
-                    ];
-                    
-                    fallbackModels.forEach(model => {
-                        const fallbackOption = document.createElement('option');
-                        fallbackOption.value = model.name;
-                        fallbackOption.textContent = model.display_name;
-                        selectElement.appendChild(fallbackOption);
-                    });
                 }
             } catch (error) {
                 console.error('Error loading Ollama models:', error);
+                
+                // On error, assume Ollama is not available
                 const selectElement = document.getElementById('llmModelSelect');
+                const statusMessage = document.getElementById('ollamaStatusMessage');
+                const enableLLMCheckbox = document.getElementById('enableLLMPlanner');
+                const contextLengthInput = document.getElementById('llmContextLength');
+                const numInstructionsInput = document.getElementById('llmNumInstructions');
+                const refreshButton = document.querySelector('.ollama-refresh-btn');
+                
+                if (statusMessage) statusMessage.style.display = 'block';
+                
+                // Disable all LLM controls
+                if (enableLLMCheckbox) {
+                    enableLLMCheckbox.disabled = true;
+                    enableLLMCheckbox.checked = false;
+                }
+                if (contextLengthInput) contextLengthInput.disabled = true;
+                if (numInstructionsInput) numInstructionsInput.disabled = true;
+                if (refreshButton) refreshButton.disabled = true;
+                
                 if (selectElement) {
                     selectElement.innerHTML = '<option value="" disabled>Error loading models</option>';
                 }
@@ -1188,6 +1227,7 @@
         async function refreshOllamaModels() {
             const selectElement = document.getElementById('llmModelSelect');
             const refreshButton = document.querySelector('.ollama-refresh-btn');
+            const statusMessage = document.getElementById('ollamaStatusMessage');
             
             if (selectElement) {
                 selectElement.innerHTML = '<option value="">Loading models...</option>';
@@ -1198,13 +1238,16 @@
                 refreshButton.textContent = 'Loading...';
             }
             
+            // Hide status message while loading
+            if (statusMessage) {
+                statusMessage.style.display = 'none';
+            }
+            
             try {
                 await loadOllamaModels();
             } finally {
-                if (refreshButton) {
-                    refreshButton.disabled = false;
-                    refreshButton.textContent = 'Refresh';
-                }
+                // Note: loadOllamaModels will handle enabling/disabling the refresh button
+                // based on Ollama availability, so we don't need to re-enable it here
             }
         }
 

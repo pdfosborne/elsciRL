@@ -1717,3 +1717,34 @@ label[title][for]:hover::before {
     flex: 1;
 }
 
+/* Ollama Status Message */
+.ollama-status-message {
+    margin-bottom: 15px;
+}
+
+/* Disabled LLM Controls */
+.llm-model-container select:disabled,
+input[type="checkbox"]:disabled + label,
+input[type="number"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.llm-model-container select:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+input[type="checkbox"]:disabled + label {
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.ollama-refresh-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
