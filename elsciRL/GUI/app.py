@@ -503,7 +503,15 @@ class WebApp:
             prerender_data = app_data['prerender_data']
             print(f"Prerender data keys: {list(prerender_data.keys())}")
             
+            # Get both regular and encoded observed states
             observed_states = list(prerender_data.keys())
+            
+            # Add encoded observed states if they exist
+            if 'prerender_data_encoded' in app_data:
+                encoded_data = app_data['prerender_data_encoded']
+                print(f"Encoded prerender data keys: {list(encoded_data.keys())}")
+                observed_states.extend(list(encoded_data.keys()))
+            
             print(f"Returning observed states: {observed_states}")
             return observed_states
         except Exception as e:
@@ -634,7 +642,7 @@ class WebApp:
                 if observed_states_filename == '':
                     observed_states_data = None
                 else:
-                    observed_states_data = self.pull_app_data[application]['prerender_data'][observed_states_filename]
+                    observed_states_data = self.get_observed_states_for_matching(application, observed_states_filename)
                 self.LLM_plan_generator = LLMTaskBreakdown(model_name=llm_model_name,
                                                            context_length=llm_context_length,
                                                            input_prompt = input_prompt,
@@ -696,11 +704,19 @@ Here is information about the environment and the task: {input_prompt}
         # Instruction search uses the observed input for the the adapter
         self.ExperimentConfig["adapter_select"] = [observed_states_filename.split('-')[0]]
 
-        if len(self.pull_app_data[application]['prerender_data'].keys()) > 0:
-            observed_states = self.pull_app_data[application]['prerender_data'][observed_states_filename]
-            print(f"Pre-rendered data found, observed states: {list(observed_states.items())[0:3]}")
-            print(f"Checking if encoded data exists for {observed_states_filename}...available options are {list(self.pull_app_data[application]['prerender_data_encoded'].keys())}")
-            observed_states_encoded = self.pull_app_data[application]['prerender_data_encoded'][observed_states_filename] if observed_states_filename in self.pull_app_data[application]['prerender_data_encoded'] else None
+        # Get observed states for instruction matching (preserves tensor format)
+        observed_states = self.get_observed_states_for_matching(application, observed_states_filename)
+        if observed_states is not None:
+            print(f"Pre-rendered data found, observed states type: {type(observed_states)}")
+            if hasattr(observed_states, 'shape'):
+                print(f"Observed states shape: {observed_states.shape}")
+            elif isinstance(observed_states, dict):
+                print(f"Observed states: {list(observed_states.items())[0:3]}")
+            else:
+                print(f"Observed states: {observed_states}")
+            
+            # Check if it's encoded data (tensor)
+            observed_states_encoded = observed_states if hasattr(observed_states, 'shape') else None
             if observed_states_encoded is not None:
                 print(f"Observed states encoded data found.")
                 self.elsci_run = elsci_search(Config=self.ExperimentConfig,
@@ -1451,23 +1467,76 @@ Example of environment language structure: {results[application][instr]['sub_goa
             print(f"Available applications: {list(self.pull_app_data.keys())}")
             if application in self.pull_app_data:
                 print(f"Available prerender data for {application}: {list(self.pull_app_data[application]['prerender_data'].keys())}")
+                print(f"Available encoded prerender data for {application}: {list(self.pull_app_data[application]['prerender_data_encoded'].keys())}")
             
-            # Observed states are stored under 'prerender_data' in the cache
-            observed_state = self.pull_app_data[application]['prerender_data'][state_file]
-            if observed_state is None: 
-                return jsonify({'error': f'Observed state "{state_file}" for app "{application}" is null.'}), 404
-            return jsonify({'content': observed_state})
+            # First try to get from regular prerender_data
+            if state_file in self.pull_app_data[application]['prerender_data']:
+                observed_state = self.pull_app_data[application]['prerender_data'][state_file]
+                if observed_state is None: 
+                    return jsonify({'error': f'Observed state "{state_file}" for app "{application}" is null.'}), 404
+                return jsonify({'content': observed_state})
+            
+            # If not found in regular data, try encoded data
+            elif state_file in self.pull_app_data[application]['prerender_data_encoded']:
+                encoded_state = self.pull_app_data[application]['prerender_data_encoded'][state_file]
+                if encoded_state is None: 
+                    return jsonify({'error': f'Encoded observed state "{state_file}" for app "{application}" is null.'}), 404
+                
+                # Convert tensor to list for JSON serialization
+                if hasattr(encoded_state, 'tolist'):
+                    # It's a tensor, convert to list
+                    content = encoded_state.tolist()
+                elif hasattr(encoded_state, 'cpu'):
+                    # It's a tensor on GPU, move to CPU first then convert
+                    content = encoded_state.cpu().tolist()
+                else:
+                    # It's already in a serializable format
+                    content = encoded_state
+                
+                return jsonify({'content': content, 'is_encoded': True})
+            
+            else:
+                return jsonify({'error': f'Observed state "{state_file}" not found in either prerender_data or prerender_data_encoded for app "{application}".'}), 404
+                
         except KeyError as e:
             print(f"KeyError: {e}")
             print(f"Application '{application}' exists: {application in self.pull_app_data}")
             if application in self.pull_app_data:
                 print(f"Prerender data available: {list(self.pull_app_data[application]['prerender_data'].keys())}")
+                print(f"Encoded prerender data available: {list(self.pull_app_data[application]['prerender_data_encoded'].keys())}")
             return jsonify({'error': f'Observed state "{state_file}" not found for app "{application}".'}), 404
         except Exception as e:
             print(f"Error getting observed states content: {str(e)}")
             import traceback
             traceback.print_exc()
             return jsonify({'error': 'Failed to get observed states content'}), 500
+
+    def get_observed_states_for_matching(self, application, state_file):
+        """Get observed states for instruction matching - preserves tensor format for encoded states"""
+        if not application or not state_file:
+            return None
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
+        try:
+            # First try to get from regular prerender_data
+            if state_file in self.pull_app_data[application]['prerender_data']:
+                return self.pull_app_data[application]['prerender_data'][state_file]
+            
+            # If not found in regular data, try encoded data (keep as tensor)
+            elif state_file in self.pull_app_data[application]['prerender_data_encoded']:
+                encoded_state = self.pull_app_data[application]['prerender_data_encoded'][state_file]
+                if encoded_state is not None:
+                    # Return the tensor directly for instruction matching
+                    return encoded_state
+            
+            return None
+                
+        except (KeyError, Exception) as e:
+            print(f"Error getting observed states for matching: {str(e)}")
+            return None
 
 # ----------------------------------------------------------------
 

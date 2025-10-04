@@ -2745,7 +2745,7 @@
                     contentElement.style.color = '#dc3545';
                     contentElement.style.fontStyle = 'normal';
                 } else {
-                    displayObservedStatesPreview(data.content);
+                    displayObservedStatesPreview(data.content, data.is_encoded || false);
                 }
             } catch (error) {
                 console.error('Error fetching observed states content:', error);
@@ -2756,32 +2756,57 @@
         }
 
         // Display observed states preview content
-        function displayObservedStatesPreview(content) {
+        function displayObservedStatesPreview(content, isEncoded = false) {
             const contentElement = document.getElementById('instructionsObservedStatesContent');
             if (!contentElement) return;
 
             try {
-                // Try to parse as JSON and get the first value
                 let previewContent;
-                if (typeof content === 'string') {
-                    const parsed = JSON.parse(content);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        previewContent = JSON.stringify(parsed[0], null, 2);
-                    } else if (typeof parsed === 'object' && parsed !== null) {
-                        // Get the first key-value pair
-                        const firstKey = Object.keys(parsed)[0];
-                        previewContent = JSON.stringify({ [firstKey]: parsed[firstKey] }, null, 2);
+                
+                if (isEncoded) {
+                    // Handle encoded tensor data
+                    if (Array.isArray(content)) {
+                        if (content.length > 0) {
+                            // For encoded data, show first few elements with shape info
+                            const firstElement = content[0];
+                            const shape = `[${content.length}]`;
+                            previewContent = `Encoded Tensor Data (Shape: ${shape})\nFirst element:\n${JSON.stringify(firstElement, null, 2)}`;
+                            
+                            // If it's a nested array (2D+ tensor), show more info
+                            if (Array.isArray(firstElement) && firstElement.length > 0) {
+                                previewContent += `\n\nFirst row (${firstElement.length} elements):\n${JSON.stringify(firstElement.slice(0, Math.min(10, firstElement.length)), null, 2)}`;
+                                if (firstElement.length > 10) {
+                                    previewContent += `\n... (${firstElement.length - 10} more elements)`;
+                                }
+                            }
+                        } else {
+                            previewContent = 'Encoded Tensor Data (Empty)';
+                        }
                     } else {
-                        previewContent = JSON.stringify(parsed, null, 2);
+                        previewContent = `Encoded Data: ${JSON.stringify(content, null, 2)}`;
                     }
-                } else if (Array.isArray(content) && content.length > 0) {
-                    previewContent = JSON.stringify(content[0], null, 2);
-                } else if (typeof content === 'object' && content !== null) {
-                    // Get the first key-value pair
-                    const firstKey = Object.keys(content)[0];
-                    previewContent = JSON.stringify({ [firstKey]: content[firstKey] }, null, 2);
                 } else {
-                    previewContent = JSON.stringify(content, null, 2);
+                    // Handle regular data
+                    if (typeof content === 'string') {
+                        const parsed = JSON.parse(content);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            previewContent = JSON.stringify(parsed[0], null, 2);
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            // Get the first key-value pair
+                            const firstKey = Object.keys(parsed)[0];
+                            previewContent = JSON.stringify({ [firstKey]: parsed[firstKey] }, null, 2);
+                        } else {
+                            previewContent = JSON.stringify(parsed, null, 2);
+                        }
+                    } else if (Array.isArray(content) && content.length > 0) {
+                        previewContent = JSON.stringify(content[0], null, 2);
+                    } else if (typeof content === 'object' && content !== null) {
+                        // Get the first key-value pair
+                        const firstKey = Object.keys(content)[0];
+                        previewContent = JSON.stringify({ [firstKey]: content[firstKey] }, null, 2);
+                    } else {
+                        previewContent = JSON.stringify(content, null, 2);
+                    }
                 }
 
                 contentElement.textContent = previewContent;
