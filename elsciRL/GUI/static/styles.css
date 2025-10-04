@@ -34,7 +34,7 @@ body {
   width: 300px;
   background-color: var(--box-color);
   border-right: 1px solid var(--border-color);
-  padding: 20px;
+  padding: 12px;
   overflow-y: auto;
   max-height: 100vh;
 }
@@ -56,22 +56,23 @@ body {
 }
 
 .sidebar-block {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .sidebar-block-header {
   background-color: var(--button-color);
   color: white;
-  padding: 12px 15px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
   transition: background-color 0.3s ease;
+  font-size: 14px;
 }
 
 .sidebar-block-header:hover {
@@ -79,7 +80,7 @@ body {
 }
 
 .sidebar-block-content {
-  padding: 15px;
+  padding: 10px;
   display: none;
   background-color: white;
 }
@@ -90,6 +91,7 @@ body {
 
 .sidebar-block-header .toggle-icon {
   transition: transform 0.3s ease;
+  font-size: 12px;
 }
 
 .sidebar-block-header.active .toggle-icon {
@@ -117,14 +119,14 @@ body {
 
 .logo-section {
   text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .logo-section img {
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
 }
 
 @media (max-width: 1024px) {
@@ -224,13 +226,13 @@ button {
   background-color: var(--button-color);
   color: var(--input-background-color);
   border: none;
-  padding: 10px 20px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 13px;
   transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 button:hover {
@@ -260,7 +262,8 @@ img {
 .button-group {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: 6px;
+  gap: 6px;
 }
 
 #confirmationBlock {
@@ -541,10 +544,10 @@ label[title][for]:hover::before {
 
 /* Training Parameters Styles */
 .training-params {
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .training-params input {
@@ -555,8 +558,9 @@ label[title][for]:hover::before {
 }
 
 .training-params label {
-    color: var(--text-color);
-    font-weight: bold;
+  color: var(--text-color);
+  font-weight: bold;
+  font-size: 12px;
 }
 
 /* Form Select Styles */
@@ -571,16 +575,16 @@ label[title][for]:hover::before {
 
 /* Applications Checklist Styles */
 .applications-checklist {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .application-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .application-item input[type="checkbox"] {
@@ -588,8 +592,8 @@ label[title][for]:hover::before {
 }
 
 .application-item label {
-    color: var(--text-color);
-    font-size: 14px;
+  color: var(--text-color);
+  font-size: 12px;
 }
 
 /* Config Section Styles */
@@ -601,37 +605,40 @@ label[title][for]:hover::before {
 }
 
 .config-group {
-    border: 1px solid var(--border-color);
-    padding: 15px;
-    border-radius: 4px;
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
 .config-group h3 {
-    margin-top: 0;
-    color: var(--text-color);
-    font-size: 1.1em;
-    margin-bottom: 15px;
+  margin-top: 0;
+  color: var(--text-color);
+  font-size: 1em;
+  margin-bottom: 8px;
 }
 
 /* Select Container Styles */
 .select-container {
-    margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .select-container label {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--text-color);
-    font-weight: bold;
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-color);
+  font-weight: bold;
+  font-size: 12px;
 }
 
 .select-container select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: white;
-    color: var(--text-color);
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: white;
+  color: var(--text-color);
+  font-size: 12px;
 }
 
 .select-container select:focus {
@@ -641,10 +648,10 @@ label[title][for]:hover::before {
 
 /* Checkbox Container Styles */
 .checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .checkbox-container input[type="checkbox"] {
@@ -652,37 +659,37 @@ label[title][for]:hover::before {
 }
 
 .checkbox-container label {
-    color: var(--text-color);
-    font-size: 14px;
-    margin: 0;
+  color: var(--text-color);
+  font-size: 12px;
+  margin: 0;
 }
 
 /* Agent Parameters Styles */
 .agent-params {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .agent-adapter-group {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: #f9f9f9;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: #f9f9f9;
 }
 
 .agent-adapter-group h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: var(--text-color);
-    font-size: 1em;
+  margin-top: 0;
+  margin-bottom: 6px;
+  color: var(--text-color);
+  font-size: 0.9em;
 }
 
 .adapter-checkboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* Interface Guide Styles */
