@@ -1101,6 +1101,14 @@
                                 <option value="">Select application first</option>
                             </select>
                         </div>
+                        
+                        <!-- Experiment Configuration Selection -->
+                        <div class="select-container">
+                            <label for="experimentConfigSelect">Experiment Configuration:</label>
+                            <select id="experimentConfigSelect" onchange="loadExperimentConfig()">
+                                <option value="">Select application first</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="config-group">
@@ -1538,8 +1546,8 @@
             if (!selectedApp) return;
 
             try {
-                // Load configs, observed states, plots, and adapters
-                const [configsRes, statesRes, plotsRes, adaptersRes] = await Promise.all([
+                // Load configs, observed states, plots, adapters, and experiment configs
+                const [configsRes, statesRes, plotsRes, adaptersRes, experimentConfigsRes] = await Promise.all([
                     fetch('/get_local_configs', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1559,18 +1567,22 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ application: selectedApp })
+                    }),
+                    fetch('/get_all_options', {
+                        method: 'GET'
                     })
                 ]);
 
-                const [configsData, statesData, plotsData, adaptersData] = await Promise.all([
+                const [configsData, statesData, plotsData, adaptersData, allOptionsData] = await Promise.all([
                     configsRes.json(),
                     statesRes.json(),
                     plotsRes.json(),
-                    adaptersRes.json()
+                    adaptersRes.json(),
+                    experimentConfigsRes.json()
                 ]);
 
                 // Load configuration options as dropdowns
-                loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData);
+                loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData, allOptionsData);
                 
                 // Load observed states for instructions tab
                 loadInstructionsObservedStates(selectedApp, statesData);
@@ -2622,7 +2634,7 @@
         }
 
         // Load configuration dropdowns
-        function loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData) {
+        function loadConfigurationDropdowns(selectedApp, configsData, statesData, plotsData, allOptionsData) {
             // Load local configs
             loadConfigDropdown('localConfigSelect', configsData.localConfigs[selectedApp] || []);
             
@@ -2631,6 +2643,9 @@
             
             // Load plot options
             loadConfigDropdown('plotSelect', plotsData.plotOptions[selectedApp] || []);
+            
+            // Load experiment configurations
+            loadConfigDropdown('experimentConfigSelect', allOptionsData.experimentConfigs[selectedApp] || []);
         }
 
         // Load configuration dropdown
@@ -2820,16 +2835,145 @@
             }
         }
 
+        // Load experiment configuration
+        async function loadExperimentConfig() {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            const selectedConfig = document.getElementById('experimentConfigSelect').value;
+            
+            if (!selectedApp || !selectedConfig) return;
+            
+            try {
+                const response = await fetch('/get_experiment_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        application: selectedApp, 
+                        config: selectedConfig 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error loading experiment config:', data.error);
+                    alert('Error loading experiment configuration: ' + data.error);
+                    return;
+                }
+                
+                // Apply the experiment configuration to the form
+                applyExperimentConfig(data.config);
+                
+            } catch (error) {
+                console.error('Error loading experiment config:', error);
+                alert('Error loading experiment configuration: ' + error.message);
+            }
+        }
+        
+        // Load experiment configuration from overview tab
+        async function loadExperimentConfigFromOverview(selectedConfig) {
+            const selectedApp = document.getElementById('applicationSelect').value;
+            
+            if (!selectedApp || !selectedConfig) return;
+            
+            try {
+                const response = await fetch('/get_experiment_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        application: selectedApp, 
+                        config: selectedConfig 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error loading experiment config from overview:', data.error);
+                    return;
+                }
+                
+                // Apply the experiment configuration to the form
+                applyExperimentConfig(data.config);
+                
+            } catch (error) {
+                console.error('Error loading experiment config from overview:', error);
+            }
+        }
+        
+        // Apply experiment configuration to form fields
+        function applyExperimentConfig(config) {
+            // Update training parameters
+            if (config.number_training_episodes) {
+                document.getElementById('trainingEpisodes').value = config.number_training_episodes;
+            }
+            if (config.number_training_repeats) {
+                document.getElementById('trainingRepeats').value = config.number_training_repeats;
+            }
+            if (config.number_test_episodes) {
+                document.getElementById('testEpisodes').value = config.number_test_episodes;
+            }
+            if (config.number_test_repeats) {
+                document.getElementById('testRepeats').value = config.number_test_repeats;
+            }
+            
+            // Update agent selection
+            if (config.agent_select && Array.isArray(config.agent_select)) {
+                // Clear all agent checkboxes first
+                document.querySelectorAll('input[type="checkbox"][id^="agent_"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // Check the agents specified in the config
+                config.agent_select.forEach(agent => {
+                    const checkbox = document.getElementById(`agent_${agent}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                
+                // Update agent configuration
+                updateAgentConfig();
+            }
+            
+            // Update agent parameters
+            if (config.agent_parameters) {
+                Object.keys(config.agent_parameters).forEach(agentId => {
+                    const agentParams = config.agent_parameters[agentId];
+                    Object.keys(agentParams).forEach(paramKey => {
+                        const formFieldName = `${agentId}_${paramKey}`;
+                        const input = document.getElementById(formFieldName);
+                        if (input) {
+                            input.value = agentParams[paramKey];
+                        }
+                    });
+                });
+            }
+            
+            // Update adapter selection
+            if (config.adapter_input_dict) {
+                // This would need to be implemented based on how adapters are handled in the UI
+                console.log('Adapter configuration:', config.adapter_input_dict);
+            }
+            
+            // Show success message
+            console.log('Experiment configuration loaded successfully');
+            
+            // Update config summary
+            updateConfigSummary();
+        }
+
         // Update configuration summary
         function updateConfigSummary() {
             const localConfig = document.getElementById('localConfigSelect').value;
             const observedState = document.getElementById('observedStateSelect').value;
             const plot = document.getElementById('plotSelect').value;
+            const experimentConfig = document.getElementById('experimentConfigSelect').value;
             
             // Update summary display if it exists
             const localConfigSummary = document.getElementById('selectedLocalConfigSummary');
             const observedStatesSummary = document.getElementById('selectedObservedStatesSummary');
             const plotSummary = document.getElementById('selectedPlotOptionsSummary');
+            const experimentConfigSummary = document.getElementById('selectedExperimentConfigSummary');
             
             if (localConfigSummary) {
                 localConfigSummary.textContent = `Local Config: ${localConfig || 'None'}`;
@@ -2839,6 +2983,9 @@
             }
             if (plotSummary) {
                 plotSummary.textContent = `Analysis Plot: ${plot || 'None'}`;
+            }
+            if (experimentConfigSummary) {
+                experimentConfigSummary.textContent = `Experiment Config: ${experimentConfig || 'None'}`;
             }
         }
 
@@ -3308,7 +3455,7 @@
         async function loadOverviewConfigurationOptions(applicationName) {
             try {
                 // Load configuration data (excluding observed states)
-                const [configsRes, plotsRes] = await Promise.all([
+                const [configsRes, plotsRes, allOptionsRes] = await Promise.all([
                     fetch('/get_local_configs', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3318,12 +3465,16 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ application: applicationName })
+                    }),
+                    fetch('/get_all_options', {
+                        method: 'GET'
                     })
                 ]);
 
-                const [configsData, plotsData] = await Promise.all([
+                const [configsData, plotsData, allOptionsData] = await Promise.all([
                     configsRes.json(),
-                    plotsRes.json()
+                    plotsRes.json(),
+                    allOptionsRes.json()
                 ]);
 
                 // Load local configs
@@ -3332,9 +3483,13 @@
                 // Load plot options
                 loadOverviewConfigSection('overviewPlotOptions', 'plotOptions', plotsData.plotOptions[applicationName] || []);
                 
+                // Load experiment configurations
+                loadOverviewConfigSection('overviewExperimentConfigOptions', 'experimentConfig', allOptionsData.experimentConfigs[applicationName] || []);
+                
                 // Auto-select first options if available
                 const localConfigs = configsData.localConfigs[applicationName] || [];
                 const plotOptions = plotsData.plotOptions[applicationName] || [];
+                const experimentConfigs = allOptionsData.experimentConfigs[applicationName] || [];
                 
                 if (localConfigs.length > 0) {
                     // Select first local config
@@ -3353,6 +3508,19 @@
                     // Clear plot selection if no options available
                     updateOverviewConfigDisplay('plotOptions', '');
                     updateHiddenFormFields('plotOptions', '');
+                }
+                
+                if (experimentConfigs.length > 0) {
+                    // Select first experiment config
+                    const firstExperimentConfig = experimentConfigs[0];
+                    updateOverviewConfigDisplay('experimentConfig', firstExperimentConfig);
+                    updateHiddenFormFields('experimentConfig', firstExperimentConfig);
+                    // Load the experiment configuration
+                    loadExperimentConfigFromOverview(firstExperimentConfig);
+                } else {
+                    // Clear experiment config selection if no options available
+                    updateOverviewConfigDisplay('experimentConfig', '');
+                    updateHiddenFormFields('experimentConfig', '');
                 }
                 
                 // Show summary section if there are any configurations available

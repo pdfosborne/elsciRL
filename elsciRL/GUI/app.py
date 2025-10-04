@@ -503,15 +503,17 @@ class WebApp:
             prerender_data = app_data['prerender_data']
             print(f"Prerender data keys: {list(prerender_data.keys())}")
             
-            # Get both regular and encoded observed states
-            observed_states = list(prerender_data.keys())
+            # Get both regular and encoded observed states (avoid duplicates)
+            observed_states = set(prerender_data.keys())
             
             # Add encoded observed states if they exist
             if 'prerender_data_encoded' in app_data:
                 encoded_data = app_data['prerender_data_encoded']
                 print(f"Encoded prerender data keys: {list(encoded_data.keys())}")
-                observed_states.extend(list(encoded_data.keys()))
+                observed_states.update(encoded_data.keys())
             
+            # Convert back to list and sort for consistent ordering
+            observed_states = sorted(list(observed_states))
             print(f"Returning observed states: {observed_states}")
             return observed_states
         except Exception as e:
