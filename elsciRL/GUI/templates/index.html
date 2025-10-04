@@ -5,997 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Demo WebApp</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        .loading-circle {
-            border: 8px solid var(--border-color);
-            border-top: 8px solid var(--button-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: none;
-            margin-left: 10px;
-        }
-
-        .loading-circle-left {
-            margin-right: 10px;
-            margin-left: 0;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .training-params {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .training-params input {
-            width: 100px;
-            padding: 5px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-        
-        .training-params label {
-            color: var(--text-color);
-            font-weight: bold;
-        }
-
-        .form-select {
-            width: 200px;
-            padding: 5px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-        }
-
-        .applications-checklist {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .application-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .application-item input[type="checkbox"] {
-            margin: 0;
-        }
-
-        .application-item label {
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        .config-section {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .config-group {
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 4px;
-        }
-
-        .config-group h3 {
-            margin-top: 0;
-            color: var(--text-color);
-            font-size: 1.1em;
-            margin-bottom: 15px;
-        }
-
-        .select-container {
-            margin-bottom: 15px;
-        }
-
-        .select-container label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-color);
-            font-weight: bold;
-        }
-
-        .select-container select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-        }
-
-        .select-container select:focus {
-            outline: none;
-            border-color: var(--button-color);
-        }
-
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .checkbox-container input[type="checkbox"] {
-            margin: 0;
-        }
-
-        .checkbox-container label {
-            color: var(--text-color);
-            font-size: 14px;
-            margin: 0;
-        }
-
-        .agent-params {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .agent-adapter-group {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: #f9f9f9;
-        }
-
-        .agent-adapter-group h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: var(--text-color);
-            font-size: 1em;
-        }
-
-        .adapter-checkboxes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        /* Interface Guide Styles */
-        #interfaceGuideContent {
-            max-height: 70vh;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-
-        #interfaceGuideContent h1,
-        #interfaceGuideContent h2,
-        #interfaceGuideContent h3,
-        #interfaceGuideContent h4 {
-            color: var(--text-color);
-            margin-top: 15px;
-            margin-bottom: 10px;
-        }
-
-        #interfaceGuideContent h1 {
-            font-size: 1.4em;
-            border-bottom: 2px solid var(--button-color);
-            padding-bottom: 5px;
-        }
-
-        #interfaceGuideContent h2 {
-            font-size: 1.2em;
-            color: var(--button-color);
-        }
-
-        #interfaceGuideContent h3 {
-            font-size: 1.1em;
-        }
-
-        #interfaceGuideContent p {
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        #interfaceGuideContent ul,
-        #interfaceGuideContent ol {
-            margin-bottom: 10px;
-            padding-left: 20px;
-        }
-
-        #interfaceGuideContent li {
-            margin-bottom: 5px;
-            line-height: 1.3;
-        }
-
-        #interfaceGuideContent code {
-            background-color: #f4f4f4;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        #interfaceGuideContent pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-            margin: 10px 0;
-        }
-
-        #interfaceGuideContent blockquote {
-            border-left: 4px solid var(--button-color);
-            margin: 10px 0;
-            padding-left: 15px;
-            color: #666;
-        }
-
-        .loading-message {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        .error-message {
-            padding: 10px;
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 4px;
-            color: #856404;
-        }
-
-        /* Application Overview Styles */
-        .applications-overview {
-            padding: 10px 0;
-        }
-
-        .applications-overview h3 {
-            color: var(--button-color);
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .app-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .app-card {
-            background-color: var(--input-background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px var(--shadow-color);
-            transition: all 0.3s ease;
-        }
-
-        .app-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-color);
-        }
-
-        .app-card h4 {
-            margin: 0 0 10px 0;
-            color: var(--button-color);
-            font-size: 1.1em;
-        }
-
-        .app-details {
-            font-size: 0.9em;
-            line-height: 1.4;
-        }
-
-        .app-details p {
-            margin: 5px 0;
-            color: var(--text-color);
-        }
-
-        /* Configuration Selection Styles */
-        .config-selection {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: var(--input-background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-        }
-
-        .config-selection h5 {
-            margin: 0 0 15px 0;
-            color: var(--button-color);
-            font-size: 1.1em;
-        }
-
-        .config-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .config-button {
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease;
-        }
-
-        .config-button:hover {
-            background-color: var(--button-hover-color);
-        }
-
-        .config-button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .config-dropdown {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: var(--background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-
-        .config-dropdown.show {
-            display: block;
-        }
-
-        .config-dropdown select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-            font-size: 0.9em;
-        }
-
-        .config-dropdown label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-color);
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-
-        .config-dropdown p {
-            margin: 5px 0;
-            color: var(--text-color);
-            font-size: 0.9em;
-        }
-
-        .config-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .config-actions button {
-            padding: 6px 12px;
-            font-size: 0.8em;
-        }
-
-        .config-actions .apply-btn {
-            background-color: var(--button-color);
-            color: white;
-        }
-
-        .config-actions .cancel-btn {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        /* Button-based Configuration Selection Styles */
-        .config-option-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
-        }
-
-        .config-option-button {
-            background-color: var(--input-background-color);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: left;
-            position: relative;
-        }
-
-        .config-option-button:hover {
-            border-color: var(--button-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-color);
-        }
-
-        .config-option-button.selected {
-            border-color: var(--button-color);
-            background-color: rgba(0, 123, 255, 0.1);
-        }
-
-        .config-option-button.selected::after {
-            content: "✓";
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: var(--button-color);
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
-        .config-option-title {
-            font-weight: bold;
-            color: var(--text-color);
-            margin-bottom: 8px;
-            font-size: 1.1em;
-        }
-
-        .config-option-description {
-            color: var(--text-color);
-            font-size: 0.9em;
-            line-height: 1.4;
-            margin-bottom: 5px;
-        }
-
-        .config-option-meta {
-            color: #666;
-            font-size: 0.8em;
-            font-style: italic;
-        }
-
-        /* Overview Configuration Styles */
-        .config-option-btn {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-            margin: 2px;
-        }
-
-        .config-option-btn:hover {
-            border-color: var(--button-color);
-            background-color: #f8f9fa;
-        }
-
-        .config-option-btn.selected {
-            background-color: var(--button-color);
-            border-color: var(--button-color);
-            color: white;
-        }
-
-        .config-selection-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .config-selection-card {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            background-color: var(--input-background-color);
-        }
-
-        .config-selection-card h4 {
-            margin: 0 0 15px 0;
-            color: var(--button-color);
-        }
-
-        .config-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .config-section-title {
-            color: var(--button-color);
-            margin: 0;
-            font-size: 1.2em;
-        }
-
-        .config-clear-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            cursor: pointer;
-        }
-
-        .config-clear-btn:hover {
-            background-color: #c82333;
-        }
-
-        .no-options-message {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 20px;
-            background-color: var(--input-background-color);
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-
-        .download-btn {
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-            transition: background-color 0.3s ease;
-        }
-
-        .download-btn:hover {
-            background-color: var(--button-hover-color);
-        }
-
-        /* Selected Application Details Styles */
-        #selectedApplicationDetails {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: var(--input-background-color);
-            border: 2px solid var(--button-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 8px var(--shadow-color);
-        }
-
-        #selectedApplicationDetails h3 {
-            color: var(--button-color);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        #selectedApplicationDetails h4 {
-            color: var(--text-color);
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        #selectedApplicationDetails h5 {
-            color: var(--button-color);
-            margin: 20px 0 10px 0;
-            font-size: 1.1em;
-        }
-
-        .prerender-image-section {
-            margin-bottom: 20px;
-        }
-
-        .prerender-image {
-            max-width: 100%;
-            max-height: 400px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-shadow: 0 2px 4px var(--shadow-color);
-            margin: 10px 0;
-        }
-
-        .readme-section {
-            margin-bottom: 20px;
-        }
-
-        .readme-content {
-            background-color: #f8f9fa;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 15px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .readme-content h1,
-        .readme-content h2,
-        .readme-content h3,
-        .readme-content h4,
-        .readme-content h5,
-        .readme-content h6 {
-            color: var(--button-color);
-            margin: 15px 0 10px 0;
-            font-weight: bold;
-        }
-
-        .readme-content h1 {
-            font-size: 1.4em;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 5px;
-        }
-
-        .readme-content h2 {
-            font-size: 1.2em;
-        }
-
-        .readme-content h3 {
-            font-size: 1.1em;
-        }
-
-        .readme-content p {
-            margin: 10px 0;
-            line-height: 1.5;
-        }
-
-        .readme-content code {
-            background-color: #e9ecef;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .readme-content pre {
-            background-color: #e9ecef;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 10px;
-            margin: 10px 0;
-            overflow-x: auto;
-        }
-
-        .readme-content pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-
-        .readme-content a {
-            color: var(--button-color);
-            text-decoration: none;
-        }
-
-        .readme-content a:hover {
-            text-decoration: underline;
-        }
-
-        .readme-content strong {
-            font-weight: bold;
-        }
-
-        .readme-content em {
-            font-style: italic;
-        }
-
-        /* Results Tab Styles */
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .results-header h3 {
-            color: var(--button-color);
-            margin: 0;
-        }
-
-        .refresh-results-btn {
-            background-color: var(--button-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        .refresh-results-btn:hover {
-            background-color: var(--button-hover-color);
-        }
-
-        .variance-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .variance-result-card {
-            background-color: var(--input-background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px var(--shadow-color);
-            transition: all 0.3s ease;
-        }
-
-        .variance-result-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-color);
-        }
-
-        .variance-result-card h4 {
-            color: var(--button-color);
-            margin: 0 0 10px 0;
-            font-size: 1.1em;
-        }
-
-        .variance-result-card img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-
-        .variance-result-info {
-            font-size: 0.9em;
-            color: var(--text-color);
-            margin: 5px 0;
-        }
-
-        .no-results-message {
-            text-align: center;
-            padding: 40px 20px;
-            color: #666;
-            font-style: italic;
-        }
-
-        /* Make app cards clickable */
-        .app-card {
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .app-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px var(--shadow-color);
-            border-color: var(--button-color);
-        }
-
-        .app-card.selected {
-            border-color: var(--button-color);
-            background-color: rgba(0, 122, 255, 0.1);
-            box-shadow: 0 4px 8px var(--shadow-color);
-        }
-
-        .app-card.selected h4 {
-            color: var(--button-color);
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-color);
-            font-weight: bold;
-        }
-
-        .input-group input, .input-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: white;
-            color: var(--text-color);
-        }
-
-        .input-group input:focus, .input-group textarea:focus {
-            outline: none;
-            border-color: var(--button-color);
-        }
-
-        .input-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .button-group button {
-            flex: 1;
-        }
-
-        /* New Layout Styles */
-        .main-layout {
-            display: flex;
-            min-height: 100vh;
-            background-color: var(--background-color);
-        }
-
-        .left-sidebar {
-            width: 300px;
-            background-color: var(--box-color);
-            border-right: 1px solid var(--border-color);
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 100vh;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 100vh;
-        }
-
-        .right-sidebar {
-            width: 250px;
-            background-color: var(--box-color);
-            border-left: 1px solid var(--border-color);
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 100vh;
-        }
-
-        .sidebar-block {
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .sidebar-block-header {
-            background-color: var(--button-color);
-            color: white;
-            padding: 12px 15px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-
-        .sidebar-block-header:hover {
-            background-color: var(--button-hover-color);
-        }
-
-        .sidebar-block-content {
-            padding: 15px;
-            display: none;
-            background-color: white;
-        }
-
-        .sidebar-block-content.active {
-            display: block;
-        }
-
-        .sidebar-block-header .toggle-icon {
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar-block-header.active .toggle-icon {
-            transform: rotate(180deg);
-        }
-
-        /* Tab Navigation Styles */
-        .tab-navigation {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 20px;
-            background-color: var(--box-color);
-            border-radius: 8px 8px 0 0;
-            padding: 0;
-        }
-
-        .tab-btn {
-            background-color: transparent;
-            border: none;
-            padding: 15px 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: var(--text-color);
-            font-size: 16px;
-            font-weight: 500;
-            border-radius: 8px 8px 0 0;
-            margin-right: 2px;
-        }
-
-        .tab-btn:hover {
-            background-color: var(--input-background-color);
-            color: var(--button-color);
-        }
-
-        .tab-btn.active {
-            background-color: var(--button-color);
-            color: white;
-            border-bottom: 2px solid var(--button-color);
-        }
-
-        .tab-content {
-            display: none;
-            background-color: var(--box-color);
-            border-radius: 0 0 8px 8px;
-            padding: 0;
-            margin-bottom: 20px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .tab-content-inner {
-            padding: 20px;
-        }
-
-        .main-content-section {
-            display: none;
-            background-color: var(--box-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .main-content-section.active {
-            display: block;
-        }
-
-        .right-sidebar-section {
-            background-color: var(--box-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .logo-section {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .logo-section img {
-            width: 200px;
-            height: 200px;
-        }
-
-        @media (max-width: 1024px) {
-            .main-layout {
-                flex-direction: column;
-            }
-            
-            .left-sidebar, .right-sidebar {
-                width: 100%;
-                max-height: none;
-            }
-            
-            .left-sidebar {
-                order: 1;
-            }
-            
-            .main-content {
-                order: 2;
-            }
-            
-            .right-sidebar {
-                order: 3;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="loading-overlay" id="loadingOverlay">
@@ -1035,10 +44,10 @@
                 <div class="sidebar-block-content active">
                     <div class="config-group">
                         <h3>Available Applications</h3>
-                        <div class="button-group" style="margin-bottom: 15px;">
+                        <div class="button-group button-group-margin-bottom">
                             <button onclick="checkAllUpdates()">Check Updates</button>
                 </div>
-                        <div id="updateStatus" style="margin-bottom: 15px; display: none;"></div>
+                        <div id="updateStatus" class="update-status"></div>
                         <div id="applicationsList">
                             <p>Loading applications...</p>
                         </div>
@@ -1068,7 +77,7 @@
                                 <option value="">Loading applications...</option>
                                     </select>
                                 </div>
-                        <div id="applicationInfo" style="margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; display: none;">
+                        <div id="applicationInfo" class="application-info">
                             <p><strong>Status:</strong> <span id="appStatus"></span></p>
                             <p><strong>Last Updated:</strong> <span id="appLastUpdated"></span></p>
                             <p><strong>Components:</strong> <span id="appComponents"></span></p>
@@ -1136,7 +145,7 @@
                         <div class="button-group">
                             <button onclick="exportConfig()">Export Config</button>
                             <button onclick="document.getElementById('importConfigFile').click()">Import Config</button>
-                            <input type="file" id="importConfigFile" accept=".json" style="display: none;" onchange="importConfig(this)">
+                            <input type="file" id="importConfigFile" accept=".json" class="import-config-file" onchange="importConfig(this)">
                                     </div>
                                 </div>
                                     </div>
@@ -1209,7 +218,7 @@
                     <div class="input-console-container">
                         <div class="input-section">
                             <!-- Observed States Selection -->
-                            <div class="config-group" style="margin-bottom: 20px;">
+                            <div class="config-group config-group-margin-bottom">
                                 <h3>Observed States</h3>
                                 <div class="select-container">
                                     <label for="instructionsObservedStateSelect">Select Observed States:</label>
@@ -1217,11 +226,11 @@
                                         <option value="">Select an application first</option>
                                     </select>
                                 </div>
-                                <div id="instructionsObservedStatesInfo" style="margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; display: none;">
+                                <div id="instructionsObservedStatesInfo" class="instructions-observed-states-info">
                                     <p><strong>Selected States:</strong> <span id="instructionsObservedStatesSummary">None</span></p>
-                                    <div id="instructionsObservedStatesPreview" style="margin-top: 10px; display: none;">
-                                        <div style="color: #666; font-size: 0.9em; margin-bottom: 8px;">Preview of first value:</div>
-                                        <pre id="instructionsObservedStatesContent" style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 12px; font-size: 0.85em; color: #333; overflow-x: auto; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+                                    <div id="instructionsObservedStatesPreview" class="instructions-observed-states-preview">
+                                        <div class="preview-text">Preview of first value:</div>
+                                        <pre id="instructionsObservedStatesContent" class="preview-content"></pre>
                                     </div>
                                 </div>
                             </div>
@@ -1230,11 +239,11 @@
                             <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
                             <div class="button-group">
                                 <button id="submitBtn" onclick="processInput()">Process Instructions</button>
-                                <button id="retryBtn" onclick="newInstruction()" style="display: none;">New Instruction</button>
+                                <button id="retryBtn" onclick="newInstruction()" class="retry-btn-hidden">New Instruction</button>
                     </div>
                             
                             <!-- LLM Settings -->
-                            <div class="config-group" style="margin-top: 20px;">
+                            <div class="config-group config-group-margin-top">
                                 <h3>LLM Settings</h3>
                                 <div class="checkbox-container">
                                     <input type="checkbox" id="enableLLMPlanner">
@@ -1261,7 +270,7 @@
                         <div class="console-section">
                             <h3>Results</h3>
                         <div id="consoleOutput"></div>
-                            <div id="confirmationBlock" style="display: none;">
+                            <div id="confirmationBlock" class="confirmation-block-hidden">
                             <p>Was the result correct?</p>
                                 <div class="button-group">
                                 <button id="correctBtn" onclick="confirmResult(true)">Correct</button>
@@ -1301,10 +310,10 @@
             <div class="right-sidebar-section">
                 <h3>Train Model</h3>
                 <p>Start training with or without instructions. Select agents and click to begin.</p>
-                <button id="trainModelBtn" onclick="startTraining()" style="width: 100%; padding: 15px; font-size: 16px; font-weight: bold;">
+                <button id="trainModelBtn" onclick="startTraining()" class="train-model-btn">
                     Train Model
                 </button>
-                <div id="trainingStatus" style="margin-top: 15px; display: none;">
+                <div id="trainingStatus" class="training-status">
                     <div class="loading-circle-left"></div>
                     <span>Training in progress...</span>
                 </div>   
@@ -1313,16 +322,16 @@
             <div class="right-sidebar-section">
                 <h3>Preset Instructions</h3>
                 <p>Load preset instruction plans for the selected application.</p>
-                <div class="input-group" style="margin-bottom: 10px;">
-                    <label for="presetSelect" style="font-size: 12px; margin-bottom: 5px;">Select preset:</label>
-                    <select id="presetSelect" onchange="onPresetSelectChange()" style="width: 100%; padding: 8px; font-size: 12px;">
+                <div class="input-group input-group-margin-bottom">
+                    <label for="presetSelect" class="preset-label">Select preset:</label>
+                    <select id="presetSelect" onchange="onPresetSelectChange()" class="preset-select">
                         <option value="">Choose a preset...</option>
                     </select>
                 </div>
-                <div id="presetDescription" style="margin-bottom: 10px; font-style: italic; color: #666; font-size: 11px;"></div>
-                <div class="button-group" style="display: flex; gap: 5px;">
-                    <button onclick="loadSelectedPreset()" id="loadPresetBtn" disabled style="flex: 1; padding: 8px; font-size: 12px;">Load</button>
-                    <button onclick="clearPreset()" id="clearPresetBtn" style="display: none; flex: 1; padding: 8px; font-size: 12px;">Clear</button>
+                <div id="presetDescription" class="preset-description"></div>
+                <div class="button-group button-group-flex">
+                    <button onclick="loadSelectedPreset()" id="loadPresetBtn" disabled class="load-preset-btn">Load</button>
+                    <button onclick="clearPreset()" id="clearPresetBtn" class="clear-preset-btn">Clear</button>
                 </div>
             </div>
 
@@ -1448,18 +457,18 @@
                             appDiv.className = 'application-item';
                             // Create GitHub link if repository info is available
                             const githubLink = app.github_user && app.repository ? 
-                                `<a href="https://github.com/${app.github_user}/${app.repository}" target="_blank" style="color: #0366d6; text-decoration: none; font-size: 12px; margin-left: 8px;">🔗 GitHub</a>` : '';
+                                `<a href="https://github.com/${app.github_user}/${app.repository}" target="_blank" class="github-link">🔗 GitHub</a>` : '';
                             
                             appDiv.innerHTML = `
-                                <div style="flex: 1;">
+                                <div class="app-flex">
                                     <strong>${app.name}</strong>
-                                    <div style="font-size: 12px; color: #666;">
+                                    <div class="app-name">
                                         ${app.has_updates ? '🔄 Updates available' : '✅ Up to date'}
                                         ${app.last_updated ? ` • Last updated: ${formatTimestamp(app.last_updated)}` : ''}
                                         ${githubLink}
                                     </div>
                                 </div>
-                                ${app.has_updates ? `<button onclick="downloadApplication('${app.name}', true)" style="padding: 4px 8px; font-size: 12px;">Update</button>` : ''}
+                                ${app.has_updates ? `<button onclick="downloadApplication('${app.name}', true)" class="update-btn">Update</button>` : ''}
                             `;
                             applicationsList.appendChild(appDiv);
                         }
@@ -1480,17 +489,17 @@
                             
                             // Create GitHub link if repository info is available
                             const githubLink = app.github_user && app.repository ? 
-                                `<a href="https://github.com/${app.github_user}/${app.repository}" target="_blank" style="color: #0366d6; text-decoration: none; font-size: 12px; margin-left: 8px;">🔗 GitHub</a>` : '';
+                                `<a href="https://github.com/${app.github_user}/${app.repository}" target="_blank" class="github-link">🔗 GitHub</a>` : '';
                             
                             appDiv.innerHTML = `
-                                <div style="flex: 1;">
+                                <div class="app-flex">
                                     <strong>${app.name}</strong>
-                                    <div style="font-size: 12px; color: #666;">
+                                    <div class="app-name">
                                         ${app.adapters_count} adapters • ${app.configs_count} configs • ${app.experiment_configs_count} experiments
                                         ${githubLink}
                                     </div>
                                 </div>
-                                <button onclick="downloadApplication('${app.name}', false)" style="padding: 4px 8px; font-size: 12px;">
+                                <button onclick="downloadApplication('${app.name}', false)" class="download-btn-small">
                                     Download
                                 </button>
                             `;
@@ -1721,11 +730,11 @@
                 }
 
                 // Show confirmation block
-                document.getElementById('confirmationBlock').style.display = 'block';
+                document.getElementById('confirmationBlock').classList.remove('confirmation-block-hidden');
                 
                 // Update buttons
                 submitBtn.style.display = 'none';
-                retryBtn.style.display = 'inline-block';
+                retryBtn.classList.remove('retry-btn-hidden');
 
             } catch (error) {
                 console.error('Error processing input:', error);
@@ -1773,9 +782,9 @@
             document.getElementById('consoleOutput').innerHTML = '';
             document.getElementById('instructionMatchPlots').innerHTML = '';
             document.getElementById('confirmationResult').innerHTML = '';
-            document.getElementById('confirmationBlock').style.display = 'none';
+            document.getElementById('confirmationBlock').classList.add('confirmation-block-hidden');
             document.getElementById('submitBtn').style.display = 'inline-block';
-            document.getElementById('retryBtn').style.display = 'none';
+            document.getElementById('retryBtn').classList.add('retry-btn-hidden');
 
             fetch('/new_instruction', {
                 method: 'POST',
@@ -1808,7 +817,7 @@
             const trainingStatus = document.getElementById('trainingStatus');
             
             trainBtn.disabled = true;
-            trainingStatus.style.display = 'block';
+            trainingStatus.classList.remove('training-status');
 
             try {
                 const formData = {
@@ -1900,7 +909,7 @@
                 alert(`An error occurred while starting training: ${error.message}`);
             } finally {
                 trainBtn.disabled = false;
-                trainingStatus.style.display = 'none';
+                trainingStatus.classList.add('training-status');
             }
         }
 
@@ -2304,7 +1313,7 @@
                 }
                 
                 userInput.value = instructionText;
-                clearPresetBtn.style.display = 'inline-block';
+                clearPresetBtn.classList.remove('clear-preset-btn');
                 
                 // Show success message
                 const presetDescription = document.getElementById('presetDescription');
@@ -2326,7 +1335,7 @@
             
             userInput.value = '';
             presetSelect.value = '';
-            clearPresetBtn.style.display = 'none';
+            clearPresetBtn.classList.add('clear-preset-btn');
             presetDescription.textContent = '';
         }
 
