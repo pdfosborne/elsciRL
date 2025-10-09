@@ -892,12 +892,17 @@
                             if (field) {
                                 if (field.type === 'checkbox') {
                                     formData[fieldId] = field.checked;
+                                } else if (field.type === 'range') {
+                                    // Handle slider values - convert step index back to actual value
+                                    const steps = generateSliderSteps();
+                                    const stepIndex = parseInt(field.value);
+                                    formData[fieldId] = steps[stepIndex];
                                 } else {
                                     formData[fieldId] = field.value;
-                        }
+                                }
+                            }
+                        });
                     }
-                });
-            }
                 });
 
                 const response = await fetch('/train_model', {
@@ -2166,7 +2171,22 @@
                         const formFieldName = `${agentId}_${paramKey}`;
                         const input = document.getElementById(formFieldName);
                         if (input) {
-                            input.value = agentParams[paramKey];
+                            if (input.type === 'range') {
+                                // Handle slider values - convert actual value to step index
+                                const steps = generateSliderSteps();
+                                const stepIndex = valueToSliderStep(agentParams[paramKey], steps);
+                                input.value = stepIndex;
+                                // Update the value display
+                                const valueDisplay = document.getElementById(formFieldName + '_value');
+                                if (valueDisplay) {
+                                    valueDisplay.textContent = agentParams[paramKey].toFixed(2);
+                                }
+                                // Update the slider's visual progress
+                                const progress = (stepIndex / (steps.length - 1)) * 100;
+                                input.style.setProperty('--slider-progress', progress + '%');
+                            } else {
+                                input.value = agentParams[paramKey];
+                            }
                         }
                     });
                 });
@@ -2497,6 +2517,41 @@
             }
         }
 
+        // Generate 25-step values for sliders (0, 0.01, 0.02, ..., 0.25, 0.30, ..., 1.00)
+        function generateSliderSteps() {
+            const steps = [];
+            // First 25 steps: 0.00 to 0.25 (0.01 increments)
+            for (let i = 0; i <= 25; i++) {
+                steps.push(i * 0.01);
+            }
+            // Remaining steps: 0.30 to 1.00 (0.05 increments)
+            for (let i = 6; i <= 20; i++) {
+                steps.push(i * 0.05);
+            }
+            return steps;
+        }
+
+        // Convert value to slider step index
+        function valueToSliderStep(value, steps) {
+            const closestStep = steps.reduce((prev, curr) => 
+                Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev
+            );
+            return steps.indexOf(closestStep);
+        }
+
+        // Convert slider step index to value
+        function sliderStepToValue(stepIndex, steps) {
+            return steps[stepIndex];
+        }
+
+        // Check if parameter should use slider (Q-Learning parameters between 0 and 1)
+        function shouldUseSlider(paramConfig) {
+            return paramConfig.type === 'number' && 
+                   paramConfig.min === 0 && 
+                   paramConfig.max === 1 && 
+                   (paramConfig.step === 0.01 || paramConfig.step === 0.05 || paramConfig.step === 0.001 || !paramConfig.step);
+        }
+
         // Update agent configuration forms
         function updateAgentConfig() {
             const container = document.getElementById('agentConfigContainer');
@@ -2523,7 +2578,31 @@
                         const fieldId = `${agentId}_${paramKey}`;
                         let inputHtml = '';
                         
-                        if (paramConfig.type === 'number') {
+                        if (shouldUseSlider(paramConfig)) {
+                            // Use slider for Q-Learning parameters
+                            const steps = generateSliderSteps();
+                            const defaultValue = paramConfig.default || 0;
+                            const defaultStepIndex = valueToSliderStep(defaultValue, steps);
+                            
+                            inputHtml = `
+                                <div class="slider-container">
+                                    <div class="slider-label">
+                                        <span class="slider-label-text">${paramConfig.label}:</span>
+                                        <span class="slider-value" id="${fieldId}_value">${defaultValue.toFixed(2)}</span>
+                                    </div>
+                                    <div class="slider-wrapper">
+                                        <input type="range" 
+                                               class="slider-input" 
+                                               id="${fieldId}" 
+                                               min="0" 
+                                               max="${steps.length - 1}" 
+                                               step="1" 
+                                               value="${defaultStepIndex}"
+                                               oninput="updateSliderValue('${fieldId}', ${JSON.stringify(steps).replace(/"/g, '&quot;')})">
+                                    </div>
+                                </div>
+                            `;
+                        } else if (paramConfig.type === 'number') {
                             inputHtml = `
                                 <label for="${fieldId}">${paramConfig.label}:</label>
                                 <input type="number" id="${fieldId}" 
@@ -2563,6 +2642,20 @@
 
             // Also update adapter selection when agent config changes
             updateAdapterSelection();
+        }
+
+        // Update slider value display
+        function updateSliderValue(fieldId, steps) {
+            const slider = document.getElementById(fieldId);
+            const valueDisplay = document.getElementById(fieldId + '_value');
+            const stepIndex = parseInt(slider.value);
+            const actualValue = steps[stepIndex];
+            
+            valueDisplay.textContent = actualValue.toFixed(2);
+            
+            // Update the slider's visual progress
+            const progress = (stepIndex / (steps.length - 1)) * 100;
+            slider.style.setProperty('--slider-progress', progress + '%');
         }
 
         // Update adapter selection

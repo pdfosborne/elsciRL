@@ -83,6 +83,8 @@ body {
   padding: 10px;
   display: none;
   background-color: white;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .sidebar-block-content.active {
@@ -651,6 +653,9 @@ label[title][for]:hover::before {
   padding: 8px;
   border-radius: 4px;
   margin-bottom: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .config-group h3 {
@@ -710,7 +715,9 @@ label[title][for]:hover::before {
 .agent-params {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .agent-adapter-group {
@@ -1458,6 +1465,8 @@ label[title][for]:hover::before {
 /* Input Group Styles */
 .input-group {
     margin-bottom: 15px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .input-group label {
@@ -1465,6 +1474,11 @@ label[title][for]:hover::before {
     margin-bottom: 5px;
     color: var(--text-color);
     font-weight: bold;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .input-group input, .input-group textarea {
@@ -1474,6 +1488,8 @@ label[title][for]:hover::before {
     border-radius: 4px;
     background-color: white;
     color: var(--text-color);
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .input-group input:focus, .input-group textarea:focus {
@@ -1746,5 +1762,145 @@ input[type="checkbox"]:disabled + label {
     background-color: #6c757d;
     cursor: not-allowed;
     opacity: 0.6;
+}
+
+/* Slider Styles for Q-Learning Parameters */
+.slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    margin-bottom: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.slider-label-text {
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 12px;
+    flex: 1;
+    margin-right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slider-value {
+    color: var(--button-color);
+    font-weight: bold;
+    font-size: 12px;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    min-width: 40px;
+    max-width: 50px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.slider-wrapper {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+.slider-input {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--button-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.slider-input::-webkit-slider-thumb:hover {
+    background: var(--button-hover-color);
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.slider-input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--button-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.slider-input::-moz-range-thumb:hover {
+    background: var(--button-hover-color);
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.slider-input::-webkit-slider-track {
+    background: linear-gradient(to right, var(--button-color) 0%, var(--button-color) var(--slider-progress, 0%), #ddd var(--slider-progress, 0%), #ddd 100%);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.slider-input::-moz-range-track {
+    background: #ddd;
+    height: 6px;
+    border-radius: 3px;
+    border: none;
+}
+
+.slider-input::-moz-range-progress {
+    background: var(--button-color);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10px;
+    color: #666;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+}
+
+.slider-tick {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
