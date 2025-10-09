@@ -187,6 +187,7 @@
                 <button class="tab-btn active" onclick="switchTab('applicationOverview', this)">Application Overview</button>
                 <button class="tab-btn" onclick="switchTab('instructions', this)">Instructions</button>
                 <button class="tab-btn" onclick="switchTab('results', this)">Results</button>
+                <button class="tab-btn" onclick="switchTab('policyRender', this)">Policy Render</button>
             </div>
 
             <!-- Application Overview Tab -->
@@ -296,11 +297,27 @@
                         </div>
                         <div id="varianceResults">
                             <p>Click "Refresh Results" to load variance analysis results from the uploads directory.</p>
-                    </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Policy Render Tab -->
+            <div id="policyRender" class="tab-content">
+                <div class="tab-content-inner">
+                    <h2>Policy Render</h2>
+                    <div id="policyRenderContent">
+                        <div class="results-header">
+                            <h3>Policy Render Videos</h3>
+                            <button onclick="loadPolicyRenders()" class="refresh-results-btn">Refresh Renders</button>
+                        </div>
+                        <div id="policyRenderResults">
+                            <p>Click "Refresh Renders" to load policy render GIFs from the uploads directory.</p>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Right Sidebar -->
         <div class="right-sidebar">
@@ -2772,6 +2789,67 @@
                 resultsContainer.innerHTML = `
                     <div class="error-message">
                         <p><strong>Error loading variance results:</strong> ${error.message}</p>
+                        <p>Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load policy render GIFs from uploads directory
+        async function loadPolicyRenders() {
+            try {
+                const response = await fetch('/get_policy_renders');
+                const data = await response.json();
+                
+                const resultsContainer = document.getElementById('policyRenderResults');
+                
+                if (data.error) {
+                    resultsContainer.innerHTML = `
+                        <div class="error-message">
+                            <p><strong>Error loading renders:</strong> ${data.error}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (!data.renders || data.renders.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="no-results-message">
+                            <p>No policy render GIFs found in the uploads directory.</p>
+                            <p>Run a training experiment with rendering enabled to generate policy renders.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = `<div class="variance-results-grid">`;
+                
+                data.renders.forEach(render => {
+                    const modifiedDate = new Date(render.modified * 1000).toLocaleString();
+                    const fileSizeKB = Math.round(render.size / 1024);
+                    
+                    html += `
+                        <div class="variance-result-card">
+                            <h4>${render.display_name}</h4>
+                            <img src="/${render.path}" alt="${render.display_name}" onclick="openImageModal('/${render.path}')">
+                            <div class="variance-result-info">
+                                <p><strong>File:</strong> ${render.filename}</p>
+                                <p><strong>Generated:</strong> ${modifiedDate}</p>
+                                <p><strong>Size:</strong> ${fileSizeKB} KB</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                resultsContainer.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading policy renders:', error);
+                const resultsContainer = document.getElementById('policyRenderResults');
+                resultsContainer.innerHTML = `
+                    <div class="error-message">
+                        <p><strong>Error loading policy renders:</strong> ${error.message}</p>
                         <p>Please try again.</p>
                     </div>
                 `;

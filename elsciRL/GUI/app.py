@@ -1838,6 +1838,48 @@ def get_variance_results_route():
     except Exception as e:
         return jsonify({'error': f'Error fetching variance results: {str(e)}'}), 500
 
+@app.route('/get_policy_renders')
+def get_policy_renders_route():
+    try:
+        # Get the uploads directory
+        uploads_dir = WebApp_instance.uploads_dir
+        if not os.path.exists(uploads_dir):
+            return jsonify({'renders': [], 'message': 'No uploads directory found'})
+        
+        # Look for render GIF files
+        render_files = []
+        for filename in os.listdir(uploads_dir):
+            if 'render' in filename.lower() and filename.endswith('.gif'):
+                file_path = os.path.join(uploads_dir, filename)
+                file_size = os.path.getsize(file_path)
+                file_modified = os.path.getmtime(file_path)
+                
+                # Extract information from filename
+                file_info = {
+                    'filename': filename,
+                    'path': f'uploads/{filename}',
+                    'size': file_size,
+                    'modified': file_modified,
+                    'type': 'policy_render'
+                }
+                
+                # Create a display name from filename (remove extension and format)
+                display_name = filename.replace('.gif', '').replace('_', ' ').title()
+                file_info['display_name'] = display_name
+                
+                render_files.append(file_info)
+        
+        # Sort by modification time (newest first)
+        render_files.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return jsonify({
+            'renders': render_files,
+            'count': len(render_files)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error fetching policy renders: {str(e)}'}), 500
+
 @app.route('/new_instruction', methods=['POST'])
 def new_instruction_route():
     response = WebApp_instance.new_instruction()
