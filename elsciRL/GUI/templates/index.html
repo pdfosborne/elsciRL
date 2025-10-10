@@ -208,6 +208,47 @@
                     <h2>Instructions</h2>
                     <div class="input-console-container">
                         <div class="input-section">
+                            
+                            <h3>Enter Your Instructions</h3>
+                            <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
+                            <div class="button-group">
+                                <button id="submitBtn" onclick="processInput()">Process Instructions</button>
+                                <button id="retryBtn" onclick="newInstruction()" class="retry-btn-hidden">New Instruction</button>
+                            </div>
+                            
+                            <!-- LLM Settings -->
+                            <div class="config-group config-group-margin-top">
+                                <h3>LLM Settings</h3>
+                                <div id="ollamaStatusMessage" class="ollama-status-message" style="display: none;">
+                                    <p style="color: #dc3545; font-weight: bold; margin: 10px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+                                        ⚠️ Ollama is missing that is required to use LLM tools
+                                    </p>
+                                </div>
+                                <div class="checkbox-container">
+                                    <input type="checkbox" id="enableLLMPlanner">
+                                    <label for="enableLLMPlanner">Enable LLM Instruction Planner</label>
+                                </div>
+                                <div class="input-group">
+                                    <label for="llmModelSelect">LLM Model:</label>
+                                    <div class="llm-model-container">
+                                        <select id="llmModelSelect">
+                                            <option value="">Loading models...</option>
+                                        </select>
+                                        <button type="button" onclick="refreshOllamaModels()" class="ollama-refresh-btn">Refresh</button>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="llmContextLength">Context Length:</label>
+                                    <input type="number" id="llmContextLength" value="1000" min="100" max="4000">
+                                </div>
+                                <div class="input-group">
+                                    <label for="llmNumInstructions">Number of Instructions:</label>
+                                    <input type="number" id="llmNumInstructions" value="1" min="1" max="10">
+                                </div>
+                        </div>
+                    </div>
+                        
+                        <div class="console-section">
                             <!-- Observed States Selection -->
                             <div class="config-group config-group-margin-bottom">
                                 <h3>Observed States</h3>
@@ -225,47 +266,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <h3>Enter Your Instructions</h3>
-                            <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
-                            <div class="button-group">
-                                <button id="submitBtn" onclick="processInput()">Process Instructions</button>
-                                <button id="retryBtn" onclick="newInstruction()" class="retry-btn-hidden">New Instruction</button>
-                    </div>
-                            
-                            <!-- LLM Settings -->
-                            <div class="config-group config-group-margin-top">
-                                <h3>LLM Settings</h3>
-                                <div id="ollamaStatusMessage" class="ollama-status-message" style="display: none;">
-                                    <p style="color: #dc3545; font-weight: bold; margin: 10px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
-                                        ⚠️ Ollama is missing that is required to use LLM tools
-                                    </p>
-                                </div>
-                                <div class="checkbox-container">
-                                    <input type="checkbox" id="enableLLMPlanner">
-                                    <label for="enableLLMPlanner">Enable LLM Instruction Planner</label>
-                        </div>
-                                <div class="input-group">
-                                    <label for="llmModelSelect">LLM Model:</label>
-                                    <div class="llm-model-container">
-                                        <select id="llmModelSelect">
-                                            <option value="">Loading models...</option>
-                                        </select>
-                                        <button type="button" onclick="refreshOllamaModels()" class="ollama-refresh-btn">Refresh</button>
-                                    </div>
-                    </div>
-                                <div class="input-group">
-                                    <label for="llmContextLength">Context Length:</label>
-                                    <input type="number" id="llmContextLength" value="1000" min="100" max="4000">
-                </div>
-                                <div class="input-group">
-                                    <label for="llmNumInstructions">Number of Instructions:</label>
-                                    <input type="number" id="llmNumInstructions" value="1" min="1" max="10">
-                        </div>
-                            </div>
-                        </div>
-                        
-                        <div class="console-section">
+                            <!---Instruction Match Plots-->
                             <h3>Results</h3>
                         <div id="consoleOutput"></div>
                             <div id="confirmationBlock" class="confirmation-block-hidden">
