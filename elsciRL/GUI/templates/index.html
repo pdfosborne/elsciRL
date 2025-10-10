@@ -206,9 +206,9 @@
             <!-- Agent/Adapters Tab -->
             <div id="agentAdapters" class="tab-content">
                 <div class="tab-content-inner">
-                    <h2>Adapter Preview</h2>
+                    <h2>Adapter Preview (Language Adapters)</h2>
                     <p style="font-size: 0.95em; color: #666; margin-bottom: 20px;">
-                        <strong>Click an adapter</strong> to view its source code and see sample observed states. Use the <strong> Agent Config </strong> in the sidebar to match your adapter selection with an agent.
+                        <strong>Click a language adapter</strong> to view its source code and see sample observed states. Use the <strong> Agent Config </strong> in the sidebar to match your adapter selection with an agent.
                     </p>
                     
                     <div class="adapter-preview-layout">
@@ -2830,8 +2830,16 @@
                 return;
             }
             
+            // Filter to only show language-based adapters
+            const languageAdapters = availableAdapters.filter(adapter => isLanguageAdapter(adapter));
+            
+            if (languageAdapters.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No language-based adapters available for the selected application.</p>';
+                return;
+            }
+            
             container.innerHTML = '';
-            availableAdapters.forEach(adapter => {
+            languageAdapters.forEach(adapter => {
                 const card = document.createElement('div');
                 card.className = 'adapter-card';
                 card.setAttribute('data-adapter-name', adapter);
@@ -2992,6 +3000,12 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        // Check if adapter is language-based
+        function isLanguageAdapter(adapterName) {
+            const lowerName = adapterName.toLowerCase();
+            return lowerName.includes('language') || lowerName.includes('llm');
         }
         
         // Get adapter description based on name
