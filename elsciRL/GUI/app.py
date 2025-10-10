@@ -1514,6 +1514,160 @@ Example of environment language structure: {results[application][instr]['sub_goa
             traceback.print_exc()
             return jsonify({'error': 'Failed to get observed states content'}), 500
 
+    def get_adapter_source(self, application, adapter):
+        """Get the source code of a specific adapter"""
+        if not application or not adapter:
+            return jsonify({'error': 'Missing application or adapter parameter'}), 400
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
+        try:
+            # Get the adapter filename from pull_app_data
+            if application not in self.pull_app_data:
+                return jsonify({'error': f'Application "{application}" not found'}), 404
+            
+            if 'adapters' not in self.pull_app_data[application]:
+                return jsonify({'error': f'No adapters found for application "{application}"'}), 404
+            
+            if adapter not in self.pull_app_data[application]['adapters']:
+                return jsonify({'error': f'Adapter "{adapter}" not found for application "{application}"'}), 404
+            
+            # Get the path to the adapter file
+            # Adapters are stored in .cache/{application}/adapters/{adapter_name}.py
+            cache_dir = self.application_data.cache_dir
+            app_cache_dir = os.path.join(cache_dir, application)
+            adapters_dir = os.path.join(app_cache_dir, 'adapters')
+            
+            # The adapter name in the pull_app_data is the key, and the file is {adapter}.py
+            adapter_file = os.path.join(adapters_dir, f'{adapter}.py')
+            
+            if not os.path.exists(adapter_file):
+                return jsonify({'error': f'Adapter source file not found: {adapter_file}'}), 404
+            
+            # Read the source code
+            with open(adapter_file, 'r', encoding='utf-8') as f:
+                source_code = f.read()
+            
+            return jsonify({
+                'source_code': source_code,
+                'filename': os.path.basename(adapter_file)
+            })
+            
+        except Exception as e:
+            print(f"Error getting adapter source: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Failed to get adapter source: {str(e)}'}), 500
+    
+    def get_adapter_observed_states(self, application, adapter):
+        """Get sample observed states for a specific adapter using the existing get_observed_state_content method"""
+        if not application or not adapter:
+            return jsonify({'error': 'Missing application or adapter parameter'}), 400
+        
+        # Ensure data is loaded
+        if self.pull_app_data is None:
+            self.load_data()
+        
+        try:
+            if application not in self.pull_app_data:
+                return jsonify({'error': f'Application "{application}" not found'}), 404
+            
+            if 'prerender_data' not in self.pull_app_data[application]:
+                return jsonify({'error': f'No observed states data found for application "{application}"'}), 404
+            
+            # Get all available prerender data keys
+            prerender_data_keys = list(self.pull_app_data[application]['prerender_data'].keys())
+            
+            # Also check encoded data
+            if 'prerender_data_encoded' in self.pull_app_data[application]:
+                prerender_data_keys.extend(list(self.pull_app_data[application]['prerender_data_encoded'].keys()))
+            
+            # Find the best matching state file for this adapter
+            # States are typically named like "adapter_name-v1" or "language-v1"
+            matching_key = None
+            
+            # Try to match adapter name with state file name
+            # Look for partial matches (e.g., "language" matches "language-v1")
+            adapter_lower = adapter.lower()
+            for key in prerender_data_keys:
+                key_lower = key.lower()
+                # Check if adapter name is in the key or vice versa
+                if adapter_lower in key_lower or key_lower.startswith(adapter_lower):
+                    matching_key = key
+                    break
+            
+            # If no match found, try looking for common patterns
+            if matching_key is None:
+                # Try to match based on common naming patterns
+                for key in prerender_data_keys:
+                    # Check for patterns like "default", "language", "LLM" in the key
+                    key_parts = key.lower().replace('-', '_').replace('.', '_').split('_')
+                    if adapter_lower in key_parts:
+                        matching_key = key
+                        break
+            
+            # If still no match, use first available state as fallback
+            if matching_key is None and len(prerender_data_keys) > 0:
+                matching_key = prerender_data_keys[0]
+                print(f"Warning: No exact match found for adapter '{adapter}', using fallback: '{matching_key}'")
+            
+            if matching_key is None:
+                return jsonify({'error': f'No observed states found for adapter "{adapter}"'}), 404
+            
+            # Use the existing get_observed_states_content method to get the data
+            result = self.get_observed_states_content(application, matching_key)
+            
+            # Check if result is an error
+            if isinstance(result, tuple):
+                # It's an error response
+                return result
+            
+            # Get the response data
+            response_data = result.get_json()
+            
+            if 'error' in response_data:
+                return jsonify({'error': response_data['error']}), 404
+            
+            content = response_data.get('content')
+            is_encoded = response_data.get('is_encoded', False)
+            
+            # Get a sample (first few items) instead of all data
+            sample = None
+            total_count = 0
+            
+            if isinstance(content, list):
+                # If it's a list, take first 3 items as sample
+                sample = content[:min(3, len(content))]
+                total_count = len(content)
+            elif isinstance(content, dict):
+                # If it's a dict, take first 3 key-value pairs
+                sample_keys = list(content.keys())[:3]
+                sample = {k: content[k] for k in sample_keys}
+                total_count = len(content)
+            else:
+                # For other types, just return as is (but limit if it's a string)
+                if isinstance(content, str) and len(content) > 1000:
+                    sample = content[:1000] + "..."
+                    total_count = len(content)
+                else:
+                    sample = content
+                    total_count = 1 if content else 0
+            
+            return jsonify({
+                'sample': sample,
+                'filename': matching_key,
+                'total_count': total_count,
+                'is_encoded': is_encoded
+            })
+            
+        except Exception as e:
+            print(f"Error getting adapter observed states: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Failed to get adapter observed states: {str(e)}'}), 500
+
     def get_observed_states_for_matching(self, application, state_file):
         """Get observed states for instruction matching - preserves tensor format for encoded states"""
         if not application or not state_file:
@@ -1954,6 +2108,22 @@ def get_observed_states_content_route():
 @app.route('/get_agent_definitions')
 def get_agent_definitions_route():
     return jsonify(WebApp_instance.AGENT_PARAMETER_DEFINITIONS)
+
+@app.route('/get_adapter_source', methods=['POST'])
+def get_adapter_source_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    adapter = data.get('adapter', '')
+    
+    return WebApp_instance.get_adapter_source(application, adapter)
+
+@app.route('/get_adapter_observed_states', methods=['POST'])
+def get_adapter_observed_states_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    adapter = data.get('adapter', '')
+    
+    return WebApp_instance.get_adapter_observed_states(application, adapter)
 
 @app.route('/stream_job_notifications/<job_id>')
 def stream_job_notifications_route(job_id):
