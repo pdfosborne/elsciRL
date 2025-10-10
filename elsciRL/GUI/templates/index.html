@@ -185,6 +185,7 @@
             <!-- Tab Navigation -->
             <div class="tab-navigation">
                 <button class="tab-btn active" onclick="switchTab('applicationOverview', this)">Application Overview</button>
+                <button class="tab-btn" onclick="switchTab('agentAdapters', this)">Agent/Adapters</button>
                 <button class="tab-btn" onclick="switchTab('instructions', this)">Instructions</button>
                 <button class="tab-btn" onclick="switchTab('results', this)">Results</button>
                 <button class="tab-btn" onclick="switchTab('policyRender', this)">Policy Render</button>
@@ -201,6 +202,33 @@
             </div>
                         </div>
                     </div>
+
+            <!-- Agent/Adapters Tab -->
+            <div id="agentAdapters" class="tab-content">
+                <div class="tab-content-inner">
+                    <h2>Agent & Adapter Configuration</h2>
+                    
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <!-- Agent Selection Section -->
+                        <div class="config-group" style="flex: 1;">
+                            <h3>Agent Selection</h3>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Select the agents you want to train. Agent parameters can be configured in the left sidebar under "Agent Config".</p>
+                            <div id="agentSelectionTab" class="agent-button-grid">
+                                <!-- Agent buttons will be dynamically generated here -->
+                            </div>
+                        </div>
+
+                        <!-- Adapter Selection Section -->
+                        <div class="config-group" style="flex: 2;">
+                            <h3>Adapter Selection</h3>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Select adapters for each chosen agent. Adapters define how the environment state is presented to the agent.</p>
+                            <div id="adapterSelectionTab" class="adapter-button-container">
+                                <p>Select an application and at least one agent to see available adapters.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Instructions Tab -->
             <div id="instructions" class="tab-content">
@@ -379,6 +407,31 @@
         let currentJobId = null;
         let agentDefinitions = {};
         let availableAdapters = [];
+        
+        // Agent metadata with descriptions
+        const agentMetadata = {
+            'Qlearntab': {
+                name: 'Q-Learning',
+                fullName: 'Q-Learning (Tabular)',
+                description: 'Classic tabular Q-learning algorithm. Best for discrete state spaces with moderate size.',
+                icon: '📊',
+                type: 'Value-Based'
+            },
+            'DQN': {
+                name: 'Deep Q-Network',
+                fullName: 'Deep Q-Network (DQN)',
+                description: 'Neural network-based Q-learning. Suitable for large or continuous state spaces.',
+                icon: '🧠',
+                type: 'Deep RL'
+            },
+            'LLM_Ollama': {
+                name: 'LLM Agent',
+                fullName: 'LLM Ollama Agent',
+                description: 'Language model-based agent. Uses natural language understanding for decision making.',
+                icon: '💬',
+                type: 'Language Model'
+            }
+        };
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -388,6 +441,8 @@
             loadOllamaModels();
             loadAgentDefinitions();
             updateAdapterSelection(); // Initialize adapter selection with first option selected
+            initializeAgentButtons(); // Initialize agent buttons
+            updateAgentConfigTab(); // Initialize Agent/Adapters tab
             loadInterfaceGuide(); // Load the interface guide
             loadApplicationOverview(); // Load the application overview
             updateStatus();
@@ -658,6 +713,7 @@
                 // Update adapters
                 availableAdapters = adaptersData.adapters || [];
                 updateAdapterSelection();
+                updateAdapterSelectionTab(); // Also update Agent/Adapters tab
 
                 // Update selection in application overview
                 updateApplicationOverviewSelection(selectedApp);
@@ -2660,6 +2716,188 @@
 
             // Also update adapter selection when agent config changes
             updateAdapterSelection();
+        }
+
+        // Initialize agent buttons
+        function initializeAgentButtons() {
+            const container = document.getElementById('agentSelectionTab');
+            container.innerHTML = '';
+            
+            const agents = ['Qlearntab', 'DQN', 'LLM_Ollama'];
+            
+            agents.forEach((agentId, index) => {
+                const metadata = agentMetadata[agentId];
+                if (!metadata) return;
+                
+                const button = document.createElement('div');
+                button.className = 'agent-card';
+                if (index === 0) button.classList.add('selected'); // Q-Learning selected by default
+                button.setAttribute('data-agent-id', agentId);
+                button.onclick = () => toggleAgentSelection(agentId);
+                
+                button.innerHTML = `
+                    <div class="agent-card-icon">${metadata.icon}</div>
+                    <div class="agent-card-content">
+                        <div class="agent-card-header">
+                            <div class="agent-card-name">${metadata.name}</div>
+                            <div class="agent-card-type">${metadata.type}</div>
+                        </div>
+                        <div class="agent-card-description">${metadata.description}</div>
+                    </div>
+                    <div class="agent-card-checkmark">✓</div>
+                `;
+                
+                container.appendChild(button);
+            });
+        }
+        
+        // Toggle agent selection
+        function toggleAgentSelection(agentId) {
+            const button = document.querySelector(`.agent-card[data-agent-id="${agentId}"]`);
+            if (!button) return;
+            
+            button.classList.toggle('selected');
+            
+            // Sync with sidebar checkbox
+            const sidebarCheckbox = document.getElementById(`agent_${agentId}`);
+            if (sidebarCheckbox) {
+                sidebarCheckbox.checked = button.classList.contains('selected');
+                // Trigger the sidebar's update function
+                updateAgentConfig();
+            }
+            
+            // Update adapter selection
+            updateAdapterSelectionTab();
+        }
+        
+        // Get selected agents from tab
+        function getSelectedAgentsFromTab() {
+            return Array.from(document.querySelectorAll('.agent-card.selected'))
+                .map(card => card.getAttribute('data-agent-id'));
+        }
+
+        // Update agent configuration for the Agent/Adapters tab
+        function updateAgentConfigTab() {
+            // Get selected agents from tab buttons
+            const selectedAgents = getSelectedAgentsFromTab();
+
+            // Sync with sidebar checkboxes
+            document.querySelectorAll('#agentSelection input[type="checkbox"]').forEach(cb => {
+                const isSelected = selectedAgents.includes(cb.value);
+                cb.checked = isSelected;
+            });
+
+            // Update adapter selection for tab
+            updateAdapterSelectionTab();
+        }
+
+        // Update adapter selection for the Agent/Adapters tab
+        function updateAdapterSelectionTab() {
+            const container = document.getElementById('adapterSelectionTab');
+            container.innerHTML = '';
+
+            // Get selected agents from tab
+            const selectedAgents = getSelectedAgentsFromTab();
+
+            // Check if application is selected
+            const selectedApp = document.getElementById('applicationSelect').value;
+
+            if (!selectedApp) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Select an application first to see available adapters.</p>';
+                return;
+            }
+
+            if (selectedAgents.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Select at least one agent to configure adapters.</p>';
+                return;
+            }
+
+            if (availableAdapters.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No adapters available for the selected application.</p>';
+                return;
+            }
+
+            selectedAgents.forEach(agentId => {
+                const agentDiv = document.createElement('div');
+                agentDiv.className = 'agent-adapter-section';
+                
+                const agentName = agentDefinitions[agentId]?.display_name || agentMetadata[agentId]?.name || agentId;
+                const agentIcon = agentMetadata[agentId]?.icon || '⚙️';
+                
+                agentDiv.innerHTML = `
+                    <h4 class="adapter-section-header">
+                        <span class="adapter-section-icon">${agentIcon}</span>
+                        ${agentName} Adapters
+                    </h4>
+                    <div class="adapter-button-grid" id="adapters_tab_${agentId}"></div>
+                `;
+                container.appendChild(agentDiv);
+                
+                // Create adapter buttons
+                const adapterGrid = document.getElementById(`adapters_tab_${agentId}`);
+                availableAdapters.forEach((adapter, index) => {
+                    const adapterButton = document.createElement('div');
+                    adapterButton.className = 'adapter-card';
+                    if (index === 0) adapterButton.classList.add('selected'); // First adapter selected by default
+                    adapterButton.setAttribute('data-agent-id', agentId);
+                    adapterButton.setAttribute('data-adapter-name', adapter);
+                    adapterButton.onclick = () => toggleAdapterSelection(agentId, adapter);
+                    
+                    // Get adapter description based on name
+                    const description = getAdapterDescription(adapter);
+                    
+                    adapterButton.innerHTML = `
+                        <div class="adapter-card-header">
+                            <div class="adapter-card-name">${adapter}</div>
+                            <div class="adapter-card-checkmark">✓</div>
+                        </div>
+                        <div class="adapter-card-description">${description}</div>
+                    `;
+                    
+                    adapterGrid.appendChild(adapterButton);
+                });
+            });
+        }
+        
+        // Get adapter description based on name
+        function getAdapterDescription(adapterName) {
+            const lowerName = adapterName.toLowerCase();
+            
+            if (lowerName.includes('language') || lowerName.includes('llm')) {
+                return 'Natural language text representation';
+            } else if (lowerName.includes('default') || lowerName.includes('numeric')) {
+                return 'Numeric state representation';
+            } else if (lowerName.includes('encoded') || lowerName.includes('embed')) {
+                return 'Encoded state representation';
+            } else if (lowerName.includes('image') || lowerName.includes('visual')) {
+                return 'Visual/image representation';
+            } else {
+                return 'Custom adapter for state representation';
+            }
+        }
+        
+        // Toggle adapter selection
+        function toggleAdapterSelection(agentId, adapter) {
+            const button = document.querySelector(`.adapter-card[data-agent-id="${agentId}"][data-adapter-name="${adapter}"]`);
+            if (!button) return;
+            
+            button.classList.toggle('selected');
+            
+            // Sync with sidebar checkbox
+            const sidebarCheckbox = document.getElementById(`${agentId}_${adapter}`);
+            if (sidebarCheckbox) {
+                sidebarCheckbox.checked = button.classList.contains('selected');
+            }
+        }
+
+        // Sync adapter selection between tab and sidebar
+        function syncAdapterSelection(agentId, adapter) {
+            const tabCheckbox = document.getElementById(`tab_${agentId}_${adapter}`);
+            const sidebarCheckbox = document.getElementById(`${agentId}_${adapter}`);
+            
+            if (tabCheckbox && sidebarCheckbox) {
+                sidebarCheckbox.checked = tabCheckbox.checked;
+            }
         }
 
         // Update slider value display
