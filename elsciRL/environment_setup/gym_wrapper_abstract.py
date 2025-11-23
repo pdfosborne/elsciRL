@@ -15,12 +15,12 @@ from typing import (
 
 import numpy as np
 
-from gym import spaces
-from gym.logger import warn
-from gym.utils import seeding
+from gymnasium import spaces
+from gymnasium.logger import warn
+from gymnasium.utils import seeding
 
 if TYPE_CHECKING:
-    from gym.envs.registration import EnvSpec
+    from gymnasium.envs.registration import EnvSpec
 
 if sys.version_info[0:2] == (3, 6):
     warn(
@@ -83,11 +83,11 @@ class Env(Generic[ObsType, ActType]):
     def np_random(self, value: np.random.Generator):
         self._np_random = value
 
-    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
         """Run one timestep of the environment's dynamics.
 
         When end of episode is reached, you are responsible for calling :meth:`reset` to reset this environment's state.
-        Accepts an action and returns either a tuple `(observation, reward, terminated, truncated, info)`.
+        Accepts an action and returns a tuple `(observation, reward, terminated, info)`.
 
         Args:
             action (ActType): an action provided by the agent
@@ -98,14 +98,10 @@ class Env(Generic[ObsType, ActType]):
             reward (float): The amount of reward returned as a result of taking the action.
             terminated (bool): whether a `terminal state` (as defined under the MDP of the task) is reached.
                 In this case further step() calls could return undefined results.
-            truncated (bool): whether a truncation condition outside the scope of the MDP is satisfied.
-                Typically a timelimit, but could also be used to indicate agent physically going out of bounds.
-                Can be used to end the episode prematurely before a `terminal state` is reached.
             info (dictionary): `info` contains auxiliary diagnostic information (helpful for debugging, learning, and logging).
                 This might, for instance, contain: metrics that describe the agent's performance state, variables that are
                 hidden from observations, or individual reward terms that are combined to produce the total reward.
-                It also can contain information that distinguishes truncation and termination, however this is deprecated in favour
-                of returning two booleans, and will be removed in a future version.
+                It also can contain information about episode termination context if needed.
 
             (deprecated)
             done (bool): A boolean value for if the episode has ended, in which case further :meth:`step` calls will return undefined results.
@@ -314,7 +310,7 @@ class Wrapper(Env[ObsType, ActType]):
             "Can't access `_np_random` of a wrapper, use `.unwrapped._np_random` or `.np_random`."
         )
 
-    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
         """Steps through the environment with action."""
         return self.env.step(action)
 
@@ -381,8 +377,8 @@ class ObservationWrapper(Wrapper):
 
     def step(self, action):
         """Returns a modified observation using :meth:`self.observation` after calling :meth:`env.step`."""
-        observation, reward, terminated, truncated, info = self.env.step(action)
-        return self.observation(observation), reward, terminated, truncated, info
+        observation, reward, terminated, info = self.env.step(action)
+        return self.observation(observation), reward, terminated, info
 
     def observation(self, observation):
         """Returns a modified observation."""
@@ -415,8 +411,8 @@ class RewardWrapper(Wrapper):
 
     def step(self, action):
         """Modifies the reward using :meth:`self.reward` after the environment :meth:`env.step`."""
-        observation, reward, terminated, truncated, info = self.env.step(action)
-        return observation, self.reward(reward), terminated, truncated, info
+        observation, reward, terminated, info = self.env.step(action)
+        return observation, self.reward(reward), terminated, info
 
     def reward(self, reward):
         """Returns a modified ``reward``."""

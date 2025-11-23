@@ -20,6 +20,7 @@ try:
     from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
     from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
     from elsciRL.experiments.standard import Experiment as STANDARD_RL
+    from elsciRL.experiments.policy_gradient import PolicyGradienExperiment as POLICY_GRADIENT_RL
     
     # elsciRL LLM Instruction Following
     from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
@@ -107,6 +108,95 @@ class WebApp:
                     #"output_size": {"label": "Output Size", "type": "number", "min": 1, "step": 1, "default": 1},
 
                 }
+            },
+            "PPO": {
+                "display_name": "PPO",
+                "params": {
+                    "learning_rate": {
+                        "label": "Learning Rate",
+                        "type": "number",
+                        "min": 1e-5,
+                        "max": 1e-2,
+                        "step": 1e-5,
+                        "default": 3e-4,
+                    },
+                    "batch_size": {
+                        "label": "Batch Size",
+                        "type": "number",
+                        "min": 32,
+                        "step": 32,
+                        "default": 512,
+                    },
+                    "minibatch_size": {
+                        "label": "Minibatch Size",
+                        "type": "number",
+                        "min": 16,
+                        "step": 16,
+                        "default": 128,
+                    },
+                    "update_epochs": {
+                        "label": "Update Epochs",
+                        "type": "number",
+                        "min": 1,
+                        "step": 1,
+                        "default": 4,
+                    },
+                    "gamma": {
+                        "label": "Discount Factor (Gamma)",
+                        "type": "number",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.01,
+                        "default": 0.99,
+                    },
+                    "gae_lambda": {
+                        "label": "GAE Lambda",
+                        "type": "number",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.01,
+                        "default": 0.95,
+                    },
+                    "clip_coef": {
+                        "label": "Clip Coefficient",
+                        "type": "number",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.01,
+                        "default": 0.2,
+                    },
+                    "entropy_coef": {
+                        "label": "Entropy Coefficient",
+                        "type": "number",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.001,
+                        "default": 0.01,
+                    },
+                    "value_coef": {
+                        "label": "Value Loss Coefficient",
+                        "type": "number",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.01,
+                        "default": 0.5,
+                    },
+                    "max_grad_norm": {
+                        "label": "Max Grad Norm",
+                        "type": "number",
+                        "min": 0.1,
+                        "max": 5.0,
+                        "step": 0.1,
+                        "default": 0.5,
+                    },
+                    "hidden_size": {
+                        "label": "Hidden Layer Size",
+                        "type": "number",
+                        "min": 32,
+                        "step": 32,
+                        "default": 128,
+                    },
+                },
             },
             "LLM_Ollama": {
                 "display_name": "LLM Ollama",
@@ -1198,43 +1288,59 @@ Example of environment language structure: {results[application][instr]['sub_goa
             job_queue.put("EVENT: Running standard (no-instruction) experiment...")
             no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
 
+            policy_gradient_agents = {"PPO"}
             for agent_name in list(agent_adapter_dict.keys()):
                 agent_select_sub = [agent_name] if agent_name in selected_agents else []
+                if not agent_select_sub:
+                    continue
                 ExperimentConfig['agent_select'] = agent_select_sub
                 for adapter_name in list(agent_adapter_dict[agent_name]):
                     agent_adapter_dict_sub = {agent_name: [adapter_name]}
                     ExperimentConfig['adapter_input_dict'] = agent_adapter_dict_sub
-                    job_queue.put(f"EVENT: Running standard train for {agent_name} with {adapter_name} adapter...")
-                    standard_experiment = STANDARD_RL(
-                        Config=ExperimentConfig, ProblemConfig=local_config, Engine=engine_class, Adapters=adapters,
-                        save_dir=no_instr_save_dir, show_figures='No', window_size=0.1)
-                    job_queue.put("EVENT: Starting standard train.")
-                    standard_experiment.train()
 
-                    job_queue.put("EVENT: Standard test complete. Rendering results.")
-                    render_result = standard_experiment.render_results()
-                    
-                    # Send real-time figure update for standard experiments
-                    render_results_dir_std = os.path.join(no_instr_save_dir, 'Standard_Experiment', 'render_results')
-                    if os.path.exists(render_results_dir_std):
-                        for file_item_std in os.listdir(render_results_dir_std):
+                    uses_policy_gradient = agent_name in policy_gradient_agents
+                    experiment_cls = POLICY_GRADIENT_RL if uses_policy_gradient else STANDARD_RL
+                    experiment_label = 'Policy Gradient' if uses_policy_gradient else 'Standard'
+                    job_queue.put(
+                        f"EVENT: Running {experiment_label.lower()} train for {agent_name} with {adapter_name} adapter..."
+                    )
+                    experiment_instance = experiment_cls(
+                        Config=ExperimentConfig,
+                        ProblemConfig=local_config,
+                        Engine=engine_class,
+                        Adapters=adapters,
+                        save_dir=no_instr_save_dir,
+                        show_figures='No',
+                        window_size=0.1,
+                    )
+                    job_queue.put(f"EVENT: Starting {experiment_label.lower()} train.")
+                    experiment_instance.train()
+
+                    job_queue.put(f"EVENT: {experiment_label} test complete. Rendering results.")
+                    experiment_instance.render_results()
+
+                    render_dir_name = 'PolicyGradient_Experiment' if uses_policy_gradient else 'Standard_Experiment'
+                    render_results_dir = os.path.join(no_instr_save_dir, render_dir_name, 'render_results')
+                    if os.path.exists(render_results_dir):
+                        for file_item_std in os.listdir(render_results_dir):
                             if file_item_std.endswith('.gif'):
-                                # Copy to uploads directory for web access
-                                dest_filename = f'no-instr_{file_item_std}'
-                                shutil.copyfile(os.path.join(render_results_dir_std, file_item_std), os.path.join(self.uploads_dir, dest_filename))
+                                dest_filename = f"no-instr_{file_item_std}"
+                                shutil.copyfile(
+                                    os.path.join(render_results_dir, file_item_std),
+                                    os.path.join(self.uploads_dir, dest_filename),
+                                )
                                 figures_to_display.append(f'uploads/{dest_filename}')
-                                
-                                # Send real-time figure update
+
                                 figure_event = {
                                     'figure_path': f'uploads/{dest_filename}',
-                                    'experiment_type': 'Standard (No Instruction)',
+                                    'experiment_type': f'{experiment_label} (No Instruction)',
                                     'filename': dest_filename,
-                                    'timestamp': datetime.now().isoformat()
+                                    'timestamp': datetime.now().isoformat(),
                                 }
                                 job_queue.put(f"EVENT: RENDER_FIGURE: {json.dumps(figure_event)}")
 
-                    job_queue.put("EVENT: Standard train complete. Starting test.")
-                    standard_experiment.test()
+                    job_queue.put(f"EVENT: {experiment_label} train complete. Starting test.")
+                    experiment_instance.test()
             
             
             if selected_plot:

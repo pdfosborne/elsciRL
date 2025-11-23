@@ -134,7 +134,7 @@ class GymExperiment:
             for engine_name, engine in self.engine_list.items():
                 for testing_repeat in range(0, test_setup_info['number_test_repeats']):  
                     engine.reward_signal = None # clear instr reward signal
-                    env = self.env_manager.create_gym_env(Engine=engine, Adapters=self.adapters, local_setup_info=test_setup_info)
+                    env = self.env_manager.create_gym_env(engine, test_setup_info['adapter_select'], test_setup_info)
                     start_obs = env.start_obs
                     goal = str(start_obs).split(".")[0] + "---GOAL"
                     print("Flat agent Goal: ", goal)

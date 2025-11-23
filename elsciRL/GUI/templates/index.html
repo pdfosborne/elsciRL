@@ -160,6 +160,13 @@
                                 <label for="agent_DQN">Deep Q-Network</label>
                                     </div>
                             <div class="checkbox-container">
+                                <input type="checkbox" id="agent_PPO" value="PPO" onchange="updateAgentConfig()">
+                                <label for="agent_PPO">PPO</label>
+                            </div>
+                            <p class="agent-warning" id="ppoWarning" style="display:none;color:#c0392b;font-size:0.9em;margin:4px 0 0 0;">
+                                PPO requires selecting instructions; use the Instructions tab and re-run after validation.
+                            </p>
+                            <div class="checkbox-container">
                                 <input type="checkbox" id="agent_LLM_Ollama" value="LLM_Ollama" onchange="updateAgentConfig()">
                                 <label for="agent_LLM_Ollama">LLM Ollama</label>
                                 </div>
