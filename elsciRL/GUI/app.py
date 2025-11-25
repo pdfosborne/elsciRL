@@ -1963,10 +1963,29 @@ def get_application_readme_route():
             return jsonify({'error': 'Application not found'}), 404
         
         app_data = WebApp_instance.pull_app_data[application]
-        if 'readme_files' not in app_data:
-            return jsonify({'error': 'No README files found for this application'}), 404
-        
-        readme_files = app_data['readme_files']
+        readme_files = app_data.get('readme_files', {})
+        if not readme_files:
+            from elsciRL.application_suite.import_tool import PullApplications
+            pull_apps = PullApplications()
+            cache_dir = pull_apps._get_cache_dir(application)
+            cache_readmes = {}
+            readme_dir = os.path.join(cache_dir, 'readme_files')
+            if os.path.exists(readme_dir):
+                for readme_file in os.listdir(readme_dir):
+                    if readme_file.endswith(('.md', '.txt', '.rst')):
+                        with open(os.path.join(readme_dir, readme_file), 'r', encoding='utf-8') as f:
+                            cache_readmes[readme_file] = f.read()
+            if not cache_readmes:
+                for ext in ('md', 'txt', 'rst'):
+                    candidate = os.path.join(cache_dir, f'Readme.{ext}')
+                    if not os.path.exists(candidate):
+                        candidate = os.path.join(cache_dir, f'README.{ext}')
+                    if os.path.exists(candidate):
+                        name = os.path.basename(candidate)
+                        with open(candidate, 'r', encoding='utf-8') as f:
+                            cache_readmes[name] = f.read()
+                        break
+            readme_files = cache_readmes
         if not readme_files:
             return jsonify({'error': 'No README files found for this application'}), 404
         

@@ -50,11 +50,14 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
     col = 0
     if results_to_show == 'simple':
         fig, axs = plt.subplots(1,1)
+        max_episode = 0
         for i,instr_id in enumerate(list(variance_results.keys())):
             for n,experiment in enumerate(list(variance_results[instr_id].keys())):
                 for ag,agent in enumerate(list(variance_results[instr_id][experiment].keys())):
                     results = variance_results[instr_id][experiment][agent]['results']
-                    num_episode = np.max(results['episode'])
+                    num_episode = int(np.max(results['episode'])) if len(results) > 0 else 0
+                    if num_episode > max_episode:
+                        max_episode = num_episode
                     avg_r_mean_sorted = np.sort(results['avg_R_mean'])
                     cdf_mean = 1. * np.arange(len(avg_r_mean_sorted)) / (len(avg_r_mean_sorted) - 1)
 
@@ -96,7 +99,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
                 
         axs.set_xlabel("Episode")
         axs.set_ylabel('Reward')
-        axs.axes.get_xaxis().set_ticks([0, num_episode])
+        axs.axes.get_xaxis().set_ticks([0, max_episode if max_episode > 0 else 1])
         axs.set_title("Mean Reward per Episode")
         fig.legend(loc='upper left', fancybox=True, shadow=True, 
                    framealpha=1, prop={'size': 14})
@@ -104,11 +107,14 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
         
     else:
         fig, axs = plt.subplots(2,2)
+        max_episode = 0
         for i,instr_id in enumerate(list(variance_results.keys())):
             for n,experiment in enumerate(list(variance_results[instr_id].keys())):
                 for ag,agent in enumerate(list(variance_results[instr_id][experiment].keys())):
                     results = variance_results[instr_id][experiment][agent]['results']
-                    num_episode = np.max(results['episode'])
+                    num_episode = int(np.max(results['episode'])) if len(results) > 0 else 0
+                    if num_episode > max_episode:
+                        max_episode = num_episode
                     avg_r_mean_sorted = np.sort(results['avg_R_mean'])
                     cdf_mean = 1. * np.arange(len(avg_r_mean_sorted)) / (len(avg_r_mean_sorted) - 1)
 
@@ -144,7 +150,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
 
         axs[0,0].set_xlabel("Episode")
         axs[0,0].set_ylabel('Reward')
-        axs[0,0].axes.get_xaxis().set_ticks([0, num_episode])
+        axs[0,0].axes.get_xaxis().set_ticks([0, max_episode if max_episode > 0 else 1])
         axs[0,0].set_title("Mean and Std. Err. of Rolling Avg. R epi)")
         
         axs[0,1].set_ylabel("Cumulative Probability")
@@ -153,7 +159,7 @@ def combined_variance_analysis_graph(results_dir:str='', analysis_type='training
         
         axs[1,0].set_xlabel("Episode")
         axs[1,0].set_ylabel('Cumulative Reward')
-        axs[1,0].axes.get_xaxis().set_ticks([0, num_episode])
+        axs[1,0].axes.get_xaxis().set_ticks([0, max_episode if max_episode > 0 else 1])
         axs[1,0].set_title("Cumulative R with Std. Err.")
         
         axs[1,1].set_ylabel("Occurence")

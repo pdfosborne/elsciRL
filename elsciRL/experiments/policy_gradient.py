@@ -108,14 +108,10 @@ class PolicyGradienExperiment:
                     setup_key = f"Training_Setup_{engine_name}_{agent_type}_{adapter}"
                     self.training_setups[setup_key] = train_setup_info.copy()
 
-        if (
-            self.ExperimentConfig.get("number_training_repeats", 1) > 1
-            or self.num_training_seeds > 1
-        ):
-            self.result_manager.training_variance_report(
-                self.save_dir,
-                self.show_figures,
-            )
+        self.result_manager.training_variance_report(
+            self.save_dir,
+            self.show_figures,
+        )
 
         return self.training_setups
 
@@ -173,6 +169,8 @@ class PolicyGradienExperiment:
 
             evaluation_outputs[setup_key] = []
             num_episodes = test_setup_info.get("number_test_episodes", 1)
+            if render:
+                num_episodes = 1
 
             for idx, agent in enumerate(agents, start=1):
                 env = self.env_manager.create_gym_env(engine, adapter, test_setup_info, wrappers=wrappers)
@@ -221,12 +219,7 @@ class PolicyGradienExperiment:
             wrapper_builder=wrapper_builder,
         )
 
-        if (
-            self.ExperimentConfig.get("number_training_repeats", 1) > 1
-            or self.setup_info.get("number_test_repeats", 1) > 1
-            or self.test_agent_type.lower() == "all"
-        ):
-            self.result_manager.testing_variance_report(self.save_dir, self.show_figures)
+        self.result_manager.testing_variance_report(self.save_dir, self.show_figures)
 
         return evaluation_outputs
 
