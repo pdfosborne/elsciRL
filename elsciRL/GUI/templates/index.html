@@ -251,7 +251,7 @@
                             <h3>Enter Your Instructions</h3>
                             <textarea id="userInput" placeholder="Enter your task instructions here..."></textarea>
                             <div class="button-group">
-                                <button id="submitBtn" onclick="processInput()">Process Instructions</button>
+                                <button id="processInputBtn" onclick="processInput()">Process Instructions</button>
                                 <button id="retryBtn" onclick="newInstruction()" class="retry-btn-hidden">New Instruction</button>
                             </div>
                             
@@ -1564,10 +1564,21 @@
             const presetSelect = document.getElementById('presetSelect');
             const presetDescription = document.getElementById('presetDescription');
             const loadPresetBtn = document.getElementById('loadPresetBtn');
+            const userInput = document.getElementById('userInput');
+            const processInputBtn = document.getElementById('processInputBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            
+            // Clear any previously loaded preset and unlock Instructions tab
+            userInput.value = '';
+            userInput.disabled = false;
+            userInput.style.backgroundColor = '';
+            userInput.style.cursor = '';
+            processInputBtn.disabled = false;
+            retryBtn.disabled = false;
+            presetDescription.textContent = '';
             
             if (!selectedApp) {
                 presetSelect.innerHTML = '<option value="">Select an application first...</option>';
-                presetDescription.textContent = '';
                 loadPresetBtn.disabled = true;
                 return;
             }
@@ -1583,7 +1594,6 @@
                 
                 if (data.error) {
                     presetSelect.innerHTML = `<option value="">Error: ${data.error}</option>`;
-                    presetDescription.textContent = '';
                     loadPresetBtn.disabled = true;
                     return;
                 }
@@ -1620,6 +1630,8 @@
             const presetName = presetSelect.value;
             const userInput = document.getElementById('userInput');
             const clearPresetBtn = document.getElementById('clearPresetBtn');
+            const processInputBtn = document.getElementById('processInputBtn');
+            const retryBtn = document.getElementById('retryBtn');
             
             if (!presetName) return;
             
@@ -1640,31 +1652,28 @@
                     return;
                 }
                 
-                // Extract instruction text from the preset data
-                let instructionText = '';
-                if (data.instruction_data && typeof data.instruction_data === 'object') {
-                    // Try to find instruction text in the data structure
-                    if (data.instruction_data.user_input) {
-                        instructionText = data.instruction_data.user_input;
-                    } else if (data.instruction_data.instructions) {
-                        instructionText = data.instruction_data.instructions.join('\n');
-                    } else if (data.instruction_data.description) {
-                        instructionText = data.instruction_data.description;
-                    } else {
-                        // Fallback: convert the whole object to a readable format
-                        instructionText = `Preset: ${presetName}\n\n${JSON.stringify(data.instruction_data, null, 2)}`;
-                    }
-                } else {
-                    instructionText = `Preset: ${presetName}\n\n${data.instruction_data}`;
-                }
-                
+                // Display the formatted instruction descriptions
+                const instructionText = data.instruction_descriptions || 'No instruction descriptions available';
                 userInput.value = instructionText;
+                
+                // Lock the Instructions tab controls
+                userInput.disabled = true;
+                userInput.style.backgroundColor = '#f5f5f5';
+                userInput.style.cursor = 'not-allowed';
+                processInputBtn.disabled = true;
+                retryBtn.disabled = true;
+                
                 clearPresetBtn.classList.remove('clear-preset-btn');
                 
                 // Show success message
                 const presetDescription = document.getElementById('presetDescription');
-                presetDescription.textContent = `✓ Loaded preset: ${presetName}`;
-                presetDescription.style.color = '#28a745';
+                presetDescription.innerHTML = `
+                    <div style="color: #28a745; font-weight: 500;">
+                        ✓ Loaded preset: ${presetName}<br>
+                        <small style="color: #666;">This preset will be used for instruction-guided training when you click "Train Model"</small><br>
+                        <small style="color: #e67e22; margin-top: 5px; display: block;">⚠️ Instructions tab is locked while preset is active. Click "Clear" to edit instructions manually.</small>
+                    </div>
+                `;
                 
             } catch (error) {
                 console.error('Error loading preset:', error);
@@ -1673,16 +1682,40 @@
         }
 
         // Clear the loaded preset
-        function clearPreset() {
+        async function clearPreset() {
             const userInput = document.getElementById('userInput');
             const presetSelect = document.getElementById('presetSelect');
             const clearPresetBtn = document.getElementById('clearPresetBtn');
             const presetDescription = document.getElementById('presetDescription');
+            const processInputBtn = document.getElementById('processInputBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            const selectedApp = document.getElementById('applicationSelect').value;
             
+            // Clear frontend
             userInput.value = '';
             presetSelect.value = '';
             clearPresetBtn.classList.add('clear-preset-btn');
             presetDescription.textContent = '';
+            
+            // Unlock the Instructions tab controls
+            userInput.disabled = false;
+            userInput.style.backgroundColor = '';
+            userInput.style.cursor = '';
+            processInputBtn.disabled = false;
+            retryBtn.disabled = false;
+            
+            // Clear backend stored preset
+            if (selectedApp) {
+                try {
+                    await fetch('/clear_instruction_preset', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ application: selectedApp })
+                    });
+                } catch (error) {
+                    console.error('Error clearing preset from backend:', error);
+                }
+            }
         }
 
         // Handle preset selection change
@@ -1753,7 +1786,7 @@
                                             <div id="overviewSelectedConfigs">
                                                 <div id="overviewLocalConfigSummary" style="padding: 15px; background-color: white; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                                     <h5 style="margin: 0 0 10px 0; color: var(--button-color); font-size: 1.1em; display: flex; align-items: center;">
-                                                        <span style="margin-right: 8px;">⚙️</span>Local Configuration
+                                                        Local Configuration
                                                     </h5>
                                                     <div id="overviewLocalConfigValue" style="color: #333; font-size: 1.2em; font-weight: 500; margin-bottom: 8px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid var(--button-color);">None selected</div>
                                                     <div id="overviewLocalConfigContent" style="display: none; margin-top: 10px;">
@@ -2606,10 +2639,9 @@
                     }
                 });
                 
-                // Show configuration section and load options
+                // Show configuration section; defer loading options until DOM is injected below
                 if (configSection) {
                     configSection.style.display = 'block';
-                    await loadOverviewConfigurationOptions(applicationName);
                 }
                 
                 // Show loading state
@@ -2619,7 +2651,7 @@
                 // Fetch prerender image and README
                 const [imageResponse, readmeResponse] = await Promise.all([
                     fetch('/get_prerender_image', {
-                    method: 'POST',
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ application: applicationName })
                     }),
@@ -2629,9 +2661,33 @@
                         body: JSON.stringify({ application: applicationName })
                     })
                 ]);
-                
-                const imageData = await imageResponse.json();
-                const readmeData = await readmeResponse.json();
+
+                // Safely parse JSON responses (fallback to defaults on error)
+                let imageData = { imagePaths: [] };
+                let readmeData = {};
+
+                try {
+                    if (imageResponse.ok) {
+                        imageData = await imageResponse.json();
+                    } else {
+                        // Try parse error JSON if provided
+                        const text = await imageResponse.text();
+                        try { imageData = JSON.parse(text); } catch (_) { imageData = { imagePaths: [] }; }
+                    }
+                } catch (_) {
+                    imageData = { imagePaths: [] };
+                }
+
+                try {
+                    if (readmeResponse.ok) {
+                        readmeData = await readmeResponse.json();
+                    } else {
+                        const text = await readmeResponse.text();
+                        try { readmeData = JSON.parse(text); } catch (_) { readmeData = {}; }
+                    }
+                } catch (_) {
+                    readmeData = {};
+                }
                 
                 let html = `<h4>${applicationName}</h4>`;
                 
@@ -2660,7 +2716,7 @@
                     html += markdownHtml;
                     html += '</div>';
                     html += '</div>';
-                        } else {
+                } else {
                     html += '<div class="readme-section">';
                     html += '<h5>README</h5>';
                     html += '<p>No README available for this application.</p>';
@@ -2669,7 +2725,10 @@
                 
                 
                 selectedAppContent.innerHTML = html;
-                
+
+                // Now that the DOM is present, load and auto-select default config/options
+                await loadOverviewConfigurationOptions(applicationName);
+
                 // Hide loading overlay when all data is loaded
                 hideLoadingOverlay();
                 
@@ -2942,7 +3001,7 @@
                 html += `
                     <div class="preview-section">
                         <div class="preview-section-header">
-                            <h4>🔍 Sample Observed States</h4>
+                            <h4>Sample Observed States</h4>
                             <span class="preview-section-meta">${statesData.filename || 'Preview'}</span>
                         </div>
                         <div class="preview-states-container">
@@ -2955,7 +3014,7 @@
                 html += `
                     <div class="preview-section">
                         <div class="preview-section-header">
-                            <h4>🔍 Sample Observed States</h4>
+                            <h4>Sample Observed States</h4>
                         </div>
                         <div class="preview-error-message">
                             <p>⚠️ ${statesData.error}</p>
@@ -2969,7 +3028,7 @@
                 html += `
                     <div class="preview-section">
                         <div class="preview-section-header">
-                            <h4>📄 Source Code</h4>
+                            <h4>Source Code</h4>
                             <span class="preview-section-meta">${sourceData.filename || adapterName + '.py'}</span>
                         </div>
                         <div class="preview-code-container">
@@ -2981,7 +3040,7 @@
                 html += `
                     <div class="preview-section">
                         <div class="preview-section-header">
-                            <h4>📄 Source Code</h4>
+                            <h4>Source Code</h4>
                         </div>
                         <div class="preview-error-message">
                             <p>⚠️ ${sourceData.error}</p>

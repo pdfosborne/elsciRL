@@ -269,6 +269,7 @@ class WebApp:
         self.correct_instructions = []
         self.incorrect_instructions = []
         self.user_input = {}
+        self.observed_states_filename = 'default'  # Default value, will be set when loading preset or processing input
 
         if not os.path.exists('./elsciRL-App-output'):
             os.mkdir('./elsciRL-App-output')
@@ -1016,15 +1017,23 @@ Example of environment language structure: {results[application][instr]['sub_goa
         return jsonify(response_data)
 
     def get_prerender_image(self, application):
-        image_data = self.pull_app_data[application]['prerender_images']
-        image_paths = []
-        if image_data:
-            for image_name, image_content in image_data.items():
-                image_path = os.path.join(self.uploads_dir, image_name)
-                with open(image_path, 'wb') as img_file:
-                    img_file.write(image_content)
-                image_paths.append(f'uploads/{image_name}')
-        return image_paths
+        try:
+            if self.pull_app_data is None:
+                self.load_data()
+            if application not in self.pull_app_data:
+                return []
+            image_data = self.pull_app_data[application].get('prerender_images', {})
+            image_paths = []
+            if image_data:
+                for image_name, image_content in image_data.items():
+                    image_path = os.path.join(self.uploads_dir, image_name)
+                    with open(image_path, 'wb') as img_file:
+                        img_file.write(image_content)
+                    image_paths.append(f'uploads/{image_name}')
+            return image_paths
+        except Exception as e:
+            print(f"Error getting prerender image for {application}: {e}")
+            return []
         
 
     def _perform_training_async(self, job_id, data):
@@ -1159,6 +1168,11 @@ Example of environment language structure: {results[application][instr]['sub_goa
             instruction_results_map = self.instruction_results_validated.get(application, {})
             if not instruction_results_map:
                 job_queue.put(f"INFO: No validated instructions for {application}. Standard RL run only.")
+            else:
+                # Count how many instructions are loaded
+                instr_count = sum(1 for key in instruction_results_map.keys() if 'instr_' in key)
+                job_queue.put(f"EVENT: Loaded preset instructions for {application} ({instr_count} instruction(s))")
+                job_queue.put(f"INFO: Will perform instruction-guided training with loaded preset data")
             
             app_save_dir = os.path.join(self.global_save_dir, application)
             if not os.path.exists(app_save_dir):
@@ -1197,7 +1211,8 @@ Example of environment language structure: {results[application][instr]['sub_goa
                                         if 'sim_score' in instr_agent_adapter_dict and isinstance(instr_agent_adapter_dict['sim_score'], torch.Tensor):
                                             job_queue.put(f"EVENT: Converting sim_score for {a_a_key} to list for JSON serialization.")
                                             instr_agent_adapter_dict['sim_score'] = instr_agent_adapter_dict['sim_score'].cpu().numpy().tolist()                     
-                    instr_dict['user_input'] = self.user_input[application][instr_key]['user_input'] if instr_key in self.user_input[application] else ''
+                    # Safely get user_input, checking if application and instr_key exist
+                    instr_dict['user_input'] = self.user_input.get(application, {}).get(instr_key, {}).get('user_input', '')
                 # ---         
                 if not os.path.exists(self.uploads_dir):
                     os.makedirs(self.uploads_dir, exist_ok=True)
@@ -1938,14 +1953,19 @@ def get_all_options_route():
 
 @app.route('/get_prerender_image', methods=['POST'])
 def get_prerender_image_route():
-    data = request.get_json()
-    application = data.get('application', '')
-    if not application:
-        return jsonify({'error': 'No application selected'}), 400
-    image_paths = WebApp_instance.get_prerender_image(application)
-    if image_paths:
-        return jsonify({'imagePaths': image_paths})
-    return jsonify({'error': 'No prerender images found'}), 404
+    try:
+        data = request.get_json()
+        application = data.get('application', '')
+        if not application:
+            return jsonify({'error': 'No application selected'}), 400
+        if WebApp_instance.pull_app_data is None:
+            WebApp_instance.load_data()
+        image_paths = WebApp_instance.get_prerender_image(application)
+        if image_paths:
+            return jsonify({'imagePaths': image_paths})
+        return jsonify({'imagePaths': []})
+    except Exception as e:
+        return jsonify({'error': f'Error fetching prerender image: {str(e)}'}), 500
 
 @app.route('/get_application_readme', methods=['POST'])
 def get_application_readme_route():
@@ -2000,6 +2020,13 @@ def get_application_readme_route():
         
     except Exception as e:
         return jsonify({'error': f'Error fetching README: {str(e)}'}), 500
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    try:
+        return send_from_directory(WebApp_instance.uploads_dir, filename)
+    except Exception as e:
+        return jsonify({'error': f'Error serving file: {str(e)}'}), 404
 
 @app.route('/get_available_instruction_presets', methods=['POST'])
 def get_available_instruction_presets_route():
@@ -2063,13 +2090,91 @@ def load_instruction_preset_route():
         
         instruction_data = instructions[preset_name]
         
+        # Simply store the instruction data - it's already in the correct format from the cache
+        # The instruction_data is a dictionary with instruction keys (e.g., "LLM_instr_0")
+        # Each instruction contains the validated results ready to use as instruction_path
+        WebApp_instance.instruction_results_validated[application] = instruction_data
+        print(f"Loaded preset instruction '{preset_name}' for {application}")
+        print(f"Number of instructions: {sum(1 for k in instruction_data.keys() if 'instr_' in k)}")
+        
+        # Extract observed_states_filename from the preset filename for saving results
+        # This is only used for naming the output JSON file
+        from elsciRL.application_suite.import_data import Applications
+        applications_data = Applications().data
+        instruction_filename = applications_data[application]['instruction_filenames'][preset_name]
+        
+        # Extract the observed states name from filename
+        # Pattern: Osborne2025_instruction_results_Classroom_LLM.json -> LLM
+        # Pattern: instruction_results_Classroom_test.json -> test
+        if 'instruction_results_' in instruction_filename:
+            filename_base = instruction_filename.replace('.json', '')
+            if application in filename_base:
+                parts = filename_base.split(application)
+                if len(parts) > 1 and parts[1]:
+                    WebApp_instance.observed_states_filename = parts[1].lstrip('_')
+                    print(f"Extracted observed_states_filename: {WebApp_instance.observed_states_filename}")
+                else:
+                    WebApp_instance.observed_states_filename = preset_name
+            else:
+                WebApp_instance.observed_states_filename = preset_name
+        else:
+            WebApp_instance.observed_states_filename = preset_name
+        
+        # Extract instruction descriptions for display
+        instruction_descriptions = []
+        for instr_key in sorted(instruction_data.keys()):
+            if 'instr_' in instr_key:
+                instr_info = instruction_data[instr_key]
+                
+                # Get the user_input (high-level instruction)
+                user_input = instr_info.get('user_input', '')
+                if user_input:
+                    instruction_descriptions.append(f"Main Instruction: {user_input}\n")
+                
+                # Get sub-instruction descriptions
+                sub_instructions = []
+                for sub_key, sub_data in instr_info.items():
+                    if isinstance(sub_data, dict) and 'instr_description' in sub_data:
+                        sub_instructions.append(f"  - {sub_data['instr_description']}")
+                
+                if sub_instructions:
+                    instruction_descriptions.append("Sub-instructions:")
+                    instruction_descriptions.extend(sub_instructions)
+                
+                instruction_descriptions.append("")  # Add blank line between instructions
+        
+        formatted_instructions = '\n'.join(instruction_descriptions)
+        
         return jsonify({
             'preset_name': preset_name,
-            'instruction_data': instruction_data
+            'instruction_data': instruction_data,
+            'instruction_descriptions': formatted_instructions
         })
         
     except Exception as e:
         return jsonify({'error': f'Error loading instruction preset: {str(e)}'}), 500
+
+@app.route('/clear_instruction_preset', methods=['POST'])
+def clear_instruction_preset_route():
+    data = request.get_json()
+    application = data.get('application', '')
+    
+    if not application:
+        return jsonify({'error': 'Missing application'}), 400
+    
+    try:
+        # Remove the application from instruction_results_validated if it exists
+        if application in WebApp_instance.instruction_results_validated:
+            del WebApp_instance.instruction_results_validated[application]
+            print(f"Cleared preset instruction for {application}")
+        
+        # Reset observed_states_filename to default
+        WebApp_instance.observed_states_filename = 'default'
+        
+        return jsonify({'status': 'success', 'message': f'Cleared preset for {application}'})
+        
+    except Exception as e:
+        return jsonify({'error': f'Error clearing instruction preset: {str(e)}'}), 500
 
 @app.route('/get_variance_results')
 def get_variance_results_route():
