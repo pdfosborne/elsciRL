@@ -164,3 +164,4 @@ cython_debug/
 # Dev testing problem
 benchmark/output/*
 elsciRL/benchmark/output/*
+elsciRL-App-output/*

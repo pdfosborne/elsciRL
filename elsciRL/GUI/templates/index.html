@@ -394,11 +394,15 @@
                 <p>Select a preset experiment configuration for the chosen application.</p>
                 <div class="input-group input-group-margin-bottom">
                     <label for="experimentConfigSelect" class="preset-label">Select configuration:</label>
-                    <select id="experimentConfigSelect" onchange="loadExperimentConfig()" class="preset-select">
+                    <select id="experimentConfigSelect" onchange="onExperimentConfigSelectChange()" class="preset-select">
                         <option value="">Select application first</option>
                     </select>
                 </div>
                 <div id="experimentConfigDescription" class="preset-description"></div>
+                <div class="button-group button-group-flex">
+                    <button onclick="loadExperimentConfig()" id="loadExperimentConfigBtn" disabled class="load-preset-btn">Load</button>
+                    <button onclick="resetExperimentConfig()" id="resetExperimentConfigBtn" class="clear-preset-btn">Reset</button>
+                </div>
                 <hr class="sidebar-divider">
             </div>
 
@@ -2023,6 +2027,20 @@
             
             // Load experiment configurations
             loadConfigDropdown('experimentConfigSelect', allOptionsData.experimentConfigs[selectedApp] || []);
+            
+            // Reset experiment config selection and disable Load button
+            const experimentConfigSelect = document.getElementById('experimentConfigSelect');
+            const loadExperimentConfigBtn = document.getElementById('loadExperimentConfigBtn');
+            const experimentConfigDescription = document.getElementById('experimentConfigDescription');
+            if (experimentConfigSelect) {
+                experimentConfigSelect.value = '';
+            }
+            if (loadExperimentConfigBtn) {
+                loadExperimentConfigBtn.disabled = true;
+            }
+            if (experimentConfigDescription) {
+                experimentConfigDescription.textContent = '';
+            }
         }
 
         // Load configuration dropdown
@@ -2228,6 +2246,18 @@
             }
         }
 
+        // Handle experiment config selection change
+        function onExperimentConfigSelectChange() {
+            const experimentConfigSelect = document.getElementById('experimentConfigSelect');
+            const loadExperimentConfigBtn = document.getElementById('loadExperimentConfigBtn');
+            
+            if (experimentConfigSelect.value) {
+                loadExperimentConfigBtn.disabled = false;
+            } else {
+                loadExperimentConfigBtn.disabled = true;
+            }
+        }
+
         // Load experiment configuration
         async function loadExperimentConfig() {
             const selectedApp = document.getElementById('applicationSelect').value;
@@ -2267,8 +2297,12 @@
                 
                 // Show success message in description
                 if (descriptionElement) {
-                    descriptionElement.textContent = `✓ Loaded configuration: ${selectedConfig}`;
-                    descriptionElement.style.color = '#28a745';
+                    descriptionElement.innerHTML = `
+                        <div style="color: #28a745; font-weight: 500;">
+                            ✓ Loaded configuration: ${selectedConfig}<br>
+                            <small style="color: #666;">This configuration has been applied to the training parameters below</small>
+                        </div>
+                    `;
                 }
                 
             } catch (error) {
@@ -2277,6 +2311,47 @@
                     descriptionElement.textContent = `Error: ${error.message}`;
                     descriptionElement.style.color = '#dc3545';
                 }
+            }
+        }
+        
+        // Reset experiment configuration to defaults
+        function resetExperimentConfig() {
+            const descriptionElement = document.getElementById('experimentConfigDescription');
+            const experimentConfigSelect = document.getElementById('experimentConfigSelect');
+            
+            // Reset the dropdown to default
+            experimentConfigSelect.value = '';
+            
+            // Disable the Load button
+            const loadExperimentConfigBtn = document.getElementById('loadExperimentConfigBtn');
+            loadExperimentConfigBtn.disabled = true;
+            
+            // Reset training parameters to defaults
+            document.getElementById('trainingEpisodes').value = 1000;
+            document.getElementById('trainingRepeats').value = 5;
+            document.getElementById('testEpisodes').value = 200;
+            document.getElementById('testRepeats').value = 10;
+            
+            // Uncheck all agent checkboxes
+            document.querySelectorAll('input[type="checkbox"][id^="agent_"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Update agent configuration
+            updateAgentConfig();
+            
+            // Clear description
+            if (descriptionElement) {
+                descriptionElement.innerHTML = `
+                    <div style="color: #28a745; font-weight: 500;">
+                        ✓ Configuration reset to defaults
+                    </div>
+                `;
+                
+                // Clear the message after 3 seconds
+                setTimeout(() => {
+                    descriptionElement.textContent = '';
+                }, 3000);
             }
         }
         
