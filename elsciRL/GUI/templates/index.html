@@ -2049,7 +2049,9 @@
             select.innerHTML = '<option value="">Select an option...</option>';
             
             if (options && options.length > 0) {
-                options.forEach(option => {
+                // Reverse the order so most recent options appear first
+                const reversedOptions = [...options].reverse();
+                reversedOptions.forEach(option => {
                     const optionElement = document.createElement('option');
                     optionElement.value = option;
                     optionElement.textContent = option;
@@ -2074,7 +2076,9 @@
             const states = statesData.observedStates[selectedApp] || [];
             
             if (states.length > 0) {
-                states.forEach(state => {
+                // Reverse the order so most recent options appear first
+                const reversedStates = [...states].reverse();
+                reversedStates.forEach(state => {
                     const optionElement = document.createElement('option');
                     optionElement.value = state;
                     optionElement.textContent = state;
@@ -2979,8 +2983,11 @@
                 return;
             }
             
+            // Reverse the order so most recent adapters appear first
+            const reversedLanguageAdapters = [...languageAdapters].reverse();
+            
             container.innerHTML = '';
-            languageAdapters.forEach(adapter => {
+            reversedLanguageAdapters.forEach(adapter => {
                 const card = document.createElement('div');
                 card.className = 'adapter-card';
                 card.setAttribute('data-adapter-name', adapter);
@@ -3205,10 +3212,14 @@
             selectedAgents.forEach(agentId => {
                 const agentDiv = document.createElement('div');
                 agentDiv.className = 'agent-adapter-group';
+                
+                // Reverse the order so most recent adapters appear first
+                const reversedAdapters = [...availableAdapters].reverse();
+                
                 agentDiv.innerHTML = `
                     <h4>${agentDefinitions[agentId]?.display_name || agentId} Adapters</h4>
                     <div class="adapter-checkboxes" id="adapters_${agentId}">
-                        ${availableAdapters.map((adapter, index) => `
+                        ${reversedAdapters.map((adapter, index) => `
                             <div class="checkbox-container">
                                 <input type="checkbox" id="${agentId}_${adapter}" value="${adapter}" ${index === 0 ? 'checked' : ''}>
                                 <label for="${agentId}_${adapter}">${adapter}</label>
