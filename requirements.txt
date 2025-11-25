@@ -13,3 +13,4 @@ stable-baselines3
 ollama
 openai
 markdown
+pyboy

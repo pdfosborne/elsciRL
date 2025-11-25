@@ -66,7 +66,7 @@ It is suggested to use a [Python environment](https://conda.io/projects/conda/en
 Then, install the Python library from the PyPi package library:
 
 ```bash
-pip install elsciRL
+pip install elscirl
 ```
 
 ### Manual Install
