@@ -36,6 +36,7 @@ class DQNAgent(QLearningAgent):
                  memory_size: int = 10000,
                  batch_size: int = 64,
                  target_update: int = 10,
+                 device: str = None,
                  ):
         
         self.input_size = input_size
@@ -52,9 +53,14 @@ class DQNAgent(QLearningAgent):
         self.target_update = target_update
         self.update_counter = 0
         
-        # Create main and target networks
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Create main and target networks with optional device specification
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = torch.device(device)
+            
         self.policy_net = DQN(input_size, output_size, hidden_size).to(self.device)
+        print(f"DQN Agent initialized on device: {self.device}")
         print(self.policy_net)
         self.target_net = DQN(input_size, output_size, hidden_size).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -123,13 +129,18 @@ class DQNAgent(QLearningAgent):
     def learn(self, state: torch.Tensor, next_state: torch.Tensor, 
               immediate_reward: float, action: Hashable, **kwargs) -> None:
         """Store experience and train the network"""
-        # Ensure states have correct shape before storing
-        if len(state.shape) == 1:
-            state = state.unsqueeze(0)
-        if isinstance(next_state, torch.Tensor) and len(next_state.shape) == 1:
-            next_state = next_state.unsqueeze(0)
+        # Detach tensors and move to CPU to save GPU memory
+        # This prevents keeping computational graphs in replay buffer
+        if isinstance(state, torch.Tensor):
+            state = state.detach().cpu()
+            if len(state.shape) == 1:
+                state = state.unsqueeze(0)
+        if isinstance(next_state, torch.Tensor):
+            next_state = next_state.detach().cpu()
+            if len(next_state.shape) == 1:
+                next_state = next_state.unsqueeze(0)
             
-        # Store experience in replay memory
+        # Store experience in replay memory (on CPU to save GPU memory)
         self.memory.append((state, action, next_state, immediate_reward))
         
         # Train if enough samples
@@ -147,11 +158,14 @@ class DQNAgent(QLearningAgent):
         batch = random.sample(self.memory, self.batch_size)
         states, actions, next_states, rewards = zip(*batch)
         
-        # Convert to tensors and ensure correct shapes
+        # Convert to tensors and move to GPU only for training
         states = torch.cat(states).to(self.device)  # [batch_size, input_size]
         next_states = torch.cat(next_states).to(self.device)  # [batch_size, input_size]
         actions = torch.tensor(actions, device=self.device).long()  # [batch_size]
         rewards = torch.tensor(rewards, device=self.device).float()  # [batch_size]
+        
+        # Clear optimizer gradients
+        self.optimizer.zero_grad()
         
         # Get current Q values
         current_q_values = self.policy_net(states)  # [batch_size, output_size]
@@ -161,11 +175,14 @@ class DQNAgent(QLearningAgent):
         with torch.no_grad():
             next_q_values = self.target_net(next_states).max(1)[0][:self.batch_size]  # [batch_size]
         
-        # Compute target Q values
-        target_q_values = rewards + (self.gamma * next_q_values)
+        # Compute target Q values (detach to prevent gradient flow)
+        target_q_values = (rewards + (self.gamma * next_q_values)).detach()
         
         # Compute loss and update
         loss = self.criterion(current_q_values, target_q_values)
-        self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step() 
+        self.optimizer.step()
+        
+        # Clear intermediate tensors from GPU memory
+        del states, next_states, actions, rewards, current_q_values, next_q_values, target_q_values, loss
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None 
