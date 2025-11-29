@@ -11,6 +11,7 @@ import pickle
 import hashlib
 import shutil
 import importlib.util
+from tqdm import tqdm
 
 
 # Local imports
@@ -45,6 +46,60 @@ class PullApplications:
         # Load existing log or create new one
         self._load_import_log()
         
+    def _load_large_pt_file(self, file_path):
+        """
+        Load data from .pt file(s), combining parts if necessary.
+        
+        Args:
+            file_path (str): Path to file or base path for multi-part files
+            
+        Returns:
+            dict or other: Combined data
+        """
+        # Check if this is a multi-part file
+        if '_part' in file_path:
+            base_path = file_path.split('_part')[0]
+        else:
+            base_path = file_path.replace('.pt', '')
+        
+        # Look for part files
+        directory = os.path.dirname(base_path) or '.'
+        base_name = os.path.basename(base_path)
+        
+        # Get all files in the directory
+        if os.path.exists(directory):
+            all_files = os.listdir(directory)
+            part_files = sorted([
+                f for f in all_files
+                if f.startswith(base_name) and '_part' in f and f.endswith('.pt')
+            ])
+        else:
+            part_files = []
+        
+        if not part_files:
+            # Single file
+            if os.path.exists(file_path):
+                print(f"Loading single .pt file: {os.path.basename(file_path)}")
+                return torch.load(file_path)
+            else:
+                return None
+        
+        # Multi-part file
+        print(f"Found {len(part_files)} parts. Loading and combining...")
+        combined_data = {}
+        
+        for part_file in tqdm(part_files, desc="Loading parts"):
+            part_path = os.path.join(directory, part_file)
+            part_data = torch.load(part_path)
+            if isinstance(part_data, dict):
+                combined_data.update(part_data)
+            else:
+                # If not a dict, return the first part (might be a tensor or other type)
+                return part_data
+        
+        print(f"Successfully loaded {len(combined_data)} total items from {len(part_files)} parts")
+        return combined_data
+    
     def _get_cache_dir(self, problem):
         """Get the cache directory for a specific problem."""
         return os.path.join(self.cache_dir, problem)
@@ -430,15 +485,29 @@ class PullApplications:
                 for data_name, data_filename in prerender_data_filenames.items():
                     # Remove extension from data_filename if present
                     clean_filename = data_filename
-                    for ext in ['.txt', '.json', '.jsonl']:
+                    for ext in ['.pt', '.txt', '.json', '.jsonl']:
                         if data_filename.endswith(ext):
                             clean_filename = data_filename[:-len(ext)]
                             break
                     
-                    # Try different extensions
-                    for ext in ['.txt', '.json', '.jsonl']:
+                    # Try different extensions (prioritize .pt)
+                    for ext in ['.pt', '.txt', '.json', '.jsonl']:
                         file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
-                        if os.path.exists(file_path):
+                        
+                        # For .pt files, check for multi-part files
+                        if ext == '.pt':
+                            # Check if it's a multi-part file
+                            part1_path = os.path.join(prerender_dir, f"{clean_filename}_part1.pt")
+                            if os.path.exists(part1_path):
+                                file_path = part1_path
+                            
+                            if os.path.exists(file_path) or os.path.exists(part1_path):
+                                loaded_data = self._load_large_pt_file(file_path)
+                                if loaded_data is not None:
+                                    data['prerender_data'][data_name] = loaded_data
+                                    print(f"Loaded cached prerender data: {data_name}")
+                                    break
+                        elif os.path.exists(file_path):
                             if ext == '.json':
                                 with open(file_path, 'r') as f:
                                     data['prerender_data'][data_name] = json.load(f)
@@ -468,15 +537,29 @@ class PullApplications:
                     # The data_filename already includes "encoded_" prefix, so use it directly
                     # Remove extension from data_filename if present
                     clean_filename = data_filename
-                    for ext in ['.npy', '.txt', '.json', '.jsonl']:
+                    for ext in ['.pt', '.npy', '.txt', '.json', '.jsonl']:
                         if data_filename.endswith(ext):
                             clean_filename = data_filename[:-len(ext)]
                             break
                     
-                    # Try different extensions
-                    for ext in ['.npy', '.txt', '.json']:
+                    # Try different extensions (prioritize .pt and .npy)
+                    for ext in ['.pt', '.npy', '.txt', '.json']:
                         file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
-                        if os.path.exists(file_path):
+                        
+                        # For .pt files, check for multi-part files
+                        if ext == '.pt':
+                            # Check if it's a multi-part file
+                            part1_path = os.path.join(prerender_dir, f"{clean_filename}_part1.pt")
+                            if os.path.exists(part1_path):
+                                file_path = part1_path
+                            
+                            if os.path.exists(file_path) or os.path.exists(part1_path):
+                                loaded_data = self._load_large_pt_file(file_path)
+                                if loaded_data is not None:
+                                    data['prerender_data_encoded'][data_name] = loaded_data
+                                    print(f"Loaded cached encoded prerender data: {data_name}")
+                                    break
+                        elif os.path.exists(file_path):
                             if ext == '.npy':
                                 array_data = np.load(file_path)
                                 data['prerender_data_encoded'][data_name] = torch.from_numpy(array_data)
@@ -869,7 +952,21 @@ class PullApplications:
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
                         prerender_path = os.path.join(prerender_dir, prerender)
-                        if os.path.exists(prerender_path):
+                        
+                        # Check for .pt files (including multi-part)
+                        if prerender.endswith('.pt'):
+                            # Check for multi-part files
+                            base_path = prerender_path.replace('.pt', '')
+                            part1_path = f"{base_path}_part1.pt"
+                            
+                            if os.path.exists(prerender_path) or os.path.exists(part1_path):
+                                if os.path.exists(part1_path):
+                                    data = self._load_large_pt_file(part1_path)
+                                else:
+                                    data = self._load_large_pt_file(prerender_path)
+                                print(f"Pulling prerender data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data'][prerender_name] = data
+                        elif os.path.exists(prerender_path):
                             if prerender.endswith(('.txt', '.json', '.jsonl')):
                                 if prerender.endswith('.jsonl'):
                                     data = {}
@@ -894,13 +991,27 @@ class PullApplications:
                                 print(f"Pulling prerender data for {prerender_name}...")
                                 self.current_test[problem]['prerender_data'][prerender_name] = data
                 except Exception as e:
-                    print(f"No prerender data found")
+                    print(f"No prerender data found: {e}")
                     self.current_test[problem]['prerender_data'] = {}
                 
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
                         prerender_path = os.path.join(prerender_dir, prerender)
-                        if os.path.exists(prerender_path):
+                        
+                        # Check for .pt files (including multi-part)
+                        if prerender.endswith('.pt'):
+                            # Check for multi-part files
+                            base_path = prerender_path.replace('.pt', '')
+                            part1_path = f"{base_path}_part1.pt"
+                            
+                            if os.path.exists(prerender_path) or os.path.exists(part1_path):
+                                if os.path.exists(part1_path):
+                                    data = self._load_large_pt_file(part1_path)
+                                else:
+                                    data = self._load_large_pt_file(prerender_path)
+                                print(f"Pulling prerender encoded data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
+                        elif os.path.exists(prerender_path):
                             if prerender.endswith(('.txt', '.json', '.jsonl', '.npy')):
                                 if prerender.endswith('.npy'):
                                     # Direct numpy file - convert to tensor
