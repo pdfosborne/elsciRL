@@ -3213,13 +3213,13 @@
                 const agentDiv = document.createElement('div');
                 agentDiv.className = 'agent-adapter-group';
                 
-                // Reverse the order so most recent adapters appear first
-                const reversedAdapters = [...availableAdapters].reverse();
+                // Show adapters in original order (oldest to newest)
+                const orderedAdapters = [...availableAdapters];
                 
                 agentDiv.innerHTML = `
                     <h4>${agentDefinitions[agentId]?.display_name || agentId} Adapters</h4>
                     <div class="adapter-checkboxes" id="adapters_${agentId}">
-                        ${reversedAdapters.map((adapter, index) => `
+                        ${orderedAdapters.map((adapter, index) => `
                             <div class="checkbox-container">
                                 <input type="checkbox" id="${agentId}_${adapter}" value="${adapter}" ${index === 0 ? 'checked' : ''}>
                                 <label for="${agentId}_${adapter}">${adapter}</label>
