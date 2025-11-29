@@ -440,9 +440,17 @@ class Prerender:
 
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.txt')
-        np.savetxt(file_path, observed_states_encoded.numpy())
+        file_path = os.path.join(save_dir, 'encoded_' + observed_states_filename.split('.')[0] + '.pt')
+        
+        # Save as .pt file for better compression and storage efficiency
+        torch.save(observed_states_encoded, file_path)
+        
+        # Get file size for reporting
+        file_size_bytes = os.path.getsize(file_path)
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        
         print(f"Encoded states saved to {file_path}")
+        print(f"File size: {file_size_mb:.2f} MB")
         print(f"Number of States: {len(observed_states_encoded)}")
 
         return observed_states_encoded
