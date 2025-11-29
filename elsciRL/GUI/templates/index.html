@@ -867,7 +867,7 @@
                 return;
             }
 
-            const submitBtn = document.getElementById('submitBtn');
+            const submitBtn = document.getElementById('processInputBtn');
             const retryBtn = document.getElementById('retryBtn');
             
             submitBtn.disabled = true;
@@ -968,7 +968,7 @@
             document.getElementById('instructionMatchPlots').innerHTML = '';
             document.getElementById('confirmationResult').innerHTML = '';
             document.getElementById('confirmationBlock').classList.add('confirmation-block-hidden');
-            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('processInputBtn').style.display = 'inline-block';
             document.getElementById('retryBtn').classList.add('retry-btn-hidden');
 
             fetch('/new_instruction', {
