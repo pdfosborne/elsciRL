@@ -6,7 +6,7 @@ Run the following to test:
 import pytest
 
 from elsciRL.application_suite.import_tool import PullApplications
-from elsciRL.experiments.policy_gradient import PolicyGradienExperiment
+from elsciRL.experiments.policy_gradient import PolicyGradientExperiment
 
 
 @pytest.mark.integration
@@ -75,7 +75,7 @@ def test_policy_gradient_runs_on_classroom(tmp_path):
         agent_tmp_dir = tmp_path / agent_type
         agent_tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        experiment = PolicyGradienExperiment(
+        experiment = PolicyGradientExperiment(
             Config=experiment_config,
             ProblemConfig=local_config,
             Engine=classroom_data['engine'],

@@ -12,7 +12,7 @@ from elsciRL.experiments.training_procedures.policy_gradient import run_policy_g
 from elsciRL.interaction_loops.policy_gradient import PolicyGradientInteractionLoop
 
 
-class PolicyGradienExperiment:
+class PolicyGradientExperiment:
     """Policy-gradient experiment helper focused on train/test/render workflows."""
 
     def __init__(
@@ -25,6 +25,7 @@ class PolicyGradienExperiment:
         show_figures: str,
         window_size: float,
         policy_agent_factory=None,
+        create_subdirectory: bool = False,
     ):
         if isinstance(Engine, dict):
             self.engine_comparison = True
@@ -41,7 +42,11 @@ class PolicyGradienExperiment:
         self.LocalConfig = ProblemConfig
 
         ensure_dir(save_dir)
-        self.save_dir = os.path.join(save_dir, "PolicyGradient_Experiment")
+        # Allow control over subdirectory creation for when called from other experiments
+        if create_subdirectory:
+            self.save_dir = os.path.join(save_dir, "PolicyGradient_Experiment")
+        else:
+            self.save_dir = save_dir
         self.show_figures = show_figures
 
         try:
@@ -126,13 +131,18 @@ class PolicyGradienExperiment:
         return training_setups
 
     def _prepare_test_setup(self, setup_info: Dict):
+        """Prepare test setup info to match instruction following patterns."""
         test_setup_info = setup_info.copy()
         test_setup_info["train"] = False
-        test_setup_info.setdefault("training_results", False)
-        test_setup_info.setdefault("observed_states", False)
-        test_setup_info.setdefault(
-            "number_test_episodes", self.setup_info.get("number_test_episodes", 1)
-        )
+        test_setup_info["training_results"] = False
+        test_setup_info["observed_states"] = False
+        # Support both 'number_test_episodes' and 'num_test_episodes' for compatibility
+        if "num_test_episodes" in test_setup_info:
+            test_setup_info["number_test_episodes"] = test_setup_info["num_test_episodes"]
+        else:
+            test_setup_info.setdefault(
+                "number_test_episodes", self.setup_info.get("number_test_episodes", 1)
+            )
         return test_setup_info
 
     def _evaluate_agents(

@@ -30,7 +30,7 @@ class EngineToGym(gym.Env):
 
     def load(self, Engine, engine_name:str=None, Adapter:Callable[[Any], Any]=None, setup_info:dict={}):
         self.engine = Engine(setup_info)
-        self.Adapter = Adapter()
+        self.Adapter = Adapter(setup_info=setup_info)
         self.reward_signal = None
         self.reward_signal_tracker = []
         # Use name if given directly, otherwise check engine ledger
@@ -143,8 +143,11 @@ class EngineToGym(gym.Env):
     def _format_observation(self, obs_enc):
         """Ensure adapter outputs match the declared Gym observation space."""
 
+        # Handle PyTorch tensors - move to CPU before converting to numpy
         if hasattr(obs_enc, "detach"):
             obs_enc = obs_enc.detach()
+            if hasattr(obs_enc, "cpu"):
+                obs_enc = obs_enc.cpu()
         obs_array = np.asarray(obs_enc, dtype=np.float32)
 
         if isinstance(self.observation_space, spaces.Discrete):

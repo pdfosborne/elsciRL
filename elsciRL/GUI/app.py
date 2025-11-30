@@ -20,7 +20,7 @@ try:
     from elsciRL.instruction_following.elsciRL_GUI_search import elsciRLSearch as elsci_search
     from elsciRL.instruction_following.elsciRL_instruction_following import elsciRLOptimize
     from elsciRL.experiments.standard import Experiment as STANDARD_RL
-    from elsciRL.experiments.policy_gradient import PolicyGradienExperiment as POLICY_GRADIENT_RL
+    from elsciRL.experiments.policy_gradient import PolicyGradientExperiment as POLICY_GRADIENT_RL
     
     # elsciRL LLM Instruction Following
     from elsciRL.instruction_following.LLM_instr_planner.LLM_instr_generator import OllamaTaskBreakdown as LLMTaskBreakdown
@@ -1299,15 +1299,24 @@ Example of environment language structure: {results[application][instr]['sub_goa
                                     fig_obj.savefig(os.path.join(self.uploads_dir, fig_filename))
                                     figures_to_display.append(f'uploads/{fig_filename}')
         
+            # ====================================================================
+            # FLAT EXPERIMENT COMPARISON (Baseline without instructions)
+            # This runs after instruction training completes to provide baseline
+            # comparison for all agents, including policy gradient agents (PPO)
+            # ====================================================================
             job_queue.put("EVENT: RENDER_PHASE_TITLE: No Instruction")
             job_queue.put("EVENT: Running standard (no-instruction) experiment...")
+            job_queue.put("EVENT: This provides the flat/baseline comparison for all trained agents")
             no_instr_save_dir = os.path.join(app_save_dir, 'no-instr')
 
             policy_gradient_agents = {"PPO"}
             for agent_name in list(agent_adapter_dict.keys()):
+                job_queue.put(f"EVENT: Checking agent for flat training: {agent_name}")
                 agent_select_sub = [agent_name] if agent_name in selected_agents else []
                 if not agent_select_sub:
+                    job_queue.put(f"EVENT: Skipping {agent_name} - not in selected agents")
                     continue
+                job_queue.put(f"EVENT: Processing flat training for agent: {agent_name}")
                 ExperimentConfig['agent_select'] = agent_select_sub
                 for adapter_name in list(agent_adapter_dict[agent_name]):
                     agent_adapter_dict_sub = {agent_name: [adapter_name]}

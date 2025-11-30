@@ -6,6 +6,7 @@ import random
 
 # ------ Interaction Protocol -----------------------------------
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
+from elsciRL.interaction_loops.policy_gradient import PolicyGradientInteractionLoop
 # ------ Experiment Import --------------------------------------
 from elsciRL.evaluation.standard_report import Evaluation
 
@@ -23,9 +24,11 @@ from elsciRL.agents.table_q_agent import TableQLearningAgent
 from elsciRL.agents.DQN import DQNAgent
 # ------ Gym Experiement ----------------------------------------
 from elsciRL.experiments.GymExperiment import GymExperiment
+from elsciRL.experiments.policy_gradient import PolicyGradientExperiment
 from elsciRL.experiments.experiment_utils.render_current_results import render_current_result
 # ------ LLM Agents ---------------------------------------------
 from elsciRL.agents.LLM_agents.ollama_agent import LLMAgent as OllamaAgent
+from elsciRL.agents.clean_rl.ppo import CleanRLPPO as PPOAgent
 # ---------------------------------------------------------------
 # TODO: COMPLETELY REWRITE THIS FILE TO USE THE NEW EXPERIMENT FRAMEWORK
 
@@ -36,6 +39,8 @@ AGENT_TYPES = {
     "DQN": DQNAgent,
     "Random": random,
     "LLM_Ollama": OllamaAgent,
+    "PPO": PPOAgent,
+    
 }
 
 # This is the main run functions for elsciRL to be imported
@@ -107,7 +112,10 @@ class elsciRLOptimize:
         # - init gym experiment if any gym agent selected
         self.is_gym_agent = {}
         for n,agent_type in enumerate(self.setup_info['agent_select']):
-            if agent_type.split('_')[0] == "SB3":
+            # PPO handled separately via PolicyGradientExperiment
+            if agent_type == "PPO":
+                self.is_gym_agent[agent_type] = False
+            elif agent_type.split('_')[0] == "SB3":
                 self.is_gym_agent[agent_type] = True
                 self.sub_goal_reward = self.setup_info['reward_signal'][0]
                 self.gym_exp = GymExperiment(Config=self.ExperimentConfig, ProblemConfig=self.LocalConfig, 
@@ -256,7 +264,116 @@ class elsciRLOptimize:
         if not os.path.exists(self.save_dir):
             os.mkdir(self.save_dir)
 
+        # Store policy gradient experiments for later testing/rendering
+        self.policy_gradient_experiments = {}
+
         for n, agent_type in enumerate(self.setup_info['agent_select']):
+            # Check if this is a Policy Gradient agent (like PPO)
+            # If so, use PolicyGradientExperiment instead of standard instruction following
+            if agent_type == "PPO":
+                print(f"\n{'='*60}")
+                print(f"Detected Policy Gradient agent: {agent_type}")
+                print(f"Using PolicyGradientExperiment for training...")
+                print(f"{'='*60}\n")
+                
+                # Prepare configs for PolicyGradientExperiment
+                # Need to ensure LocalConfig has all necessary parameters
+                local_config_for_pg = self.LocalConfig.copy()
+                if 'data' not in local_config_for_pg:
+                    local_config_for_pg = {'data': local_config_for_pg}
+                
+                experiment_config_for_pg = self.ExperimentConfig.copy()
+                if 'data' not in experiment_config_for_pg:
+                    experiment_config_for_pg = {'data': experiment_config_for_pg}
+                
+                # Create PolicyGradientExperiment instance
+                pg_exp = PolicyGradientExperiment(
+                    Config=experiment_config_for_pg,
+                    ProblemConfig=local_config_for_pg,
+                    Engine=self.engine,
+                    Adapters=self.adapters,
+                    save_dir=self.save_dir,
+                    show_figures=self.show_figures,
+                    window_size=0.1,  # Use same window size as instruction following
+                    create_subdirectory=False  # Don't create extra subdirectory
+                )
+                
+                # Run training using policy gradient experiment
+                pg_training_setups = pg_exp.train()
+                
+                # Store the PolicyGradientExperiment for testing/rendering
+                self.policy_gradient_experiments[agent_type] = pg_exp
+                
+                # Store the trained agents from policy gradient experiment
+                for pg_agent_key, pg_agent in pg_exp.trained_agents.items():
+                    # Store in the format expected by instruction following
+                    agent_adapter = agent_type + '_' + self.setup_info["adapter_input_dict"][agent_type][0]
+                    if agent_adapter not in self.trained_agents:
+                        self.trained_agents[agent_adapter] = {}
+                    self.trained_agents[agent_adapter] = pg_agent
+                
+                # Store training setup
+                self.training_setups[f'Training_Setup_{agent_type}'] = pg_training_setups
+                
+                print(f"\n{'='*60}")
+                print(f"Policy Gradient training completed for {agent_type}")
+                print(f"{'='*60}\n")
+                
+                # ====================================================================
+                # FLAT EXPERIMENT for PPO (baseline comparison without instructions)
+                # Train the same agent without instruction following for comparison
+                # ====================================================================
+                print(f"\n{'='*60}")
+                print(f"Running FLAT experiment for {agent_type} (baseline comparison)")
+                print(f"Training without instruction following...")
+                print(f"{'='*60}\n")
+                
+                # Create a separate flat experiment
+                # Use parent directory for compatibility with variance analysis
+                # The variance analysis expects all experiment folders at the same level
+                # self.save_dir is app_save_dir/instr_key/Instr_Experiment
+                # We need to go up 2 levels to get to app_save_dir
+                grandparent_save_dir = os.path.dirname(os.path.dirname(self.save_dir))
+                flat_save_dir = os.path.join(grandparent_save_dir, 'no-instr', 'PolicyGradient_Experiment')
+                if not os.path.exists(flat_save_dir):
+                    os.makedirs(flat_save_dir)
+                    
+                pg_exp_flat = PolicyGradientExperiment(
+                    Config=experiment_config_for_pg,
+                    ProblemConfig=local_config_for_pg,
+                    Engine=self.engine,
+                    Adapters=self.adapters,
+                    save_dir=flat_save_dir,
+                    show_figures=self.show_figures,
+                    window_size=0.1,
+                    create_subdirectory=False
+                )
+                
+                # Run flat training
+                flat_training_setups = pg_exp_flat.train()
+                
+                # Store flat experiment for testing/rendering
+                flat_agent_key = f'{agent_type}_Flat'
+                self.policy_gradient_experiments[flat_agent_key] = pg_exp_flat
+                
+                # Store flat trained agents
+                for pg_agent_key, pg_agent in pg_exp_flat.trained_agents.items():
+                    agent_adapter_flat = agent_type + '_Flat_' + self.setup_info["adapter_input_dict"][agent_type][0]
+                    if agent_adapter_flat not in self.trained_agents:
+                        self.trained_agents[agent_adapter_flat] = {}
+                    self.trained_agents[agent_adapter_flat] = pg_agent
+                
+                # Store flat training setup
+                self.training_setups[f'Training_Setup_{agent_type}_Flat'] = flat_training_setups
+                
+                print(f"\n{'='*60}")
+                print(f"FLAT experiment completed for {agent_type}")
+                print(f"Results saved to: {flat_save_dir}")
+                print(f"{'='*60}\n")
+                
+                # Continue to next agent
+                continue
+            
             # Added gym based agents as selection
             is_gym_agent = self.is_gym_agent[agent_type]
             if is_gym_agent:
@@ -617,7 +734,13 @@ class elsciRLOptimize:
                     # Store last train_setup_info as collection of observed states
                     self.training_setups['Training_Setup_'+str(agent_type) + '_' + str(adapter)] = train_setup_info.copy()
 
-        self.analysis.training_variance_report(self.save_dir, self.show_figures)
+        # Generate training variance report for all trained agents
+        # Wrap in try-except to handle cases where folder structure doesn't match expectations
+        try:
+            self.analysis.training_variance_report(self.save_dir, self.show_figures)
+        except (IndexError, FileNotFoundError) as e:
+            print(f"\n[Info] Could not generate training_variance_report: {e}")
+            print("This may occur when using only policy gradient agents with different output structure.")
                     
         #json.dump(self.training_setups) # TODO: Won't currently serialize this output to a json file
         return self.training_setups
@@ -635,6 +758,29 @@ class elsciRLOptimize:
         for training_key in list(training_setups.keys()):   
             test_setup_info = training_setups[training_key].copy()
             test_setup_info['train'] = False # Testing Phase
+            
+            # Check if this is a policy gradient agent (PPO)
+            if training_key.startswith('Training_Setup_PPO'):
+                print(f"\n{'='*60}")
+                print(f"Detected Policy Gradient agent for testing")
+                print(f"Using PolicyGradientExperiment test method...")
+                print(f"{'='*60}\n")
+                
+                # Determine if this is flat or instruction-based
+                if 'Flat' in training_key:
+                    pg_key = 'PPO_Flat'
+                else:
+                    pg_key = 'PPO'
+                
+                # Use the stored PolicyGradientExperiment instance
+                if pg_key in self.policy_gradient_experiments:
+                    pg_exp = self.policy_gradient_experiments[pg_key]
+                    # Pass the actual PG training setups, not the modified copy
+                    pg_exp.test(training_setups=None)  # Uses stored training_setups
+                else:
+                    print(f"Warning: No PolicyGradientExperiment found for {pg_key}")
+                continue
+            
             agent_type = test_setup_info['agent_type']
             print("----------")
             print(training_key) 
@@ -721,6 +867,8 @@ class elsciRLOptimize:
             training_setups = self.training_setups
         else:
             training_setups = json.load(training_setups)
+        
+        render_results = None
         for training_key in list(training_setups.keys()):
             test_setup_info = training_setups[training_key].copy()
             test_setup_info['train'] = False
@@ -728,6 +876,35 @@ class elsciRLOptimize:
             test_setup_info['observed_states'] = False
             test_setup_info['num_test_episodes'] = 1
             print("----------\nRendering trained agent's policy:")
+            
+            # Check if this is a policy gradient agent (PPO)
+            if training_key.startswith('Training_Setup_PPO'):
+                print(f"\n{'='*60}")
+                print(f"Detected Policy Gradient agent for rendering")
+                print(f"Using PolicyGradientExperiment render_results method...")
+                print(f"{'='*60}\n")
+                
+                # Determine if this is flat or instruction-based
+                if 'Flat' in training_key:
+                    pg_key = 'PPO_Flat'
+                    render_subdir = 'render_results_flat'
+                else:
+                    pg_key = 'PPO'
+                    render_subdir = 'render_results'
+                
+                # Use the stored PolicyGradientExperiment instance
+                if pg_key in self.policy_gradient_experiments:
+                    pg_exp = self.policy_gradient_experiments[pg_key]
+                    render_save_dir = os.path.join(self.save_dir, render_subdir)
+                    # Pass None to use stored training_setups
+                    render_results = pg_exp.render_results(
+                        training_setups=None,
+                        render_save_dir=render_save_dir
+                    )
+                else:
+                    print(f"Warning: No PolicyGradientExperiment found for {pg_key}")
+                continue
+            
             for engine_name, engine in self.engine_list.items():
                 env = self.env_manager.create_env(engine, self.adapters, test_setup_info)
                 start_obs = env.start_obs
