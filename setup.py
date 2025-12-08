@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='elsciRL',
+    name='elscirl',
     version='0.3.6',
     packages=[
         'elsciRL', 
@@ -58,7 +58,6 @@ setup(
         'stable-baselines3',
         'flask',
         'ollama',
-        'openai',
         'markdown',
     ] 
 )

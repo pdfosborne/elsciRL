@@ -1,7 +1,9 @@
 # TODO: Simplify and remove sub-goals/elsciRL tracking/live_env/exp sampling
 import time
 import numpy as np
+from PIL import Image
 from tqdm import tqdm
+from gymnasium.wrappers import TimeLimit
 # ------ Imports -----------------------------------------
 # Agent Setup
 from elsciRL.environment_setup.imports import ImportHelper
@@ -10,6 +12,37 @@ from elsciRL.environment_setup.results_table import ResultsTable
 from elsciRL.environment_setup.elsciRL_info import elsciRLInfo
 # Non-gym interaction loop setup
 from elsciRL.interaction_loops.standard import StandardInteractionLoop
+from elsciRL.experiments.experiment_utils.config_utils import ensure_dir
+
+
+def _apply_action_limit(env, max_steps: int | None):
+    """Wrap env with a TimeLimit so runaway episodes truncate after max_steps."""
+
+    if not max_steps or max_steps <= 0:
+        return env
+    if isinstance(env, TimeLimit):
+        env._max_episode_steps = min(env._max_episode_steps, max_steps)
+        return env
+    try:
+        return TimeLimit(env, max_episode_steps=max_steps)
+    except Exception:
+        # Fall back to manual attribute hints if wrapper fails (non-gym envs)
+        setattr(env, "_elsci_max_episode_steps", max_steps)
+        return env
+
+def _normalize_render_stack(render_stack):
+    """Convert renderer outputs to PIL Images so GIF saving works consistently."""
+
+    normalized = []
+    for frame in render_stack or []:
+        if frame is None:
+            continue
+        if hasattr(frame, "save"):
+            normalized.append(frame)
+        elif isinstance(frame, np.ndarray):
+            normalized.append(Image.fromarray(frame.astype(np.uint8)))
+    return normalized
+
 
 class GymInteractionLoop:
     """Interaction Loop for standard environments.
@@ -22,17 +55,19 @@ class GymInteractionLoop:
         # Define agent type for interaction process, call alternative if not gym agent
         if local_setup_info['agent_type'].split('_')[0] == "SB3":
             self.gym_agent = True
+            Imports = ImportHelper(local_setup_info)
+            self.agent, self.agent_type, self.agent_name, self.agent_state_adapter = Imports.agent_info(Adapters)
+            self.num_train_episodes, self.num_test_episodes, self.training_action_cap, self.testing_action_cap, self.reward_signal = Imports.parameter_info()  
+            self.train = Imports.training_flag()
             # --- INIT env from engine
             self.env = Engine(local_setup_info)
+            max_steps = self.training_action_cap if self.train else self.testing_action_cap
+            self.env = _apply_action_limit(self.env, max_steps)
             self.start_obs = self.env.reset()
             # ---
             # --- PRESET elsciRL INFO
             # Agent
-            Imports = ImportHelper(local_setup_info)
-            self.agent, self.agent_type, self.agent_name, self.agent_state_adapter = Imports.agent_info(Adapters)
-            self.num_train_episodes, self.num_test_episodes, self.training_action_cap, self.testing_action_cap, self.reward_signal = Imports.parameter_info()  
             # Training or testing phase flag
-            self.train = Imports.training_flag()
             # --- elsciRL
             self.live_env, self.observed_states, self.experience_sampling = Imports.live_env_flag()
             # Results formatting
@@ -95,12 +130,70 @@ class GymInteractionLoop:
                                                     reward, (end_time-start_time), actions, 0, 0)
             table_results = self.results.results_table_format()
             # Output GIF image of all episode frames
-            if render:
-                render_stack[0].save(render_save_dir+'/render.gif', save_all=True, append_images=render_stack[1:], optimize=False, duration=200, loop=1)
+            if render and render_stack:
+                frames = _normalize_render_stack(render_stack)
+                if frames:
+                    frames[0].save(
+                        render_save_dir + '/render.gif',
+                        save_all=True,
+                        append_images=frames[1:],
+                        optimize=False,
+                        duration=200,
+                        loop=1,
+                    )
         else:
             table_results = self.interaction.episode_loop()
             self.agent = self.interaction.agent
             self.results = self.interaction.results
             self.elsciRL = self.interaction.elsciRL
 
+        return table_results
+
+    @staticmethod
+    def policy_rollout(
+        agent,
+        env,
+        agent_name: str,
+        num_episodes: int,
+        results_table,
+        render: bool = False,
+        render_save_dir: str | None = None,
+        action_limit: int | None = None,
+    ):
+        """Execute a pre-configured policy-gradient agent on a Gym env and log results."""
+        env = _apply_action_limit(env, action_limit)
+        episode_render = []
+        for episode in range(num_episodes):
+            start_time = time.time()
+            reward, actions, states, render_stack = agent.test(env, render=render)
+            end_time = time.time()
+            if actions:
+                if isinstance(actions[0], np.int64):
+                    actions = [action.item() for action in actions]
+                elif isinstance(actions[0], np.ndarray):
+                    actions = [action.item() for action in actions]
+            results_table.results_per_episode(
+                agent_name,
+                None,
+                episode,
+                len(actions),
+                reward,
+                (end_time - start_time),
+                actions,
+                0,
+                0,
+            )
+            if render and render_stack:
+                episode_render.extend(_normalize_render_stack(render_stack))
+        table_results = results_table.results_table_format()
+        if render and episode_render:
+            ensure_dir(render_save_dir or "renders")
+            episode_render[0].save(
+                f"{render_save_dir or 'renders'}/{agent_name}_policy.gif",
+                save_all=True,
+                append_images=episode_render[1:],
+                optimize=False,
+                duration=200,
+                loop=1,
+            )
         return table_results

@@ -1,5 +1,5 @@
 [project]
-name = "elsciRL"
+name = "elscirl"
 version = "1.0.0"
 authors = [
   { name="Philip Osborne", email="pdfosborne@gmail.com" },

@@ -11,6 +11,7 @@ import pickle
 import hashlib
 import shutil
 import importlib.util
+from tqdm import tqdm
 
 
 # Local imports
@@ -45,6 +46,60 @@ class PullApplications:
         # Load existing log or create new one
         self._load_import_log()
         
+    def _load_large_pt_file(self, file_path):
+        """
+        Load data from .pt file(s), combining parts if necessary.
+        
+        Args:
+            file_path (str): Path to file or base path for multi-part files
+            
+        Returns:
+            dict or other: Combined data
+        """
+        # Check if this is a multi-part file
+        if '_part' in file_path:
+            base_path = file_path.split('_part')[0]
+        else:
+            base_path = file_path.replace('.pt', '')
+        
+        # Look for part files
+        directory = os.path.dirname(base_path) or '.'
+        base_name = os.path.basename(base_path)
+        
+        # Get all files in the directory
+        if os.path.exists(directory):
+            all_files = os.listdir(directory)
+            part_files = sorted([
+                f for f in all_files
+                if f.startswith(base_name) and '_part' in f and f.endswith('.pt')
+            ])
+        else:
+            part_files = []
+        
+        if not part_files:
+            # Single file
+            if os.path.exists(file_path):
+                print(f"Loading single .pt file: {os.path.basename(file_path)}")
+                return torch.load(file_path)
+            else:
+                return None
+        
+        # Multi-part file
+        print(f"Found {len(part_files)} parts. Loading and combining...")
+        combined_data = {}
+        
+        for part_file in tqdm(part_files, desc="Loading parts"):
+            part_path = os.path.join(directory, part_file)
+            part_data = torch.load(part_path)
+            if isinstance(part_data, dict):
+                combined_data.update(part_data)
+            else:
+                # If not a dict, return the first part (might be a tensor or other type)
+                return part_data
+        
+        print(f"Successfully loaded {len(combined_data)} total items from {len(part_files)} parts")
+        return combined_data
+    
     def _get_cache_dir(self, problem):
         """Get the cache directory for a specific problem."""
         return os.path.join(self.cache_dir, problem)
@@ -59,7 +114,8 @@ class PullApplications:
             try:
                 with open(self.log_file, 'r') as f:
                     self.import_log = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
+            except (json.JSONDecodeError, FileNotFoundError) as e:
+                print(f"Failed to load import log: {e}")
                 self.import_log = {}
         else:
             self.import_log = {}
@@ -277,7 +333,11 @@ class PullApplications:
             
             # Load metadata
             with open(metadata_file, 'r') as f:
-                metadata = json.load(f)
+                try:
+                    metadata = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(f"Failed to parse cache metadata for {problem}: {e}")
+                    return None
             
             # Check if cache is valid by comparing commit_id and source data
             cached_commit = metadata.get('commit_id')
@@ -325,7 +385,11 @@ class PullApplications:
             metadata_file = self._get_cache_metadata_file(problem)
             if os.path.exists(metadata_file):
                 with open(metadata_file, 'r') as f:
-                    data['cache_metadata'] = json.load(f)
+                    try:
+                        data['cache_metadata'] = json.load(f)
+                    except json.JSONDecodeError as e:
+                        print(f"Failed to parse cache metadata for {problem}: {e}")
+                        data['cache_metadata'] = {}
             
             # Use cached import data if available, otherwise use current import_data
             if import_data is None:
@@ -336,25 +400,23 @@ class PullApplications:
             data['source'] = {str(cache_root_path): import_data}
 
             # Load engine
-            engine_dir = os.path.join(cache_dir, 'engine')
+            engine_dir = os.path.join(cache_dir, import_data.get('engine_folder', self.imports[problem]['engine_folder']))
+            print(">>>> Engine dir: ", engine_dir)
             if os.path.exists(engine_dir):
-                engine_files = [f for f in os.listdir(engine_dir) if f.endswith('.py')]
-                if engine_files:
-                    try:
-                        # Get the engine filename from the import data
-                        engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
-                        engine_file_path = os.path.join(engine_dir, engine_filename)
-                        
-                        # Load module directly from file path
-                        engine_module_name = engine_filename.split('.')[0]
-                        spec = importlib.util.spec_from_file_location(engine_module_name, engine_file_path)
-                        engine_module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(engine_module)
-                        
-                        data['engine'] = engine_module.Engine
-                        print(f"Loaded cached engine: {engine_filename}")
-                    except Exception as e:
-                        print(f"Failed to load cached engine: {e}")
+                try:
+                    # Get the engine filename from the import data
+                    engine_filename = import_data.get('engine_filename', self.imports[problem]['engine_filename'])
+                    engine_file_path = os.path.join(engine_dir, engine_filename)
+                    
+                    # Load module directly from file path
+                    engine_module_name = engine_filename.split('.')[0]
+                    spec = importlib.util.spec_from_file_location(engine_module_name, engine_file_path)
+                    engine_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(engine_module)
+
+                    data['engine'] = engine_module.Engine
+                except Exception as e:
+                    print(f"Failed to load cached engine: {e}")
             
             # Load adapters
             adapters_dir = os.path.join(cache_dir, 'adapters')
@@ -423,15 +485,29 @@ class PullApplications:
                 for data_name, data_filename in prerender_data_filenames.items():
                     # Remove extension from data_filename if present
                     clean_filename = data_filename
-                    for ext in ['.txt', '.json', '.jsonl']:
+                    for ext in ['.pt', '.txt', '.json', '.jsonl']:
                         if data_filename.endswith(ext):
                             clean_filename = data_filename[:-len(ext)]
                             break
                     
-                    # Try different extensions
-                    for ext in ['.txt', '.json', '.jsonl']:
+                    # Try different extensions (prioritize .pt)
+                    for ext in ['.pt', '.txt', '.json', '.jsonl']:
                         file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
-                        if os.path.exists(file_path):
+                        
+                        # For .pt files, check for multi-part files
+                        if ext == '.pt':
+                            # Check if it's a multi-part file
+                            part1_path = os.path.join(prerender_dir, f"{clean_filename}_part1.pt")
+                            if os.path.exists(part1_path):
+                                file_path = part1_path
+                            
+                            if os.path.exists(file_path) or os.path.exists(part1_path):
+                                loaded_data = self._load_large_pt_file(file_path)
+                                if loaded_data is not None:
+                                    data['prerender_data'][data_name] = loaded_data
+                                    print(f"Loaded cached prerender data: {data_name}")
+                                    break
+                        elif os.path.exists(file_path):
                             if ext == '.json':
                                 with open(file_path, 'r') as f:
                                     data['prerender_data'][data_name] = json.load(f)
@@ -446,7 +522,12 @@ class PullApplications:
                                 data['prerender_data'][data_name] = jsonl_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    data['prerender_data'][data_name] = json.loads(f.read())
+                                    content = f.read()
+                                    try:
+                                        data['prerender_data'][data_name] = json.loads(content)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, treat as plain text
+                                        data['prerender_data'][data_name] = content
                             print(f"Loaded cached prerender data: {data_name}")
                             break
                 
@@ -456,15 +537,29 @@ class PullApplications:
                     # The data_filename already includes "encoded_" prefix, so use it directly
                     # Remove extension from data_filename if present
                     clean_filename = data_filename
-                    for ext in ['.npy', '.txt', '.json', '.jsonl']:
+                    for ext in ['.pt', '.npy', '.txt', '.json', '.jsonl']:
                         if data_filename.endswith(ext):
                             clean_filename = data_filename[:-len(ext)]
                             break
                     
-                    # Try different extensions
-                    for ext in ['.npy', '.txt', '.json']:
+                    # Try different extensions (prioritize .pt and .npy)
+                    for ext in ['.pt', '.npy', '.txt', '.json']:
                         file_path = os.path.join(prerender_dir, f"{clean_filename}{ext}")
-                        if os.path.exists(file_path):
+                        
+                        # For .pt files, check for multi-part files
+                        if ext == '.pt':
+                            # Check if it's a multi-part file
+                            part1_path = os.path.join(prerender_dir, f"{clean_filename}_part1.pt")
+                            if os.path.exists(part1_path):
+                                file_path = part1_path
+                            
+                            if os.path.exists(file_path) or os.path.exists(part1_path):
+                                loaded_data = self._load_large_pt_file(file_path)
+                                if loaded_data is not None:
+                                    data['prerender_data_encoded'][data_name] = loaded_data
+                                    print(f"Loaded cached encoded prerender data: {data_name}")
+                                    break
+                        elif os.path.exists(file_path):
                             if ext == '.npy':
                                 array_data = np.load(file_path)
                                 data['prerender_data_encoded'][data_name] = torch.from_numpy(array_data)
@@ -474,7 +569,12 @@ class PullApplications:
                                 data['prerender_data_encoded'][data_name] = json_data
                             else:  # .txt files
                                 with open(file_path, 'r') as f:
-                                    text_data = json.loads(f.read())
+                                    content = f.read()
+                                    try:
+                                        text_data = json.loads(content)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, treat as plain text
+                                        text_data = content
                                 data['prerender_data_encoded'][data_name] = text_data
                             print(f"Loaded cached encoded prerender data: {data_name}")
                             break
@@ -599,6 +699,34 @@ class PullApplications:
                 return match.group(1)
         
         return None
+    
+    def _get_latest_commit_id(self, github_user, repository, branch='main'):
+        """Get the latest commit ID from GitHub API."""
+        try:
+            import urllib.request
+            import json
+            
+            # Use GitHub API to get the latest commit
+            api_url = f"https://api.github.com/repos/{github_user}/{repository}/commits/{branch}"
+            
+            # Add timeout and user agent to avoid rate limiting
+            request = urllib.request.Request(api_url)
+            request.add_header('User-Agent', 'elsciRL-Application-Downloader')
+            
+            with urllib.request.urlopen(request, timeout=10) as response:
+                data = json.loads(response.read().decode())
+                return data['sha']
+                
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                print(f"Repository {github_user}/{repository} not found or branch {branch} doesn't exist")
+            else:
+                print(f"HTTP error getting latest commit ID for {github_user}/{repository}: {e}")
+            return 'main'
+        except Exception as e:
+            print(f"Error getting latest commit ID for {github_user}/{repository}: {e}")
+            # Fallback to 'main' if API fails
+            return 'main'
     
     def _get_git_repo_dir(self, problem):
         """Get the git repository directory for a specific problem."""
@@ -824,7 +952,21 @@ class PullApplications:
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_filenames'].items():
                         prerender_path = os.path.join(prerender_dir, prerender)
-                        if os.path.exists(prerender_path):
+                        
+                        # Check for .pt files (including multi-part)
+                        if prerender.endswith('.pt'):
+                            # Check for multi-part files
+                            base_path = prerender_path.replace('.pt', '')
+                            part1_path = f"{base_path}_part1.pt"
+                            
+                            if os.path.exists(prerender_path) or os.path.exists(part1_path):
+                                if os.path.exists(part1_path):
+                                    data = self._load_large_pt_file(part1_path)
+                                else:
+                                    data = self._load_large_pt_file(prerender_path)
+                                print(f"Pulling prerender data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data'][prerender_name] = data
+                        elif os.path.exists(prerender_path):
                             if prerender.endswith(('.txt', '.json', '.jsonl')):
                                 if prerender.endswith('.jsonl'):
                                     data = {}
@@ -838,7 +980,12 @@ class PullApplications:
                                         data = json.load(f)
                                 elif prerender.endswith('.txt'):
                                     with open(prerender_path, 'r') as f:
-                                        data = json.loads(f.read())
+                                        content = f.read()
+                                        try:
+                                            data = json.loads(content)
+                                        except json.JSONDecodeError:
+                                            # If not valid JSON, treat as plain text
+                                            data = content
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender data: {prerender}")
                                 print(f"Pulling prerender data for {prerender_name}...")
@@ -850,7 +997,21 @@ class PullApplications:
                 try:
                     for prerender_name, prerender in self.imports[problem]['prerender_data_encoded_filenames'].items():
                         prerender_path = os.path.join(prerender_dir, prerender)
-                        if os.path.exists(prerender_path):
+                        
+                        # Check for .pt files (including multi-part)
+                        if prerender.endswith('.pt'):
+                            # Check for multi-part files
+                            base_path = prerender_path.replace('.pt', '')
+                            part1_path = f"{base_path}_part1.pt"
+                            
+                            if os.path.exists(prerender_path) or os.path.exists(part1_path):
+                                if os.path.exists(part1_path):
+                                    data = self._load_large_pt_file(part1_path)
+                                else:
+                                    data = self._load_large_pt_file(prerender_path)
+                                print(f"Pulling prerender encoded data for {prerender_name}...")
+                                self.current_test[problem]['prerender_data_encoded'][prerender_name] = data
+                        elif os.path.exists(prerender_path):
                             if prerender.endswith(('.txt', '.json', '.jsonl', '.npy')):
                                 if prerender.endswith('.npy'):
                                     # Direct numpy file - convert to tensor
@@ -872,7 +1033,12 @@ class PullApplications:
                                 elif prerender.endswith('.txt'):
                                     # If not numeric, load as text
                                     with open(prerender_path, 'r') as f:
-                                        data = json.loads(f.read())
+                                        content = f.read()
+                                        try:
+                                            data = json.loads(content)
+                                        except json.JSONDecodeError:
+                                            # If not valid JSON, treat as plain text
+                                            data = content
                                 else:
                                     raise ValueError(f"Unsupported file format for prerender encoded data: {prerender}")
                                 print(f"Pulling prerender encoded data for {prerender_name}...")
@@ -1013,6 +1179,34 @@ class PullApplications:
         except Exception as e:
             print(f"Failed to clear cache: {e}")
     
+    def clear_corrupted_cache(self, problem=None):
+        """Clear cache files that have JSON parsing errors."""
+        try:
+            if problem:
+                # Check specific problem cache
+                cache_dir = self._get_cache_dir(problem)
+                metadata_file = self._get_cache_metadata_file(problem)
+                
+                if os.path.exists(metadata_file):
+                    try:
+                        with open(metadata_file, 'r') as f:
+                            json.load(f)
+                        print(f"Cache metadata for {problem} is valid")
+                    except json.JSONDecodeError as e:
+                        print(f"Cache metadata for {problem} is corrupted: {e}")
+                        if os.path.exists(cache_dir):
+                            import shutil
+                            shutil.rmtree(cache_dir)
+                            print(f"Cleared corrupted cache for {problem}")
+            else:
+                # Check all cache files
+                if os.path.exists(self.cache_dir):
+                    for problem_dir in os.listdir(self.cache_dir):
+                        if os.path.isdir(os.path.join(self.cache_dir, problem_dir)):
+                            self.clear_corrupted_cache(problem_dir)
+        except Exception as e:
+            print(f"Failed to clear corrupted cache: {e}")
+    
     def get_cache_info(self):
         """Get information about cached data."""
         try:
@@ -1055,7 +1249,108 @@ class PullApplications:
             self.clear_cache()  # Clear all cache
         
         return self.pull(problem_selection)
+    
+    def check_for_updates(self, problem: str):
+        """Check if an application has updates available."""
+        if problem not in self.imports:
+            return {'has_updates': False, 'error': f"Application '{problem}' not found"}
         
+        source_data = self.imports[problem]
+        commit_id = source_data.get('commit_id', 'main')
+        
+        # If commit_id is '*', get the latest commit
+        if commit_id == '*':
+            try:
+                github_user = source_data['github_user']
+                repository = source_data['repository']
+                commit_id = self._get_latest_commit_id(github_user, repository)
+            except Exception as e:
+                return {'has_updates': False, 'error': f"Failed to get latest commit: {e}"}
+        
+        # Check if repository exists
+        repo_dir = self._get_git_repo_dir(problem)
+        if not os.path.exists(repo_dir):
+            return {'has_updates': False, 'error': 'Repository not found locally'}
+        
+        # Check for updates
+        try:
+            has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+            if has_updates is False and current_commit is None:
+                # This means there was an error checking for updates
+                return {'has_updates': False, 'error': 'Failed to check for updates'}
+            
+            return {
+                'has_updates': has_updates,
+                'current_commit': current_commit,
+                'remote_commit': remote_commit,
+                'current_commit_short': current_commit[:7] if current_commit else None,
+                'remote_commit_short': remote_commit[:7] if remote_commit else None
+            }
+        except Exception as e:
+            return {'has_updates': False, 'error': f"Error checking updates: {e}"}
+
+    def download_application(self, problem: str, force_update: bool = False):
+        """Download a specific application and cache it locally."""
+        if problem not in self.imports:
+            raise ValueError(f"Application '{problem}' not found in available applications")
+        
+        source_data = self.imports[problem]
+        github_user = source_data['github_user']
+        repository = source_data['repository']
+        commit_id = source_data.get('commit_id', 'main')
+        
+        print(f"Downloading application: {problem}")
+        print(f"Repository: {github_user}/{repository}")
+        print(f"Commit: {commit_id}")
+        
+        try:
+            # Clone or update the repository
+            if commit_id == '*':
+                # Get the latest commit
+                print(f"Getting latest commit for {github_user}/{repository}...")
+                commit_id = self._get_latest_commit_id(github_user, repository)
+                print(f"Using commit: {commit_id}")
+            
+            # Check if repository exists and is up to date
+            repo_dir = self._get_git_repo_dir(problem)
+            if not os.path.exists(repo_dir):
+                print(f"Cloning repository for {problem}...")
+                if not self._clone_repository(problem, github_user, repository, commit_id):
+                    print(f"Failed to clone repository for {problem}")
+                    return False
+            else:
+                # Check for updates if not forcing
+                if not force_update:
+                    has_updates, current_commit, remote_commit = self._check_repository_updates(problem, commit_id)
+                    if has_updates:
+                        print(f"Updates available for {problem}: {current_commit[:7]} -> {remote_commit[:7]}")
+                        # Return update info instead of proceeding
+                        return {
+                            'needs_confirmation': True,
+                            'current_commit': current_commit,
+                            'remote_commit': remote_commit,
+                            'current_commit_short': current_commit[:7],
+                            'remote_commit_short': remote_commit[:7]
+                        }
+                
+                print(f"Updating repository for {problem}...")
+                update_result = self._update_repository(problem, commit_id)
+                if not update_result or (isinstance(update_result, tuple) and not update_result[0]):
+                    print(f"Failed to update repository for {problem}")
+                    return False
+            
+            # Pull fresh data and cache it
+            print(f"Processing and caching data for {problem}...")
+            self._pull_fresh_data(problem, commit_id, source_data)
+            
+            print(f"Successfully downloaded and cached {problem}")
+            return True
+            
+        except Exception as e:
+            print(f"Error downloading {problem}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
         
     def pull(self, problem_selection:list=[]):
         # Pull all problems if none are selected

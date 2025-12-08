@@ -57,6 +57,14 @@ class Evaluation:
         sub_folders = [name for name in os.listdir(save_dir) if os.path.isdir(os.path.join(save_dir, name))]
         sub_folders = [name for name in sub_folders if ('train' in name)]
         sub_folders.sort()
+        
+        # Check if there are any training folders to analyze
+        if not sub_folders:
+            print("\n[Info] No training result folders found for variance report.")
+            print(f"       Searched in: {save_dir}")
+            print("       Looking for folders containing 'train' in the name.")
+            return
+        
         results = {}
         current_list = []
         prior_agent_type = '_'.join(sub_folders[0].split('_')[:-1])
